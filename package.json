@@ -1,0 +1,69 @@
+{
+  "name": "@metric/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for interacting with Metric AMM contracts",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./abis": {
+      "import": "./dist/abis/index.js",
+      "types": "./dist/abis/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist artifacts cache",
+    "test": "hardhat test",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "metric",
+    "omm",
+    "dex",
+    "ethereum",
+    "viem",
+    "sdk",
+    "defi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metric-OMM/metric-sdk.git"
+  },
+  "homepage": "https://github.com/Metric-OMM/metric-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/Metric-OMM/metric-sdk/issues"
+  },
+  "dependencies": {
+    "viem": "^2.41.2"
+  },
+  "peerDependencies": {
+    "viem": "^2.x"
+  },
+  "devDependencies": {
+    "@metric/core": "*",
+    "@metric/periphery": "*",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
+    "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.1",
+    "@nomicfoundation/hardhat-viem-assertions": "^3.0.4",
+    "@types/node": "^22.18.8",
+    "hardhat": "^3.0.17",
+    "typescript": "~5.8.0"
+  }
+}
