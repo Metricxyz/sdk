@@ -43,20 +43,35 @@ console.log(`Current Bin: ${slot0.curBinIdx}`);
 
 ### Prerequisites
 
-This SDK depends on `@metric/core` and `@metric/periphery` packages. For local development, use npm link:
+This SDK depends on `@metric/core` and `@metric/periphery` from private GitHub repositories.
+
+Make sure your machine has access to:
+
+- `git@github.com:Metric-OMM/metric-core.git`
+- `git@github.com:Metric-OMM/metric-periphery.git`
+
+Dependencies are pinned to exact commit SHAs in [package.json](package.json), so installs are reproducible and do not move with new upstream commits.
+
+Install dependencies with:
 
 ```bash
-# In metric-core directory:
-cd /path/to/metric-core
-npm link
-
-# In metric-periphery directory:
-cd /path/to/metric-periphery
-npm link
-
-# In this SDK directory:
-npm link @metric/core @metric/periphery
 npm install
+```
+
+After install, `postinstall` runs automatically and will:
+
+1. compile pinned contracts from `@metric/core` and `@metric/periphery` via Hardhat,
+2. extract and update SDK ABIs for:
+
+- `MetricOmmPool`
+- `MetricOmmPoolFactory`
+- `MetricOmmPoolStateView`
+- `MetricOmmSwapRouter`
+
+If you need to regenerate them manually, run:
+
+```bash
+npm run sync:abis
 ```
 
 ### Running Tests

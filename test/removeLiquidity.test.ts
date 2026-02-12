@@ -1,11 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { network } from "hardhat";
-import { parseUnits, decodeEventLog, type Address } from "viem";
+import { parseUnits } from "viem";
 import * as sdk from "../index.js";
+import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 
 describe("SDK Remove Liquidity", async () => {
-  const { viem, networkHelpers } = await network.connect("hardhat");
+  const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
 
   async function deployFixture() {
@@ -65,13 +66,7 @@ describe("SDK Remove Liquidity", async () => {
       hash: createHash,
     });
 
-    const poolCreatedLog = createReceipt.logs[0];
-    const decodedLog = decodeEventLog({
-      abi: sdk.MetricOmmPoolFactoryAbi,
-      data: poolCreatedLog.data,
-      topics: poolCreatedLog.topics,
-    });
-    const poolAddress = (decodedLog.args as { pool: Address }).pool;
+    const poolAddress = getPoolAddressFromCreateReceipt(createReceipt.logs);
 
     return {
       publicClient,

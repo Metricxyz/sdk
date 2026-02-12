@@ -1,11 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { network } from "hardhat";
-import { parseUnits, decodeEventLog, type Address } from "viem";
+import { parseUnits } from "viem";
 import * as sdk from "../index.js";
+import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 
 describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () => {
-  const { viem } = await network.connect("hardhat");
+  const { viem } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
 
   it("should add liquidity to a position using prepared calldata", async () => {
@@ -71,14 +72,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       "Pool creation should succeed",
     );
 
-    // Extract pool address from logs using decodeEventLog
-    const poolCreatedLog = createReceipt.logs[0];
-    const decodedLog = decodeEventLog({
-      abi: sdk.MetricOmmPoolFactoryAbi,
-      data: poolCreatedLog.data,
-      topics: poolCreatedLog.topics,
-    });
-    const poolAddress = (decodedLog.args as { pool: Address }).pool;
+    const poolAddress = getPoolAddressFromCreateReceipt(createReceipt.logs);
 
     const mintAmount0 = parseUnits("1000", 18);
     const mintAmount1 = parseUnits("1000", 6);
@@ -274,8 +268,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     const createReceipt = await publicClient.waitForTransactionReceipt({
       hash: createHash,
     });
-    const poolAddress =
-      `0x${createReceipt.logs[0].topics[1]?.slice(-40)}` as Address;
+    const poolAddress = getPoolAddressFromCreateReceipt(createReceipt.logs);
 
     const mintAmount0 = parseUnits("2000", 18);
     const mintAmount1 = parseUnits("2000", 6);

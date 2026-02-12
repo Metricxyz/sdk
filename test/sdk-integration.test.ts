@@ -21,7 +21,7 @@ import MetricOmmPoolStateViewArtifact from "../artifacts/@metric/core/contracts/
 import MetricOmmSwapRouterArtifact from "../artifacts/@metric/periphery/contracts/MetricOmmSwapRouter.sol/MetricOmmSwapRouter.json" with { type: "json" };
 
 describe("SDK Integration Tests", async function () {
-  const { viem, networkHelpers } = await network.connect("hardhat");
+  const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
 
   async function setupTestEnvironment() {
@@ -422,12 +422,12 @@ describe("SDK Integration Tests", async function () {
         address: token0.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: user2 },
-      });
+      }) as any;
       const token1User2 = getContract({
         address: token1.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: user2 },
-      });
+      }) as any;
 
       await token0User2.write.approve([
         pool.address,
@@ -799,12 +799,12 @@ describe("SDK Integration Tests", async function () {
         address: token0.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: user2 },
-      });
+      }) as any;
       const token1User2 = getContract({
         address: token1.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: user2 },
-      });
+      }) as any;
 
       await token0User2.write.approve([
         pool.address,
@@ -1241,13 +1241,13 @@ describe("SDK Integration Tests", async function () {
         address: token0Deployment.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: deployer },
-      });
+      }) as any;
 
       const token1 = getContract({
         address: token1Deployment.address,
         abi: MockERC20Artifact.abi,
         client: { public: publicClient, wallet: deployer },
-      });
+      }) as any;
 
       // Mint tokens
       await token0.write.mint([
@@ -1277,7 +1277,7 @@ describe("SDK Integration Tests", async function () {
         address: priceProviderDeployment.address,
         abi: MockOracleArtifact.abi,
         client: { public: publicClient, wallet: deployer },
-      });
+      }) as any;
 
       const q64Price = sdk.priceToQ64(1.0);
       await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);

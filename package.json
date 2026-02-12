@@ -24,9 +24,12 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist artifacts cache",
+    "sync:contracts": "npx hardhat build --force",
+    "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
     "test": "hardhat test",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
+    "postinstall": "npm run sync:abis",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
@@ -55,8 +58,8 @@
     "viem": "^2.x"
   },
   "devDependencies": {
-    "@metric/core": "*",
-    "@metric/periphery": "*",
+    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#979d9c44724f23ef9f90ec13e7ce014d84c19af5",
+    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#5ee14c61187dabc6cf3dfce998aff120fa5b3504",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
