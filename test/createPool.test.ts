@@ -3,13 +3,15 @@ import assert from "node:assert";
 import { network } from "hardhat";
 import { parseUnits, getContract, type Address } from "viem";
 import * as sdk from "../index.js";
+import { getPoolCreationCode } from "./shared/poolCreationCode.js";
 
 describe("SDK createPool", async () => {
-  const { viem, networkHelpers } = await network.connect("hardhat");
+  const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
 
   async function setupEnvironment() {
     const publicClient = await viem.getPublicClient();
+    const { poolCreationCode, poolCreationCodeHash } = await getPoolCreationCode();
 
     // Deploy tokens
     const token0 = await viem.deployContract("MockERC20", [
@@ -32,6 +34,7 @@ describe("SDK createPool", async () => {
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       deployer.account.address, // owner
       100_000, // 10% default protocol fee
+      poolCreationCodeHash,
     ]);
 
     // Deploy pool deployer with factory address
@@ -49,6 +52,7 @@ describe("SDK createPool", async () => {
       token1,
       priceProvider,
       factory,
+      poolCreationCode,
     };
   }
 
@@ -98,7 +102,9 @@ describe("SDK createPool", async () => {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
+        reportSwapToPriceProvider: false,
         admin: deployer.account.address,
+        adminFeeDestination: deployer.account.address,
         nonNegativeBins: sdk.createUniformBins(10, 10_000),
         negativeBins: sdk.createUniformBins(10, 10_000),
         adminFeePercent: 5.0,
@@ -133,7 +139,7 @@ describe("SDK createPool", async () => {
 
   describe("createPool via factory using encodeCreatePoolCalldata", () => {
     it("should create a pool successfully using encoded calldata", async () => {
-      const { publicClient, token0, token1, priceProvider, factory } =
+      const { publicClient, token0, token1, priceProvider, factory, poolCreationCode } =
         await networkHelpers.loadFixture(setupEnvironment);
 
       const poolConfig: sdk.CreatePoolFactoryParams = {
@@ -141,8 +147,10 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
-        nonNegativeBins: sdk.createUniformBins(20, 10_000),
-        negativeBins: sdk.createUniformBins(20, 10_000),
+        reportSwapToPriceProvider: false,
+        adminFeeDestination: deployer.account.address,
+        nonNegativeBins: sdk.createUniformBins(10, 10_000),
+        negativeBins: sdk.createUniformBins(10, 10_000),
         maxDriftPercent: 5.0,
         driftDecayPerSecondPercent: 0.001,
         adminFeePercent: 5.0,
@@ -150,6 +158,7 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
+        poolCreationCode,
       };
 
       // Use encodeCreatePoolCalldata to prepare the calldata
@@ -176,7 +185,7 @@ describe("SDK createPool", async () => {
     });
 
     it("should create a pool with custom bins using calldata", async () => {
-      const { publicClient, token0, token1, priceProvider, factory } =
+      const { publicClient, token0, token1, priceProvider, factory, poolCreationCode } =
         await networkHelpers.loadFixture(setupEnvironment);
 
       // Create custom bin configuration:
@@ -199,6 +208,7 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
+        reportSwapToPriceProvider: false,
         nonNegativeBins,
         negativeBins,
         adminFeePercent: 2.5,
@@ -209,6 +219,7 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
+        poolCreationCode,
       };
 
       // Encode calldata
@@ -227,7 +238,7 @@ describe("SDK createPool", async () => {
     });
 
     it("should create a pool using createBins (E6 format) via calldata", async () => {
-      const { publicClient, token0, token1, priceProvider, factory } =
+      const { publicClient, token0, token1, priceProvider, factory, poolCreationCode } =
         await networkHelpers.loadFixture(setupEnvironment);
 
       const poolConfig: sdk.CreatePoolFactoryParams = {
@@ -235,6 +246,8 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
+        reportSwapToPriceProvider: false,
+        adminFeeDestination: deployer.account.address,
         // Using createBins with BinData (E6 values)
         nonNegativeBins: sdk.createBins([
           { lengthE6: 5000, addFeeBuyE6: 0, addFeeSellE6: 0 }, // 0.5% bin
@@ -251,6 +264,7 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
+        poolCreationCode,
       };
 
       // Encode calldata
@@ -273,7 +287,7 @@ describe("SDK createPool", async () => {
 
   describe("encodeCreatePoolCalldata", () => {
     it("should encode calldata for external use", async () => {
-      const { token0, token1, priceProvider } =
+      const { token0, token1, priceProvider, poolCreationCode } =
         await networkHelpers.loadFixture(setupEnvironment);
 
       const calldata = sdk.encodeCreatePoolCalldata({
@@ -281,6 +295,8 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
+        reportSwapToPriceProvider: false,
+        adminFeeDestination: deployer.account.address,
         nonNegativeBins: sdk.createUniformBins(10, 10000),
         negativeBins: sdk.createUniformBins(10, 10000),
         maxDriftPercent: 5.0,
@@ -290,6 +306,7 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
+        poolCreationCode,
       });
 
       assert.ok(calldata.startsWith("0x"));

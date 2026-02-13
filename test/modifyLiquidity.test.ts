@@ -4,6 +4,7 @@ import { network } from "hardhat";
 import { parseUnits } from "viem";
 import * as sdk from "../index.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
+import { getPoolCreationCode } from "./shared/poolCreationCode.js";
 
 describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
@@ -11,6 +12,8 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
 
   it("should add liquidity to a position using prepared calldata", async () => {
     const publicClient = await viem.getPublicClient();
+    const { poolCreationCode, poolCreationCodeHash } =
+      await getPoolCreationCode();
 
     const token0 = await viem.deployContract("MockERC20", [
       "Token 0",
@@ -31,6 +34,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       deployer.account.address,
       defaultProtocolFee,
+      poolCreationCodeHash,
     ]);
     const deployer_contract = await viem.deployContract(
       "MetricOmmPoolDeployer",
@@ -45,6 +49,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
+      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminFeePercent: 0.5,
@@ -56,6 +61,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       minimalMintableLiquidity: 1000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
+      poolCreationCode,
     };
 
     const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);
@@ -213,6 +219,8 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
 
   it("should create separate positions with different salts using prepared calldata", async () => {
     const publicClient = await viem.getPublicClient();
+    const { poolCreationCode, poolCreationCodeHash } =
+      await getPoolCreationCode();
 
     const token0 = await viem.deployContract("MockERC20", [
       "Token 0",
@@ -233,6 +241,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       deployer.account.address,
       defaultProtocolFee,
+      poolCreationCodeHash,
     ]);
     const deployer_contract = await viem.deployContract(
       "MetricOmmPoolDeployer",
@@ -247,6 +256,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
+      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminFeePercent: 0.5,
@@ -258,6 +268,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       minimalMintableLiquidity: 1000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
+      poolCreationCode,
     };
 
     const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);

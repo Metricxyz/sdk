@@ -21,6 +21,8 @@ import { createUniformBins } from "../utils/binData.js";
  * ```typescript
  * const params: CreatePoolFactoryParams = {
  *   token0, token1, priceProvider, admin,
+ *   reportSwapToPriceProvider: false,
+ *   adminFeeDestination: admin,
  *   nonNegativeBins: createBins([
  *     { length: 10000, addFeeBuy: 500 },  // 1% bin with +0.05% buy fee
  *     { length: 10000 },                   // 1% bin, no extra fees
@@ -63,6 +65,9 @@ export interface CreatePoolFactoryParams {
   /** Minimum liquidity that can be minted */
   minimalMintableLiquidity: bigint;
 
+  /** Whether swaps should be reported to the price provider */
+  reportSwapToPriceProvider: boolean;
+
   /** Maximum allowed drift in percentage (e.g., 5.0 = 5%) */
   maxDriftPercent: number;
   /** Drift decay rate per second in percentage (e.g., 0.01 = 0.01%/s) */
@@ -71,14 +76,25 @@ export interface CreatePoolFactoryParams {
   /** Admin fee as percentage of swap fees (e.g., 5.0 = 5%) */
   adminFeePercent: number;
 
-  /** Address to receive admin fees (defaults to admin if not provided) */
-  adminFeeDestination?: Address;
+  /** Address to receive admin fees */
+  adminFeeDestination: Address;
 
   /** Initial left end of bin distance from price provider price */
   curBinDistFromProvidedPricePercent: number;
 
   /** Salt for deterministic pool address (default: random) */
   salt?: Hex;
+
+  /**
+   * Optional pool creation bytecode passed to factory `createPool`.
+   * Required by factory variants where PoolParameters includes `poolCreationCode`.
+   */
+  poolCreationCode?: Hex;
+
+  /**
+   * @deprecated Use `poolCreationCode` instead.
+   */
+  poolInitCode?: Hex;
 }
 
 /**
@@ -112,6 +128,7 @@ export function prepareFactoryCreatePoolParams(
   initialToken0DensityPerLiquidityE18: bigint;
   initialToken1DensityPerLiquidityE18: bigint;
   minimalMintableLiquidity: bigint;
+  reportSwapToPriceProvider: boolean;
   maxDriftE8: bigint;
   driftDecayPerSecondE8: bigint;
   adminFee: number;
@@ -120,6 +137,7 @@ export function prepareFactoryCreatePoolParams(
   nonNegativeBinDataArray: bigint[];
   negativeBinDataArray: bigint[];
   salt: Hex;
+  poolCreationCode?: Hex;
 } {
   const maxDriftE8 = BigInt(Math.round(params.maxDriftPercent * 1_000_000));
   const driftDecayPerSecondE8 = BigInt(
@@ -137,6 +155,7 @@ export function prepareFactoryCreatePoolParams(
     (`0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join("")}` as Hex);
 
   return {
+    poolCreationCode: params.poolCreationCode ?? params.poolInitCode ?? ("0x" as Hex),
     token0: params.token0,
     token1: params.token1,
     priceProvider: params.priceProvider,
@@ -144,10 +163,11 @@ export function prepareFactoryCreatePoolParams(
     initialToken0DensityPerLiquidityE18: params.initialToken0PerShare,
     initialToken1DensityPerLiquidityE18: params.initialToken1PerShare,
     minimalMintableLiquidity: params.minimalMintableLiquidity,
+    reportSwapToPriceProvider: params.reportSwapToPriceProvider,
     maxDriftE8,
     driftDecayPerSecondE8,
     adminFee,
-    adminFeeDestination: params.adminFeeDestination ?? params.admin,
+    adminFeeDestination: params.adminFeeDestination,
     curBinDistFromProvidedPriceE6,
     nonNegativeBinDataArray: params.nonNegativeBins,
     negativeBinDataArray: params.negativeBins,
@@ -170,6 +190,8 @@ export function prepareFactoryCreatePoolParams(
  *     token1: "0x...",
  *     priceProvider: "0x...",
  *     admin: "0x...",
+ *     reportSwapToPriceProvider: false,
+ *     adminFeeDestination: "0x...",
  *     // 10 bins on each side, each covering 1% price range
  *     nonNegativeBins: createUniformBins(10, 10000),
  *     negativeBins: createUniformBins(10, 10000),
@@ -194,12 +216,13 @@ export async function createPool(
   account: Address,
 ): Promise<{ hash: Hex; poolAddress?: Address }> {
   const factoryParams = prepareFactoryCreatePoolParams(params);
+  const args = buildCreatePoolArgs(factoryParams);
 
   const { request, result } = await publicClient.simulateContract({
     address: factoryAddress,
     abi: POOL_FACTORY_ABI,
     functionName: "createPool",
-    args: [factoryParams],
+    args,
     account,
   });
 
@@ -216,12 +239,28 @@ export async function createPool(
  */
 export function encodeCreatePoolCalldata(params: CreatePoolFactoryParams): Hex {
   const factoryParams = prepareFactoryCreatePoolParams(params);
+  const args = buildCreatePoolArgs(factoryParams);
 
   return encodeFunctionData({
     abi: POOL_FACTORY_ABI,
     functionName: "createPool",
-    args: [factoryParams],
+    args,
   });
+}
+
+function buildCreatePoolArgs(factoryParams: unknown): unknown[] {
+  const createPoolAbi = (POOL_FACTORY_ABI as readonly any[]).find(
+    (item) => item?.type === "function" && item?.name === "createPool",
+  );
+
+  const inputCount = createPoolAbi?.inputs?.length ?? 1;
+
+  // Legacy/newer one-arg variant: createPool((PoolParameters))
+  if (inputCount === 1) {
+    return [factoryParams];
+  }
+
+  throw new Error("Unsupported createPool ABI shape");
 }
 
 /**

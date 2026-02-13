@@ -13,7 +13,7 @@ const config: HardhatUserConfig = {
     hardhatNetworkHelpers,
   ],
   solidity: {
-    version: "0.8.29",
+    version: "0.8.33",
     settings: {
       viaIR: true,
       evmVersion: "cancun",

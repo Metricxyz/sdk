@@ -10,10 +10,20 @@ export const MetricOmmPoolFactoryAbi = [
         "internalType": "uint24",
         "name": "initialprotocolFee",
         "type": "uint24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_poolCreationCodeHash",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidPoolCreationCodeHash",
+    "type": "error"
   },
   {
     "inputs": [],
@@ -266,6 +276,11 @@ export const MetricOmmPoolFactoryAbi = [
       {
         "components": [
           {
+            "internalType": "bytes",
+            "name": "poolCreationCode",
+            "type": "bytes"
+          },
+          {
             "internalType": "address",
             "name": "token0",
             "type": "address"
@@ -299,6 +314,11 @@ export const MetricOmmPoolFactoryAbi = [
             "internalType": "uint104",
             "name": "minimalMintableLiquidity",
             "type": "uint104"
+          },
+          {
+            "internalType": "bool",
+            "name": "reportSwapToPriceProvider",
+            "type": "bool"
           },
           {
             "internalType": "uint256",
@@ -378,6 +398,19 @@ export const MetricOmmPoolFactoryAbi = [
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolCreationCodeHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",

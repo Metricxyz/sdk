@@ -80,6 +80,7 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
       parseUnits("1", 18),
       parseUnits("1", 18),
       1000n,
+      false,
       50000n,
       1n,
       10000,

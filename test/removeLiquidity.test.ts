@@ -4,6 +4,7 @@ import { network } from "hardhat";
 import { parseUnits } from "viem";
 import * as sdk from "../index.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
+import { getPoolCreationCode } from "./shared/poolCreationCode.js";
 
 describe("SDK Remove Liquidity", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -11,6 +12,8 @@ describe("SDK Remove Liquidity", async () => {
 
   async function deployFixture() {
     const publicClient = await viem.getPublicClient();
+    const { poolCreationCode, poolCreationCodeHash } =
+      await getPoolCreationCode();
 
     const token0 = await viem.deployContract("MockERC20", [
       "Token 0",
@@ -31,6 +34,7 @@ describe("SDK Remove Liquidity", async () => {
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       deployer.account.address,
       defaultProtocolFee,
+      poolCreationCodeHash,
     ]);
     const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [
       factory.address,
@@ -43,6 +47,7 @@ describe("SDK Remove Liquidity", async () => {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
+      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminFeePercent: 0.5,
@@ -54,6 +59,7 @@ describe("SDK Remove Liquidity", async () => {
       minimalMintableLiquidity: 1000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
+      poolCreationCode,
     };
 
     // Create pool using calldata

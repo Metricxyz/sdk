@@ -11,14 +11,17 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { network } from "hardhat";
 import * as sdk from "../index.js";
+import { getPoolCreationCode } from "./shared/poolCreationCode.js";
 
 describe("Factory Deployment Flow", async () => {
-  const { viem, networkHelpers } = await network.connect("hardhat");
+  const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
   const [owner] = await viem.getWalletClients();
 
   async function deployFactoryInfrastructure() {
     const publicClient = await viem.getPublicClient();
     const [ownerClient, adminClient] = await viem.getWalletClients();
+    const { poolCreationCode, poolCreationCodeHash } =
+      await getPoolCreationCode();
 
     // Deploy mock tokens
     const token0 = await viem.deployContract("MockERC20", [
@@ -42,6 +45,7 @@ describe("Factory Deployment Flow", async () => {
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       ownerClient.account.address,
       defaultProtocolFee,
+      poolCreationCodeHash,
     ]);
 
     // Deploy pool deployer with factory address
@@ -61,6 +65,7 @@ describe("Factory Deployment Flow", async () => {
       priceProvider,
       poolDeployer,
       factory,
+      poolCreationCode,
     };
   }
 
@@ -75,7 +80,7 @@ describe("Factory Deployment Flow", async () => {
     assert.ok(factory.address, "Factory should be deployed");
 
     // Check pool deployer is linked to factory
-    const factoryInDeployer = await poolDeployer.read.factory();
+    const factoryInDeployer = (await poolDeployer.read.factory()) as any;
     assert.equal(
       factoryInDeployer.toLowerCase(),
       factory.address.toLowerCase(),
@@ -83,7 +88,7 @@ describe("Factory Deployment Flow", async () => {
     );
 
     // Check factory ownership
-    const factoryOwner = await factory.read.owner();
+    const factoryOwner = (await factory.read.owner()) as any;
     assert.equal(
       factoryOwner.toLowerCase(),
       ownerClient.account.address.toLowerCase(),
@@ -96,7 +101,15 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should create a pool via factory using SDK calldata", async () => {
-    const { publicClient, factory, token0, token1, priceProvider, admin } =
+    const {
+      publicClient,
+      factory,
+      token0,
+      token1,
+      priceProvider,
+      admin,
+      poolCreationCode,
+    } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
     const [walletClient] = await viem.getWalletClients();
 
@@ -106,6 +119,7 @@ describe("Factory Deployment Flow", async () => {
       token1: token1.address,
       priceProvider: priceProvider.address,
       admin: admin.account.address,
+      reportSwapToPriceProvider: false,
 
       // 10 bins on each side, 1% each
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
@@ -120,6 +134,7 @@ describe("Factory Deployment Flow", async () => {
       initialToken1PerShare: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
+      poolCreationCode,
     };
 
     // Use encodeCreatePoolCalldata to prepare calldata
@@ -146,7 +161,7 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should encode pool creation calldata correctly", async () => {
-    const { token0, token1, priceProvider, admin } =
+    const { token0, token1, priceProvider, admin, poolCreationCode } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
     const poolConfig: sdk.CreatePoolFactoryParams = {
@@ -154,6 +169,8 @@ describe("Factory Deployment Flow", async () => {
       token1: token1.address,
       priceProvider: priceProvider.address,
       admin: admin.account.address,
+      reportSwapToPriceProvider: false,
+      adminFeeDestination: admin.account.address,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
       maxDriftPercent: 5.0,
@@ -163,6 +180,7 @@ describe("Factory Deployment Flow", async () => {
       initialToken1PerShare: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
+      poolCreationCode,
     };
 
     // Test calldata encoding (useful for multisig/batch transactions)
@@ -187,32 +205,16 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should only allow factory to deploy pools via deployer", async () => {
-    const { poolDeployer, token0, token1, priceProvider, admin } =
-      await networkHelpers.loadFixture(deployFactoryInfrastructure);
+    const { poolDeployer } = await networkHelpers.loadFixture(
+      deployFactoryInfrastructure,
+    );
 
     // Try to call deploy directly on deployer (not from factory)
     await assert.rejects(
       async () => {
         await poolDeployer.write.deploy([
-          {
-            salt: "0x0000000000000000000000000000000000000000000000000000000000000001" as `0x${string}`,
-            factory: poolDeployer.address,
-            admin: admin.account.address,
-            token0: token0.address,
-            token1: token1.address,
-            priceProvider: priceProvider.address,
-            initialToken0DensityPerLiquidityE18: 1000000000000000000n,
-            initialToken1DensityPerLiquidityE18: 1000000000000000000n,
-            minimalMintableLiquidity: 1000n,
-            maxDriftE8: 5000000n,
-            driftDecayPerSecondE8: 1000n,
-            protocolFee: 100000,
-            adminFee: 0,
-            adminFeeDestination: admin.account.address,
-            curBinDistFromProvidedPriceE6: 0,
-            nonNegativeBinDataArray: [],
-            negativeBinDataArray: [],
-          },
+          "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "0x00",
         ]);
       },
       { message: /OnlyFactory/ },

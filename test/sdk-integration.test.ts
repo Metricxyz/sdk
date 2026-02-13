@@ -74,6 +74,7 @@ describe("SDK Integration Tests", async function () {
       parseUnits("1", 18), // initialScaledAmount0PerShareE18
       parseUnits("1", 18), // initialScaledAmount1PerShareE18
       1000n, // minimalMintableLiquidity
+      false, // reportSwapToPriceProvider
       50000n, // maxDriftE8 - 5%
       1n, // driftDecayPerSecondE8
       10000, // protocolFee - 1%
@@ -1318,6 +1319,7 @@ describe("SDK Integration Tests", async function () {
         parseUnits("1", 18), // initialScaledAmount0PerShareE18
         parseUnits("1", 18), // initialScaledAmount1PerShareE18
         1000n, // minimalMintableLiquidity
+        false, // reportSwapToPriceProvider
         50000n, // maxDriftE8
         1n, // driftDecayPerSecondE8
         10000, // protocolFee

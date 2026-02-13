@@ -42,6 +42,11 @@ export const MetricOmmPoolAbi = [
         "type": "uint104"
       },
       {
+        "internalType": "bool",
+        "name": "reportSwapToPriceProvider",
+        "type": "bool"
+      },
+      {
         "internalType": "uint256",
         "name": "maxDriftE8",
         "type": "uint256"
@@ -699,6 +704,11 @@ export const MetricOmmPoolAbi = [
         "internalType": "uint104",
         "name": "minimalMintableLiquidity",
         "type": "uint104"
+      },
+      {
+        "internalType": "bool",
+        "name": "reportSwapToPriceProvider",
+        "type": "bool"
       },
       {
         "internalType": "uint256",
