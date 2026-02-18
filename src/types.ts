@@ -101,8 +101,8 @@ export interface Slot0 {
 }
 
 export interface Slot1 {
-  performanceFeeAmount0: bigint;
-  performanceFeeAmount1: bigint;
+  totalScaledToken0InBins: bigint;
+  totalScaledToken1InBins: bigint;
 }
 
 export interface FeeConfig {

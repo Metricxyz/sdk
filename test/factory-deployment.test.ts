@@ -11,7 +11,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { network } from "hardhat";
 import * as sdk from "../index.js";
-import { getPoolCreationCode } from "./shared/poolCreationCode.js";
 
 describe("Factory Deployment Flow", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -20,8 +19,6 @@ describe("Factory Deployment Flow", async () => {
   async function deployFactoryInfrastructure() {
     const publicClient = await viem.getPublicClient();
     const [ownerClient, adminClient] = await viem.getWalletClients();
-    const { poolCreationCode, poolCreationCodeHash } =
-      await getPoolCreationCode();
 
     // Deploy mock tokens
     const token0 = await viem.deployContract("MockERC20", [
@@ -45,7 +42,6 @@ describe("Factory Deployment Flow", async () => {
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       ownerClient.account.address,
       defaultProtocolFee,
-      poolCreationCodeHash,
     ]);
 
     // Deploy pool deployer with factory address
@@ -65,7 +61,6 @@ describe("Factory Deployment Flow", async () => {
       priceProvider,
       poolDeployer,
       factory,
-      poolCreationCode,
     };
   }
 
@@ -101,15 +96,7 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should create a pool via factory using SDK calldata", async () => {
-    const {
-      publicClient,
-      factory,
-      token0,
-      token1,
-      priceProvider,
-      admin,
-      poolCreationCode,
-    } =
+    const { publicClient, factory, token0, token1, priceProvider, admin } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
     const [walletClient] = await viem.getWalletClients();
 
@@ -134,7 +121,6 @@ describe("Factory Deployment Flow", async () => {
       initialToken1PerShare: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
-      poolCreationCode,
     };
 
     // Use encodeCreatePoolCalldata to prepare calldata
@@ -161,7 +147,7 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should encode pool creation calldata correctly", async () => {
-    const { token0, token1, priceProvider, admin, poolCreationCode } =
+    const { token0, token1, priceProvider, admin } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
     const poolConfig: sdk.CreatePoolFactoryParams = {
@@ -180,7 +166,6 @@ describe("Factory Deployment Flow", async () => {
       initialToken1PerShare: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
-      poolCreationCode,
     };
 
     // Test calldata encoding (useful for multisig/batch transactions)
@@ -205,16 +190,33 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should only allow factory to deploy pools via deployer", async () => {
-    const { poolDeployer } = await networkHelpers.loadFixture(
-      deployFactoryInfrastructure,
-    );
+    const { poolDeployer, token0, token1, priceProvider, admin } =
+      await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
     // Try to call deploy directly on deployer (not from factory)
     await assert.rejects(
       async () => {
         await poolDeployer.write.deploy([
-          "0x0000000000000000000000000000000000000000000000000000000000000001",
-          "0x00",
+          {
+            salt: "0x0000000000000000000000000000000000000000000000000000000000000001",
+            factory: admin.account.address,
+            admin: admin.account.address,
+            token0: token0.address,
+            token1: token1.address,
+            priceProvider: priceProvider.address,
+            initialToken0DensityPerLiquidityE18: 1000000000000000000n,
+            initialToken1DensityPerLiquidityE18: 1000000000000000000n,
+            minimalMintableLiquidity: 1000n,
+            reportSwapToPriceProvider: false,
+            maxDriftE8: 5000000n,
+            driftDecayPerSecondE8: 1000n,
+            protocolFee: 100000,
+            adminFee: 50000,
+            adminFeeDestination: admin.account.address,
+            curBinDistFromProvidedPriceE6: 0,
+            nonNegativeBinDataArray: [100n],
+            negativeBinDataArray: [100n],
+          },
         ]);
       },
       { message: /OnlyFactory/ },

@@ -84,17 +84,6 @@ export interface CreatePoolFactoryParams {
 
   /** Salt for deterministic pool address (default: random) */
   salt?: Hex;
-
-  /**
-   * Optional pool creation bytecode passed to factory `createPool`.
-   * Required by factory variants where PoolParameters includes `poolCreationCode`.
-   */
-  poolCreationCode?: Hex;
-
-  /**
-   * @deprecated Use `poolCreationCode` instead.
-   */
-  poolInitCode?: Hex;
 }
 
 /**
@@ -137,7 +126,6 @@ export function prepareFactoryCreatePoolParams(
   nonNegativeBinDataArray: bigint[];
   negativeBinDataArray: bigint[];
   salt: Hex;
-  poolCreationCode?: Hex;
 } {
   const maxDriftE8 = BigInt(Math.round(params.maxDriftPercent * 1_000_000));
   const driftDecayPerSecondE8 = BigInt(
@@ -155,7 +143,6 @@ export function prepareFactoryCreatePoolParams(
     (`0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join("")}` as Hex);
 
   return {
-    poolCreationCode: params.poolCreationCode ?? params.poolInitCode ?? ("0x" as Hex),
     token0: params.token0,
     token1: params.token1,
     priceProvider: params.priceProvider,
