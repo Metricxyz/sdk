@@ -275,9 +275,9 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
                   token0,
                   token1,
                   priceProvider,
-                } = await networkHelpers.loadFixture(
-                  fixtureMap[decimals.label],
-                );
+                } = (await networkHelpers.loadFixture(
+                  fixtureMap[decimals.label as asy] as any,
+                )) as any;
 
                 // Set the oracle price for this test
                 const q64Price = sdk.priceToQ64(price);

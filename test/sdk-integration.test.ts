@@ -129,8 +129,8 @@ describe("SDK Integration Tests", async function () {
         pool.address,
       );
 
-      assert.equal(typeof slot1.performanceFeeAmount0, "bigint");
-      assert.equal(typeof slot1.performanceFeeAmount1, "bigint");
+      assert.equal(typeof slot1.totalScaledToken0InBins, "bigint");
+      assert.equal(typeof slot1.totalScaledToken1InBins, "bigint");
     });
 
     it("should read single bin state with external units", async () => {

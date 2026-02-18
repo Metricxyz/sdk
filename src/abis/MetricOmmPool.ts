@@ -244,6 +244,11 @@ export const MetricOmmPoolAbi = [
   },
   {
     "inputs": [],
+    "name": "OnlyAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyFactory",
     "type": "error"
   },
@@ -292,6 +297,17 @@ export const MetricOmmPoolAbi = [
       }
     ],
     "name": "SafeCastOverflowedUintDowncast",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "SafeCastOverflowedUintToInt",
     "type": "error"
   },
   {
@@ -509,6 +525,19 @@ export const MetricOmmPoolAbi = [
     "inputs": [
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "newPriceProvider",
+        "type": "address"
+      }
+    ],
+    "name": "PriceProviderUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint24",
         "name": "newProtocolFee",
         "type": "uint24"
@@ -522,27 +551,27 @@ export const MetricOmmPoolAbi = [
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint104",
+        "internalType": "uint256",
         "name": "amount0ToProtocol",
-        "type": "uint104"
+        "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint104",
+        "internalType": "uint256",
         "name": "amount1ToProtocol",
-        "type": "uint104"
+        "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint104",
+        "internalType": "uint256",
         "name": "amount0ToAdmin",
-        "type": "uint104"
+        "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint104",
+        "internalType": "uint256",
         "name": "amount1ToAdmin",
-        "type": "uint104"
+        "type": "uint256"
       }
     ],
     "name": "ProtocolFeesCollected",

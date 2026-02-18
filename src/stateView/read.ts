@@ -10,6 +10,7 @@ import type {
   Slot1,
   BinStateExternal,
   BinStatesExternal,
+  BinStatesScaled,
   FeeConfig,
   PositionBinSharesResult,
 } from "../types.js";
@@ -39,7 +40,7 @@ export async function getSlot0(
 }
 
 /**
- * Get slot1 data (performance fee amounts in external units)
+ * Get slot1 data (total scaled token balances in bins, in external units)
  */
 export async function getSlot1(
   publicClient: PublicClient,
@@ -54,8 +55,8 @@ export async function getSlot1(
   })) as any[];
 
   return {
-    performanceFeeAmount0: result[0],
-    performanceFeeAmount1: result[1],
+    totalScaledToken0InBins: result[0],
+    totalScaledToken1InBins: result[1],
   };
 }
 
@@ -103,6 +104,32 @@ export async function getBinStatesExternal(
   return {
     token0Balances: result[0],
     token1Balances: result[1],
+    lengthsInUnits: result[2],
+    addFeeBuysE6: result[3],
+    addFeeSellsE6: result[4],
+    totalShares: result[5],
+  };
+}
+
+/**
+ * Get multiple bin states in scaled (internal) units (batch read)
+ */
+export async function getBinStatesScaled(
+  publicClient: PublicClient,
+  stateViewAddress: Address,
+  poolAddress: Address,
+  binIndices: number[],
+): Promise<BinStatesScaled> {
+  const result = (await publicClient.readContract({
+    address: stateViewAddress,
+    abi: STATE_VIEW_ABI,
+    functionName: "binStatesScaled",
+    args: [poolAddress, binIndices],
+  })) as any[];
+
+  return {
+    token0BalancesScaled: result[0],
+    token1BalancesScaled: result[1],
     lengthsInUnits: result[2],
     addFeeBuysE6: result[3],
     addFeeSellsE6: result[4],

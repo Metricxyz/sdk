@@ -427,44 +427,6 @@ export const MetricOmmPoolStateViewAbi = [
         "type": "address"
       }
     ],
-    "name": "performanceFeeAmount0",
-    "outputs": [
-      {
-        "internalType": "uint104",
-        "name": "",
-        "type": "uint104"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "performanceFeeAmount1",
-    "outputs": [
-      {
-        "internalType": "uint104",
-        "name": "",
-        "type": "uint104"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
     "name": "performanceFeeE6",
     "outputs": [
       {
@@ -646,14 +608,52 @@ export const MetricOmmPoolStateViewAbi = [
     "name": "slot1",
     "outputs": [
       {
-        "internalType": "uint104",
-        "name": "_performanceFeeAmount0",
-        "type": "uint104"
+        "internalType": "uint128",
+        "name": "_totalScaledToken0InBins",
+        "type": "uint128"
       },
       {
-        "internalType": "uint104",
-        "name": "_performanceFeeAmount1",
-        "type": "uint104"
+        "internalType": "uint128",
+        "name": "_totalScaledToken1InBins",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "totalToken0InBins",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "totalToken1InBins",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "",
+        "type": "uint128"
       }
     ],
     "stateMutability": "view",

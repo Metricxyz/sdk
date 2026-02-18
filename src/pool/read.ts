@@ -70,8 +70,8 @@ export async function getPoolState(
     curBinDistFromProvidedPriceE6: result[2],
     driftE8: result[3],
     performanceFeeE6: result[4],
-    performanceFeeAmount0: result[5],
-    performanceFeeAmount1: result[6],
+    totalScaledToken0InBins: result[5],
+    totalScaledToken1InBins: result[6],
   };
 }
 

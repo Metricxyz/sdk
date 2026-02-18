@@ -58,8 +58,8 @@
     "viem": "^2.x"
   },
   "devDependencies": {
-    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#e2baf5bf858f012c476ae8e4e63108c3e3540d2d",
-    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#3546e0db6133b87ea6fc694a3904a5a4d0c11143",
+    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#abf179271837d80ec1182806b0aba362494ef5ac",
+    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#396a23c5b5b720e25b1cc871563b6b53498a6e08",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",

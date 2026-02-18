@@ -7,6 +7,7 @@ export {
   getSlot1,
   getBinStateExternal,
   getBinStatesExternal,
+  getBinStatesScaled,
   getBinTotalShares,
   getPositionBinSharesFromStateView,
   toPositionBinKey,

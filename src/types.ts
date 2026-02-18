@@ -52,8 +52,8 @@ export interface PoolState {
   curBinDistFromProvidedPriceE6: number;
   driftE8: number;
   performanceFeeE6: number;
-  performanceFeeAmount0: bigint;
-  performanceFeeAmount1: bigint;
+  totalScaledToken0InBins: bigint;
+  totalScaledToken1InBins: bigint;
 }
 
 export interface BinState {
@@ -81,6 +81,15 @@ export interface BinStatesExternal {
   totalShares: bigint[];
 }
 
+export interface BinStatesScaled {
+  token0BalancesScaled: bigint[];
+  token1BalancesScaled: bigint[];
+  lengthsInUnits: number[];
+  addFeeBuysE6: number[];
+  addFeeSellsE6: number[];
+  totalShares: bigint[];
+}
+
 // ============ StateView Types ============
 
 export interface Slot0 {
@@ -92,8 +101,8 @@ export interface Slot0 {
 }
 
 export interface Slot1 {
-  performanceFeeAmount0: bigint;
-  performanceFeeAmount1: bigint;
+  totalScaledToken0InBins: bigint;
+  totalScaledToken1InBins: bigint;
 }
 
 export interface FeeConfig {
@@ -153,4 +162,26 @@ export interface CalculateUniformLiquidityParams {
   lowerBin: number;
   /** Upper bin index (inclusive) */
   upperBin: number;
+}
+
+export interface AnyLiquidityBinInput {
+  /** Bin index */
+  bin: number;
+  /** Value amount for this bin */
+  amountInToken: bigint;
+  /** True if amountInToken is token0, false if token1 */
+  amountInToken0: boolean;
+}
+
+export interface CalculateAnyLiquidityParams {
+  /** Per-bin amounts and token side */
+  bins: AnyLiquidityBinInput[];
+  /** Current market price: token0/token1 (e.g., 3000 means 1 token0 = 3000 token1) */
+  currentPrice: number;
+}
+
+export interface CalculatedLiquidityDistribution {
+  deltas: LiquidityDelta[];
+  specAmount0: bigint;
+  specAmount1: bigint;
 }

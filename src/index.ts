@@ -19,6 +19,7 @@ export type {
   BinState,
   BinStateExternal,
   BinStatesExternal,
+  BinStatesScaled,
   Slot0,
   Slot1,
   FeeConfig,
@@ -27,6 +28,9 @@ export type {
   SwapExactOutputParams,
   PositionBinSharesResult,
   CalculateUniformLiquidityParams,
+  AnyLiquidityBinInput,
+  CalculateAnyLiquidityParams,
+  CalculatedLiquidityDistribution,
 } from "./types.js";
 
 // ============ Constants ============
@@ -88,6 +92,8 @@ export {
   getPositionBinShares,
   // Liquidity calculations
   calculateUniformLiquidityDistribution,
+  calculateAnyLiquidityDistribution,
+  calculateAnyLiquididtyDistributinon,
 } from "./pool/index.js";
 
 // ============ StateView Functions ============
@@ -96,6 +102,7 @@ export {
   getSlot1,
   getBinStateExternal,
   getBinStatesExternal,
+  getBinStatesScaled,
   getBinTotalShares,
   getPositionBinSharesFromStateView,
   toPositionBinKey,
