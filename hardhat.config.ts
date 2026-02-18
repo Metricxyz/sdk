@@ -81,6 +81,13 @@ const config: HardhatUserConfig = {
       accounts: [configVariable("ADMIN_KEY")],
     },
   },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        salt: "0x170093fa2d9efcf93ee80ff07e632d04430a144ca01be6b5ae58f01287bd79eb", // keccak256("metric-omm-v1")
+      },
+    },
+  },
   paths: {
     tests: "./test",
   },
