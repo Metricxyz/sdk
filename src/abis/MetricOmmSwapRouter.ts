@@ -181,6 +181,16 @@ export const MetricOmmSwapRouterAbi = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "token0",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token1",
+        "type": "address"
+      },
+      {
         "internalType": "int256",
         "name": "amount0Delta",
         "type": "int256"
