@@ -62,5 +62,8 @@
   "_comment_fees": "Admin fee as percentage of swap fees (10 = 10%)",
   "adminFeePercent": 0.1,
 
+  "_comment_reportSwap": "Whether swaps should be reported to the price provider",
+  "reportSwapToPriceProvider": false,
+
   "minimalMintableLiquidity": "1000000000000000000"
 }

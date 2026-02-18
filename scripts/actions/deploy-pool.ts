@@ -34,6 +34,7 @@ interface PoolConfig {
   adminFeeE6?: number;
   adminFeePercent?: number;
   minimalMintableLiquidity?: string;
+  reportSwapToPriceProvider: boolean;
   salt?: string;
 }
 
@@ -145,6 +146,9 @@ async function main() {
     priceProvider: config.priceProvider as `0x${string}`,
     admin: config.admin as `0x${string}`,
 
+    // Whether swaps should be reported to the price provider
+    reportSwapToPriceProvider: config.reportSwapToPriceProvider,
+
     // Bins (using createBins to pack)
     nonNegativeBins: sdk.createBins(nonNegativeBinData),
     negativeBins: sdk.createBins(negativeBinData),
@@ -208,6 +212,7 @@ async function main() {
   );
   console.log(`   Max drift: ${maxDrift}%`);
   console.log(`   Admin fee: ${adminFee}%`);
+  console.log(`   Report swap to price provider: ${config.reportSwapToPriceProvider}`);
 
   // Confirm before deploying
   console.log("\n⚠️  About to deploy pool on mainnet!");
