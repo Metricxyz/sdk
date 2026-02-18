@@ -80,6 +80,12 @@ const config: HardhatUserConfig = {
       url: configVariable("ETHEREUM_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
+    arbitrum: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("ARBITRUM_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
   },
   ignition: {
     strategyConfig: {

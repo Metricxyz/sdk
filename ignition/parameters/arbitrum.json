@@ -1,0 +1,10 @@
+{
+  "FactoryAndDeployer": {
+    "owner": "0xA9E4513754C3a86E752009d273f0c9EAEE6a12a3",
+    "protocolFee": 100000,
+    "poolCreationCodeHash": "0x8e3c3d3d24139f1e1c37f90f61be91e614469e71b262fc14dd65d4289dbff14b"
+  },
+  "Router": {
+    "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+  }
+}
