@@ -52,7 +52,7 @@
     "url": "https://github.com/Metric-OMM/metric-sdk/issues"
   },
   "dependencies": {
-    "viem": "^2.41.2"
+    "viem": "^2.x"
   },
   "peerDependencies": {
     "viem": "^2.x"
@@ -60,6 +60,8 @@
   "devDependencies": {
     "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#abf179271837d80ec1182806b0aba362494ef5ac",
     "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#396a23c5b5b720e25b1cc871563b6b53498a6e08",
+    "@nomicfoundation/hardhat-ignition": "^3.0.7",
+    "@nomicfoundation/hardhat-keystore": "^3.0.4",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",

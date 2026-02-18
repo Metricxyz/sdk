@@ -1,9 +1,12 @@
 import type { HardhatUserConfig } from "hardhat/config";
+import { configVariable } from "hardhat/config";
 
 import hardhatViem from "@nomicfoundation/hardhat-viem";
 import hardhatViemAssertions from "@nomicfoundation/hardhat-viem-assertions";
 import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
 import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
+import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
+import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
 
 const config: HardhatUserConfig = {
   plugins: [
@@ -11,15 +14,26 @@ const config: HardhatUserConfig = {
     hardhatViemAssertions,
     hardhatNodeTestRunner,
     hardhatNetworkHelpers,
+    hardhatIgnitionViem,
+    hardhatKeystore,
   ],
   solidity: {
-    version: "0.8.33",
-    settings: {
-      viaIR: true,
-      evmVersion: "cancun",
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    profiles: {
+      default: {
+        version: "0.8.33",
+        settings: {
+          viaIR: true,
+          evmVersion: "cancun",
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+      production: {
+        version: "0.8.33",
+        settings: {
+          viaIR: true,
+          evmVersion: "cancun",
+          optimizer: { enabled: true, runs: 200 },
+        },
       },
     },
     npmFilesToBuild: [
@@ -41,6 +55,30 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       type: "edr-simulated",
+    },
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    base: {
+      type: "http",
+      chainType: "op",
+      url: configVariable("BASE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    baseSepolia: {
+      type: "http",
+      chainType: "op",
+      url: configVariable("BASE_SEPOLIA_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    ethereum: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ETHEREUM_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
     },
   },
   paths: {
