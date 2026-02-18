@@ -1,0 +1,66 @@
+{
+  "factory": "0x52B9b32bfF7DC7787AD7B8D453d85f8C7B58672b",
+  "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "token1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "priceProvider": "0xCb632f53b887C6D020319bF823F11d8F26627648",
+  "admin": "0xa9e4513754c3a86e752009d273f0c9eaee6a12a3",
+
+  "_comment_bins": "Each bin is [lengthE6, addBuyFeeE6, addSellFeeE6]. 100 = 0.01%",
+  "nonNegativeBins": [
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0]
+  ],
+  "negativeBins": [
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [100, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [200, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [500, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0],
+    [1000, 0, 0]
+  ],
+
+  "_comment_densities": "Initial token amounts per share of liquidity (in wei)",
+  "initialToken0PerShare": "300000000000000",
+  "initialToken1PerShare": "1000000000000000000",
+
+  "_comment_drift": "Max drift and decay as percentages (5 = 5%, 0.01 = 0.01%/s)",
+  "maxDriftPercent": 5,
+  "driftDecayPerSecondPercent": 0.01,
+
+  "_comment_fees": "Admin fee as percentage of swap fees (10 = 10%)",
+  "adminFeePercent": 0.1,
+
+  "minimalMintableLiquidity": "1000000000000000000"
+}
