@@ -40,7 +40,7 @@ export async function getSlot0(
 }
 
 /**
- * Get slot1 data (total scaled token balances in bins, in external units)
+ * Get slot1 data (performance fee amounts in external units)
  */
 export async function getSlot1(
   publicClient: PublicClient,
@@ -55,8 +55,8 @@ export async function getSlot1(
   })) as any[];
 
   return {
-    totalScaledToken0InBins: result[0],
-    totalScaledToken1InBins: result[1],
+    performanceFeeAmount0: result[0],
+    performanceFeeAmount1: result[1],
   };
 }
 

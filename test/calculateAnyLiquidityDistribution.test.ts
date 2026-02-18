@@ -98,8 +98,14 @@ describe("calculateAnyLiquidityDistribution", async function () {
       client: { public: publicClient, wallet: deployer },
     });
 
-    await token0.write.approve([pool.address, parseUnits("1000000000000", decimals0)]);
-    await token1.write.approve([pool.address, parseUnits("1000000000000", decimals1)]);
+    await token0.write.approve([
+      pool.address,
+      parseUnits("1000000000000", decimals0),
+    ]);
+    await token1.write.approve([
+      pool.address,
+      parseUnits("1000000000000", decimals1),
+    ]);
 
     return {
       publicClient,
@@ -189,13 +195,15 @@ describe("calculateAnyLiquidityDistribution", async function () {
         : entry.amountInToken;
     }
 
-    const actualTotalInToken1 = spent1 + toToken1Value(spent0, immutables, priceX18);
+    const actualTotalInToken1 =
+      spent1 + toToken1Value(spent0, immutables, priceX18);
     if (targetTotalInToken1 > 0n) {
       const diff =
         actualTotalInToken1 > targetTotalInToken1
           ? actualTotalInToken1 - targetTotalInToken1
           : targetTotalInToken1 - actualTotalInToken1;
-      const allowed = (targetTotalInToken1 * valueTolerancePpm) / 1_000_000n + 1n;
+      const allowed =
+        (targetTotalInToken1 * valueTolerancePpm) / 1_000_000n + 1n;
       assert.ok(
         diff <= allowed,
         `value mismatch: provided ${actualTotalInToken1}, target ${targetTotalInToken1}, tol ppm ${valueTolerancePpm}`,
@@ -228,7 +236,10 @@ describe("calculateAnyLiquidityDistribution", async function () {
     { label: "dec18/18", decimals0: 18, decimals1: 18 },
   ] as const;
   type DecimalLabel = (typeof decimalPairs)[number]["label"];
-  const fixtureMap: Record<DecimalLabel, () => Promise<Awaited<ReturnType<typeof setupEnv>>>> = {
+  const fixtureMap: Record<
+    DecimalLabel,
+    () => Promise<Awaited<ReturnType<typeof setupEnv>>>
+  > = {
     "dec6/6": setupEnv6_6,
     "dec18/6": setupEnv18_6,
     "dec18/18": setupEnv18_18,
@@ -264,14 +275,22 @@ describe("calculateAnyLiquidityDistribution", async function () {
                 } = fixture;
 
                 const q64Price = sdk.priceToQ64(price);
-                await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+                await priceProvider.write.setBidAndAskPrice([
+                  q64Price,
+                  q64Price,
+                ]);
 
                 if (state === "seeded") {
                   const seedParams: sdk.CalculateAnyLiquidityParams = {
                     bins: [
                       {
                         bin: 0,
-                        amountInToken: amountForSide(true, decimals.decimals0, decimals.decimals1, price),
+                        amountInToken: amountForSide(
+                          true,
+                          decimals.decimals0,
+                          decimals.decimals1,
+                          price,
+                        ),
                         amountInToken0: true,
                       },
                     ],
@@ -396,9 +415,8 @@ describe("calculateAnyLiquidityDistribution", async function () {
   });
 
   it("throws when bins contain duplicates", async () => {
-    const { publicClient, pool, stateView } = await networkHelpers.loadFixture(
-      setupEnv18_6,
-    );
+    const { publicClient, pool, stateView } =
+      await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
       sdk.calculateAnyLiquidityDistribution(
@@ -407,8 +425,16 @@ describe("calculateAnyLiquidityDistribution", async function () {
         pool.address,
         {
           bins: [
-            { bin: -1, amountInToken: parseUnits("100", 6), amountInToken0: false },
-            { bin: -1, amountInToken: parseUnits("200", 6), amountInToken0: false },
+            {
+              bin: -1,
+              amountInToken: parseUnits("100", 6),
+              amountInToken0: false,
+            },
+            {
+              bin: -1,
+              amountInToken: parseUnits("200", 6),
+              amountInToken0: false,
+            },
           ],
           currentPrice: 1,
         },
@@ -418,9 +444,8 @@ describe("calculateAnyLiquidityDistribution", async function () {
   });
 
   it("rejects invalid currentPrice", async () => {
-    const { publicClient, pool, stateView } = await networkHelpers.loadFixture(
-      setupEnv18_6,
-    );
+    const { publicClient, pool, stateView } =
+      await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
       sdk.calculateAnyLiquidityDistribution(
@@ -428,7 +453,13 @@ describe("calculateAnyLiquidityDistribution", async function () {
         stateView.address,
         pool.address,
         {
-          bins: [{ bin: 0, amountInToken: parseUnits("1", 18), amountInToken0: true }],
+          bins: [
+            {
+              bin: 0,
+              amountInToken: parseUnits("1", 18),
+              amountInToken0: true,
+            },
+          ],
           currentPrice: 0,
         },
       ),

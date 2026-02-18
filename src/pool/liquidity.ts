@@ -336,7 +336,11 @@ export async function calculateAnyLiquidityDistribution(
 
   const targetsByBin = new Map<
     number,
-    { targetAmount0: bigint; targetAmount1: bigint; targetValueInToken1: bigint }
+    {
+      targetAmount0: bigint;
+      targetAmount1: bigint;
+      targetValueInToken1: bigint;
+    }
   >();
 
   for (const entry of bins) {
@@ -433,9 +437,14 @@ export async function calculateAnyLiquidityDistribution(
       }
       if (totalShares > 0n) {
         if (token1BalanceScaled <= 0n) {
-          throw new Error(`bin ${binIdx} has zero token1 balance with non-zero shares`);
+          throw new Error(
+            `bin ${binIdx} has zero token1 balance with non-zero shares`,
+          );
         }
-        sharesToAdd = ceilDiv(targetAmount1Scaled * totalShares, token1BalanceScaled);
+        sharesToAdd = ceilDiv(
+          targetAmount1Scaled * totalShares,
+          token1BalanceScaled,
+        );
       } else {
         sharesToAdd = ceilDiv(
           targetAmount1Scaled * ONE_E18,
@@ -450,9 +459,14 @@ export async function calculateAnyLiquidityDistribution(
       }
       if (totalShares > 0n) {
         if (token0BalanceScaled <= 0n) {
-          throw new Error(`bin ${binIdx} has zero token0 balance with non-zero shares`);
+          throw new Error(
+            `bin ${binIdx} has zero token0 balance with non-zero shares`,
+          );
         }
-        sharesToAdd = ceilDiv(targetAmount0Scaled * totalShares, token0BalanceScaled);
+        sharesToAdd = ceilDiv(
+          targetAmount0Scaled * totalShares,
+          token0BalanceScaled,
+        );
       } else {
         sharesToAdd = ceilDiv(
           targetAmount0Scaled * ONE_E18,
@@ -469,7 +483,10 @@ export async function calculateAnyLiquidityDistribution(
           targetAmount1Scaled > 0n
             ? ceilDiv(targetAmount1Scaled * totalShares, token1BalanceScaled)
             : 0n;
-        sharesToAdd = sharesFromToken0 > sharesFromToken1 ? sharesFromToken0 : sharesFromToken1;
+        sharesToAdd =
+          sharesFromToken0 > sharesFromToken1
+            ? sharesFromToken0
+            : sharesFromToken1;
       } else {
         const token0Portion = MAX_UINT104 - curPosInBin;
         const token1Portion = curPosInBin;
@@ -488,7 +505,10 @@ export async function calculateAnyLiquidityDistribution(
                 immutables.initialScaledToken1PerShareE18 * token1Portion,
               )
             : 0n;
-        sharesToAdd = sharesFromToken0 > sharesFromToken1 ? sharesFromToken0 : sharesFromToken1;
+        sharesToAdd =
+          sharesFromToken0 > sharesFromToken1
+            ? sharesFromToken0
+            : sharesFromToken1;
       }
     }
 
@@ -505,8 +525,14 @@ export async function calculateAnyLiquidityDistribution(
     }
 
     if (totalShares > 0n) {
-      amount0ScaledToAdd = ceilDiv(sharesToAdd * token0BalanceScaled, totalShares);
-      amount1ScaledToAdd = ceilDiv(sharesToAdd * token1BalanceScaled, totalShares);
+      amount0ScaledToAdd = ceilDiv(
+        sharesToAdd * token0BalanceScaled,
+        totalShares,
+      );
+      amount1ScaledToAdd = ceilDiv(
+        sharesToAdd * token1BalanceScaled,
+        totalShares,
+      );
     } else if (isBelowBin) {
       amount0ScaledToAdd = 0n;
       amount1ScaledToAdd = ceilDiv(
