@@ -14,6 +14,7 @@ export const ChainId = {
   SEPOLIA: 11155111,
   BASE: 8453,
   BASE_SEPOLIA: 84532,
+  ARBITRUM: 42161,
 } as const;
 
 export type ChainId = (typeof ChainId)[keyof typeof ChainId];
@@ -37,10 +38,10 @@ export interface ChainAddresses {
 
 export const ADDRESSES: Record<ChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
-    factory: "0xB81881Fd95140a6e2a217f7bF1fb67C0e956f472",
-    poolDeployer: "0xB590ffcd60f7a8849fC45D57753CcBc62593bEB4",
-    router: "0x319E9e73159E8bA80756B1F1438a0c25EF6d1272",
-    stateView: "0x185630D63C8F9226914B78174DF7DB9B88993052",
+    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
+    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
+    router: "0xF8bB90d25DB7c9092965bfbD74b25BfA6ca96528",
+    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
     wrappedNative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH
   },
 
@@ -53,10 +54,10 @@ export const ADDRESSES: Record<ChainId, ChainAddresses> = {
   },
 
   [ChainId.BASE]: {
-    factory: "0x0000000000000000000000000000000000000000",
-    poolDeployer: "0x0000000000000000000000000000000000000000",
-    router: "0x0000000000000000000000000000000000000000",
-    stateView: "0x0000000000000000000000000000000000000000",
+    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
+    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
+    router: "0x33e3cD634Ad1bC371F898415c155BcFECB932d43",
+    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
     wrappedNative: "0x4200000000000000000000000000000000000006", // Base WETH
   },
 
@@ -66,6 +67,14 @@ export const ADDRESSES: Record<ChainId, ChainAddresses> = {
     router: "0x0000000000000000000000000000000000000000",
     stateView: "0x0000000000000000000000000000000000000000",
     wrappedNative: "0x4200000000000000000000000000000000000006", // Base Sepolia WETH
+  },
+
+  [ChainId.ARBITRUM]: {
+    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
+    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
+    router: "0xB019FAFfc0c32372Cd1E8cEE99cF9BedeA729545",
+    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
+    wrappedNative: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // Arbitrum WETH
   },
 } as const;
 
