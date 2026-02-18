@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.3-old-callback",
+  "version": "0.0.3-old.callback",
   "description": "TypeScript SDK for interacting with Metric AMM contracts",
   "type": "module",
   "main": "dist/index.js",
@@ -58,8 +58,8 @@
     "viem": "^2.x"
   },
   "devDependencies": {
-    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#990b17c",
-    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#ab7a883",
+    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#b75f1e5a2d1952fc6c41c579775444ffecd43be1",
+    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#99600cba6a6628937b8359e460716fb259590891",
     "@nomicfoundation/hardhat-ignition": "^3.0.7",
     "@nomicfoundation/hardhat-keystore": "^3.0.4",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",

@@ -38,10 +38,10 @@ export interface ChainAddresses {
 
 export const ADDRESSES: Record<ChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
-    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
-    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
-    router: "0xF8bB90d25DB7c9092965bfbD74b25BfA6ca96528",
-    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
+    factory: "0x5E20CC16CbEa4d8b1618bD7860974cc5EDf23df0",
+    poolDeployer: "0x9451c0b438c1FFfd7C65473A6650E94a2724Fd34",
+    router: "0xbBB4cdBF62EC5eDfe318a613f077Ef8e91E2D148",
+    stateView: "0x03c9063AC3b35a3ab9889a4cAF0e3AE04380BE00",
     wrappedNative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH
   },
 
@@ -54,10 +54,10 @@ export const ADDRESSES: Record<ChainId, ChainAddresses> = {
   },
 
   [ChainId.BASE]: {
-    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
-    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
-    router: "0x33e3cD634Ad1bC371F898415c155BcFECB932d43",
-    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
+    factory: "0x5E20CC16CbEa4d8b1618bD7860974cc5EDf23df0",
+    poolDeployer: "0x9451c0b438c1FFfd7C65473A6650E94a2724Fd34",
+    router: "0x3098f402fe93A2416a172E07887DD18b8cB20C7e",
+    stateView: "0x03c9063AC3b35a3ab9889a4cAF0e3AE04380BE00",
     wrappedNative: "0x4200000000000000000000000000000000000006", // Base WETH
   },
 
@@ -70,10 +70,10 @@ export const ADDRESSES: Record<ChainId, ChainAddresses> = {
   },
 
   [ChainId.ARBITRUM]: {
-    factory: "0x5d09437cfD768bee946C5480E770c6937df510A8",
-    poolDeployer: "0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B",
-    router: "0xB019FAFfc0c32372Cd1E8cEE99cF9BedeA729545",
-    stateView: "0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747",
+    factory: "0x5E20CC16CbEa4d8b1618bD7860974cc5EDf23df0",
+    poolDeployer: "0x9451c0b438c1FFfd7C65473A6650E94a2724Fd34",
+    router: "0xCfe1764d542b480bA46aD60aa12E38AfE3FdD4bB",
+    stateView: "0x03c9063AC3b35a3ab9889a4cAF0e3AE04380BE00",
     wrappedNative: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // Arbitrum WETH
   },
 } as const;
