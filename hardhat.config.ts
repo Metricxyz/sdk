@@ -25,7 +25,6 @@ const config: HardhatUserConfig = {
           viaIR: true,
           evmVersion: "cancun",
           optimizer: { enabled: true, runs: 200 },
-          metadata: { bytecodeHash: "none" },
         },
       },
       production: {
@@ -34,7 +33,6 @@ const config: HardhatUserConfig = {
           viaIR: true,
           evmVersion: "cancun",
           optimizer: { enabled: true, runs: 200 },
-          metadata: { bytecodeHash: "none" },
         },
       },
     },
@@ -86,7 +84,7 @@ const config: HardhatUserConfig = {
   ignition: {
     strategyConfig: {
       create2: {
-        salt: "0x170093fa2d9efcf93ee80ff07e632d04430a144ca01be6b5ae58f01287bd79eb", // keccak256("metric-omm-v1")
+        salt: "0x0000000000000000000000000000000000000000000000000000000000000001",
       },
     },
   },

@@ -1,0 +1,6 @@
+{
+  "FactoryAndDeployer#MetricOmmPoolFactory": "0x5E20CC16CbEa4d8b1618bD7860974cc5EDf23df0",
+  "FactoryAndDeployer#MetricOmmPoolDeployer": "0x9451c0b438c1FFfd7C65473A6650E94a2724Fd34",
+  "StateView#MetricOmmPoolStateView": "0x03c9063AC3b35a3ab9889a4cAF0e3AE04380BE00",
+  "Router#MetricOmmSwapRouter": "0x3098f402fe93A2416a172E07887DD18b8cB20C7e"
+}
