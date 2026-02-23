@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "TypeScript SDK for interacting with Metric AMM contracts",
   "type": "module",
   "main": "dist/index.js",
