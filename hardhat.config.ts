@@ -80,11 +80,35 @@ const config: HardhatUserConfig = {
       url: configVariable("ARBITRUM_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
+    avalanche: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("AVALANCHE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    bnb: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("BNB_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    polygon: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("POLYGON_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    megaeth: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("MEGAETH_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
   },
   ignition: {
     strategyConfig: {
       create2: {
-        salt: "0x170093fa2d9efcf93ee80ff07e632d04430a144ca01be6b5ae58f01287bd79eb", // keccak256("metric-omm-v1")
+        salt: "0x000000000000000000000000000000000000000000000000000000000000002a",
       },
     },
   },

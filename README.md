@@ -45,17 +45,21 @@ console.log(`Current Bin: ${slot0.curBinIdx}`);
 
 Factory, PoolDeployer, and StateView share the same addresses across all chains (CREATE2). Router addresses differ per chain due to different WETH constructor arguments.
 
-| Contract               | Ethereum / Base / Arbitrum                   |
+| Contract               | All Chains (CREATE2)                         |
 | ---------------------- | -------------------------------------------- |
-| MetricOmmPoolFactory   | `0x5d09437cfD768bee946C5480E770c6937df510A8` |
-| MetricOmmPoolDeployer  | `0xAD1c7179a1ec85A66280F09D46Ff7D6565a4540B` |
-| MetricOmmPoolStateView | `0xd143fb14BbC692Fd559FEc3BB15432aAD61bc747` |
+| MetricOmmPoolFactory   | `0xe22F9fc0f04486dE25ed6CF1800a4a47aFD82e0C` |
+| MetricOmmPoolDeployer  | `0x0f732971a3503afee276782173170D1F1154d4c1` |
+| MetricOmmPoolStateView | `0xe6b102a2aea65b9b59e4F8B86B38E221886675A8` |
 
-| Chain    | MetricOmmSwapRouter                          |
-| -------- | -------------------------------------------- |
-| Ethereum | `0xF8bB90d25DB7c9092965bfbD74b25BfA6ca96528` |
-| Base     | `0x33e3cD634Ad1bC371F898415c155BcFECB932d43` |
-| Arbitrum | `0xB019FAFfc0c32372Cd1E8cEE99cF9BedeA729545` |
+| Chain     | MetricOmmSwapRouter                          |
+| --------- | -------------------------------------------- |
+| Ethereum  | `0xcB41C10c6414aCbea022c7662df4005dd8FBEF91` |
+| Base      | `0xA6A16C00B7E9DBE1D54acEd7d6FE264fc4732eaF` |
+| Arbitrum  | `0x82A562fD9F02d4346B95D3a2a501411979C8F920` |
+| Avalanche | `0x5C1e08DF74a3457648A4C4dc5DC0DE497284c53C` |
+| BNB       | `0xa9a63266bB70eb3419C34C245F4318983f325Bbd` |
+| Polygon   | `0x976c26402E1EC10454c5Fe6D2C9857DD57aE78f3` |
+| MegaETH   | `0xA6A16C00B7E9DBE1D54acEd7d6FE264fc4732eaF` |
 
 All addresses are available programmatically:
 

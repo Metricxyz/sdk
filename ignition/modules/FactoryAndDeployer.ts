@@ -18,10 +18,7 @@ const FactoryAndDeployerModule = buildModule("FactoryAndDeployer", (m) => {
   const protocolFee = m.getParameter("protocolFee", 100_000); // 10% default
 
   // 1. Deploy Factory
-  const factory = m.contract("MetricOmmPoolFactory", [
-    owner,
-    protocolFee,
-  ]);
+  const factory = m.contract("MetricOmmPoolFactory", [owner, protocolFee]);
 
   // 2. Deploy PoolDeployer with factory address
   const poolDeployer = m.contract("MetricOmmPoolDeployer", [factory], {
