@@ -246,6 +246,51 @@ export async function getPositionBinSharesRange(
 }
 
 /**
+ * Get user position shares for specific (possibly non-contiguous) bins via StateView batch call.
+ *
+ * Unlike getPositionBinSharesRange which scans a contiguous range,
+ * this function queries exact bin indices you specify.
+ *
+ * @param publicClient - Viem public client
+ * @param stateViewAddress - StateView contract address
+ * @param poolAddress - Pool address
+ * @param owner - Position owner address
+ * @param salt - Position salt
+ * @param bins - Array of specific bin indices to query (e.g., [-3, 1, 2])
+ * @returns Array of { binIdx, shares } for bins with non-zero shares
+ */
+export async function getPositionBinSharesForBins(
+  publicClient: PublicClient,
+  stateViewAddress: Address,
+  poolAddress: Address,
+  owner: Address,
+  salt: bigint,
+  bins: number[],
+): Promise<PositionBinSharesResult[]> {
+  const positionBinKeys = bins.map((bin) => toPositionBinKey(owner, salt, bin));
+
+  const results = (await publicClient.readContract({
+    address: stateViewAddress,
+    abi: STATE_VIEW_ABI,
+    functionName: "positionBinSharesBatch",
+    args: [poolAddress, positionBinKeys],
+  })) as bigint[];
+
+  const positionShares: PositionBinSharesResult[] = [];
+  for (let i = 0; i < bins.length; i++) {
+    const shares = results[i];
+    if (shares > 0n) {
+      positionShares.push({
+        binIdx: bins[i],
+        shares,
+      });
+    }
+  }
+
+  return positionShares;
+}
+
+/**
  * Get fee configuration
  */
 export async function getFeeConfig(

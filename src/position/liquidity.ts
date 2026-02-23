@@ -8,7 +8,15 @@ import { encodeFunctionData } from "viem";
 import { POOL_ABI, MAX_INT128 } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type { LiquidityDelta } from "../types.js";
-import { getPositionBinSharesRange } from "../stateView/read.js";
+import {
+  getPositionBinSharesRange,
+  getPositionBinSharesForBins,
+} from "../stateView/read.js";
+
+export {
+  getPositionBinSharesRange as getPositionShares,
+  getPositionBinSharesForBins as getPositionSharesForBins,
+};
 
 /**
  * Max int128 value for disabling slippage protection
@@ -179,46 +187,22 @@ export async function modifyLiquidity(
 }
 
 /**
- * Query position shares for a liquidity position across a bin range.
+ * Parameters for removing liquidity by percentage.
  *
- * @param publicClient - Viem public client
- * @param stateViewAddress - StateView contract address
- * @param poolAddress - Pool address
- * @param owner - Position owner address
- * @param salt - Position salt
- * @param lowerBin - Lower bin index (default: -10)
- * @param upperBin - Upper bin index (default: 10)
- * @returns Array of { binIdx, shares } for bins with non-zero shares
- */
-export async function getPositionShares(
-  publicClient: PublicClient,
-  stateViewAddress: Address,
-  poolAddress: Address,
-  owner: Address,
-  salt: bigint,
-  lowerBin: number = -10,
-  upperBin: number = 10,
-): Promise<{ binIdx: number; shares: bigint }[]> {
-  return getPositionBinSharesRange(
-    publicClient,
-    stateViewAddress,
-    poolAddress,
-    owner,
-    salt,
-    lowerBin,
-    upperBin,
-  );
-}
-
-/**
- * Parameters for removing liquidity by percentage
+ * Specify which bins to remove from using either:
+ * - `bins` - explicit list of non-contiguous bin indices (e.g., [-3, 1, 2])
+ * - `lowerBin`/`upperBin` - contiguous range to scan (default: -10 to 10)
+ *
+ * If `bins` is provided, `lowerBin`/`upperBin` are ignored.
  */
 export interface RemoveLiquidityParams {
   /** Percentage of liquidity to remove (0-100) */
   percentageToRemove: number;
-  /** Lower bin index to scan for positions (default: -10) */
+  /** Explicit list of bin indices to remove from (non-contiguous supported) */
+  bins?: number[];
+  /** Lower bin index to scan for positions (default: -10, ignored if bins is set) */
   lowerBin?: number;
-  /** Upper bin index to scan for positions (default: 10) */
+  /** Upper bin index to scan for positions (default: 10, ignored if bins is set) */
   upperBin?: number;
 }
 
@@ -244,37 +228,152 @@ export async function prepareRemoveLiquidityDeltas(
   salt: bigint,
   params: RemoveLiquidityParams,
 ): Promise<LiquidityDelta[]> {
-  const { percentageToRemove, lowerBin = -10, upperBin = 10 } = params;
+  const { percentageToRemove, bins, lowerBin = -10, upperBin = 10 } = params;
 
   if (percentageToRemove <= 0 || percentageToRemove > 100) {
     throw new Error("percentageToRemove must be between 0 and 100");
   }
 
-  const positionShares = await getPositionShares(
+  // Discover which bins have shares
+  const binsWithShares = bins
+    ? bins
+    : (
+        await getPositionBinSharesRange(
+          publicClient,
+          stateViewAddress,
+          poolAddress,
+          owner,
+          salt,
+          lowerBin,
+          upperBin,
+        )
+      ).map((p) => p.binIdx);
+
+  if (binsWithShares.length === 0) return [];
+
+  // Delegate to the per-bin function with uniform percentage
+  const specs: BinRemovalSpec[] = binsWithShares.map((bin) => ({
+    bin,
+    percentageToRemove,
+  }));
+
+  return prepareCustomRemoveLiquidityDeltas(
     publicClient,
     stateViewAddress,
     poolAddress,
     owner,
     salt,
-    lowerBin,
-    upperBin,
+    specs,
   );
+}
 
-  if (positionShares.length === 0) {
-    return [];
+/**
+ * Per-bin removal specification.
+ * Specify either a percentage or absolute shares to remove from each bin.
+ */
+export interface BinRemovalSpec {
+  /** Bin index */
+  bin: number;
+  /** Percentage of shares to remove from this bin (0-100). Mutually exclusive with `shares`. */
+  percentageToRemove?: number;
+  /** Absolute number of shares to remove. Mutually exclusive with `percentageToRemove`. */
+  sharesToRemove?: bigint;
+}
+
+/**
+ * Prepare liquidity deltas to remove custom amounts from specific bins.
+ *
+ * Unlike prepareRemoveLiquidityDeltas which removes the same percentage from all bins,
+ * this function lets you specify a different percentage or absolute share amount per bin.
+ *
+ * @param publicClient - Viem public client
+ * @param stateViewAddress - StateView contract address
+ * @param poolAddress - Pool address
+ * @param owner - Position owner address
+ * @param salt - Position salt
+ * @param specs - Array of per-bin removal specifications
+ * @returns LiquidityDelta[] with negative deltaShares for removal
+ *
+ * @example
+ * // Remove 100% from bin -3, 50% from bin 1, and exactly 500 shares from bin 2
+ * const deltas = await prepareCustomRemoveLiquidityDeltas(
+ *   publicClient, stateViewAddress, poolAddress, owner, salt,
+ *   [
+ *     { bin: -3, percentageToRemove: 100 },
+ *     { bin: 1, percentageToRemove: 50 },
+ *     { bin: 2, sharesToRemove: 500n },
+ *   ]
+ * );
+ */
+export async function prepareCustomRemoveLiquidityDeltas(
+  publicClient: PublicClient,
+  stateViewAddress: Address,
+  poolAddress: Address,
+  owner: Address,
+  salt: bigint,
+  specs: BinRemovalSpec[],
+): Promise<LiquidityDelta[]> {
+  if (specs.length === 0) return [];
+
+  for (const spec of specs) {
+    if (spec.percentageToRemove != null && spec.sharesToRemove != null) {
+      throw new Error(
+        `Bin ${spec.bin}: specify either percentageToRemove or sharesToRemove, not both`,
+      );
+    }
+    if (spec.percentageToRemove == null && spec.sharesToRemove == null) {
+      throw new Error(
+        `Bin ${spec.bin}: must specify either percentageToRemove or sharesToRemove`,
+      );
+    }
+    if (
+      spec.percentageToRemove != null &&
+      (spec.percentageToRemove <= 0 || spec.percentageToRemove > 100)
+    ) {
+      throw new Error(
+        `Bin ${spec.bin}: percentageToRemove must be between 0 and 100`,
+      );
+    }
   }
 
+  const binIndices = specs.map((s) => s.bin);
+  const positionShares = await getPositionBinSharesForBins(
+    publicClient,
+    stateViewAddress,
+    poolAddress,
+    owner,
+    salt,
+    binIndices,
+  );
+
+  const sharesMap = new Map(positionShares.map((p) => [p.binIdx, p.shares]));
   const deltas: LiquidityDelta[] = [];
 
-  for (const { binIdx, shares } of positionShares) {
-    const sharesToRemove =
-      percentageToRemove === 100
-        ? shares
-        : (shares * BigInt(Math.floor(percentageToRemove * 100))) / 10000n;
+  for (const spec of specs) {
+    const currentShares = sharesMap.get(spec.bin) ?? 0n;
+    if (currentShares === 0n) continue;
+
+    let sharesToRemove: bigint;
+
+    if (spec.sharesToRemove != null) {
+      // Use absolute value, capped at current shares
+      sharesToRemove =
+        spec.sharesToRemove > currentShares
+          ? currentShares
+          : spec.sharesToRemove;
+    } else {
+      // Use percentage
+      sharesToRemove =
+        spec.percentageToRemove === 100
+          ? currentShares
+          : (currentShares *
+              BigInt(Math.floor(spec.percentageToRemove! * 100))) /
+            10000n;
+    }
 
     if (sharesToRemove > 0n) {
       deltas.push({
-        bin: binIdx,
+        bin: spec.bin,
         deltaShares: -sharesToRemove,
       });
     }

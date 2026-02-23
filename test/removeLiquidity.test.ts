@@ -520,4 +520,281 @@ describe("SDK Remove Liquidity", async () => {
       );
     });
   });
+
+  describe("non-contiguous bins", () => {
+    it("should add and query liquidity in non-contiguous bins", async () => {
+      const env = await networkHelpers.loadFixture(deployFixture);
+      const { publicClient, stateView, poolAddress } = env;
+
+      // Add liquidity to non-contiguous bins: -3, 1, 2
+      const nonContiguousBins = [-3, 1, 2];
+      const sharesPerBin = parseUnits("100", 18);
+      const salt = 0n;
+      await addLiquidityToPosition(env, nonContiguousBins, sharesPerBin, salt);
+
+      // Query using getPositionSharesForBins (specific bins)
+      const shares = await sdk.getPositionSharesForBins(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        nonContiguousBins,
+      );
+
+      assert.equal(shares.length, 3, "Should have 3 bins with shares");
+      const binIndices = shares.map((s) => s.binIdx).sort((a, b) => a - b);
+      assert.deepEqual(binIndices, [-3, 1, 2], "Should match requested bins");
+
+      for (const { shares: s } of shares) {
+        assert.equal(s, sharesPerBin, "Each bin should have correct shares");
+      }
+    });
+
+    it("should remove liquidity from specific non-contiguous bins using bins param", async () => {
+      const env = await networkHelpers.loadFixture(deployFixture);
+      const { publicClient, stateView, poolAddress } = env;
+
+      // Add liquidity to bins -3, -1, 0, 1, 2
+      const allBins = [-3, -1, 0, 1, 2];
+      const sharesPerBin = parseUnits("100", 18);
+      const salt = 0n;
+      await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
+
+      // Remove 100% from only bins -3, 1, 2 (non-contiguous)
+      const prepared = await sdk.prepareRemoveLiquidityCalldata(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        { percentageToRemove: 100, bins: [-3, 1, 2] },
+      );
+
+      assert.ok(prepared, "Should return prepared calldata");
+
+      const hash = await deployer.sendTransaction({
+        to: poolAddress,
+        data: prepared!.data,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      assert.equal(receipt.status, "success", "Transaction should succeed");
+
+      // Verify: bins -1 and 0 should still have liquidity
+      const sharesAfter = await sdk.getPositionShares(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        -10,
+        10,
+      );
+
+      assert.equal(sharesAfter.length, 2, "Should have 2 bins remaining");
+      const remainingBins = sharesAfter
+        .map((s) => s.binIdx)
+        .sort((a, b) => a - b);
+      assert.deepEqual(
+        remainingBins,
+        [-1, 0],
+        "Only bins -1 and 0 should remain",
+      );
+    });
+
+    it("should remove 50% from specific non-contiguous bins", async () => {
+      const env = await networkHelpers.loadFixture(deployFixture);
+      const { publicClient, stateView, poolAddress } = env;
+
+      const allBins = [-3, -1, 0, 1, 2];
+      const sharesPerBin = parseUnits("100", 18);
+      const salt = 0n;
+      await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
+
+      // Remove 50% from bins -3 and 2 only
+      const prepared = await sdk.prepareRemoveLiquidityCalldata(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        { percentageToRemove: 50, bins: [-3, 2] },
+      );
+
+      assert.ok(prepared, "Should return prepared calldata");
+
+      const hash = await deployer.sendTransaction({
+        to: poolAddress,
+        data: prepared!.data,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      assert.equal(receipt.status, "success", "Transaction should succeed");
+
+      // Verify: bins -3 and 2 should have ~50% remaining, others unchanged
+      const sharesAfter = await sdk.getPositionSharesForBins(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        allBins,
+      );
+
+      assert.equal(sharesAfter.length, 5, "All 5 bins should still exist");
+
+      for (const { binIdx, shares } of sharesAfter) {
+        if (binIdx === -3 || binIdx === 2) {
+          // These should have ~50% remaining
+          const expected = sharesPerBin / 2n;
+          const tolerance = sharesPerBin / 100n;
+          assert.ok(
+            shares >= expected - tolerance && shares <= expected + tolerance,
+            `Bin ${binIdx}: expected ~${expected}, got ${shares}`,
+          );
+        } else {
+          // These should be unchanged
+          assert.equal(
+            shares,
+            sharesPerBin,
+            `Bin ${binIdx} should be unchanged`,
+          );
+        }
+      }
+    });
+  });
+
+  describe("prepareCustomRemoveLiquidityDeltas", () => {
+    it("should remove different percentages from different bins", async () => {
+      const env = await networkHelpers.loadFixture(deployFixture);
+      const { publicClient, stateView, poolAddress } = env;
+
+      const allBins = [-3, -1, 0, 1, 2];
+      const sharesPerBin = parseUnits("100", 18);
+      const salt = 0n;
+      await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
+
+      // Remove 100% from bin -3, 50% from bin 1, leave others untouched
+      const deltas = await sdk.prepareCustomRemoveLiquidityDeltas(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        [
+          { bin: -3, percentageToRemove: 100 },
+          { bin: 1, percentageToRemove: 50 },
+        ],
+      );
+
+      assert.equal(deltas.length, 2, "Should have 2 deltas");
+
+      const prepared = sdk.prepareModifyLiquidityCalldata(salt, deltas);
+      const hash = await deployer.sendTransaction({
+        to: poolAddress,
+        data: prepared.data,
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      assert.equal(receipt.status, "success", "Transaction should succeed");
+
+      const sharesAfter = await sdk.getPositionSharesForBins(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        allBins,
+      );
+
+      // Bin -3 should be fully removed
+      const bin3 = sharesAfter.find((s) => s.binIdx === -3);
+      assert.equal(bin3, undefined, "Bin -3 should have no shares");
+
+      // Bin 1 should have ~50%
+      const bin1 = sharesAfter.find((s) => s.binIdx === 1);
+      assert.ok(bin1, "Bin 1 should still have shares");
+      const expected50 = sharesPerBin / 2n;
+      const tolerance = sharesPerBin / 100n;
+      assert.ok(
+        bin1!.shares >= expected50 - tolerance &&
+          bin1!.shares <= expected50 + tolerance,
+        `Bin 1: expected ~${expected50}, got ${bin1!.shares}`,
+      );
+
+      // Bins -1, 0, 2 should be unchanged
+      for (const b of [-1, 0, 2]) {
+        const entry = sharesAfter.find((s) => s.binIdx === b);
+        assert.ok(entry, `Bin ${b} should still exist`);
+        assert.equal(
+          entry!.shares,
+          sharesPerBin,
+          `Bin ${b} should be unchanged`,
+        );
+      }
+    });
+
+    it("should remove absolute shares from specific bins", async () => {
+      const env = await networkHelpers.loadFixture(deployFixture);
+      const { publicClient, stateView, poolAddress } = env;
+
+      const allBins = [0, 1, 2];
+      const sharesPerBin = parseUnits("100", 18);
+      const salt = 0n;
+      await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
+
+      const sharesToRemove = parseUnits("30", 18);
+
+      const deltas = await sdk.prepareCustomRemoveLiquidityDeltas(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        [
+          { bin: 0, sharesToRemove },
+          { bin: 2, sharesToRemove },
+        ],
+      );
+
+      assert.equal(deltas.length, 2, "Should have 2 deltas");
+      for (const d of deltas) {
+        assert.equal(
+          d.deltaShares,
+          -sharesToRemove,
+          `Bin ${d.bin} should remove exactly ${sharesToRemove}`,
+        );
+      }
+
+      const prepared = sdk.prepareModifyLiquidityCalldata(salt, deltas);
+      const hash = await deployer.sendTransaction({
+        to: poolAddress,
+        data: prepared.data,
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      assert.equal(receipt.status, "success", "Transaction should succeed");
+
+      const sharesAfter = await sdk.getPositionSharesForBins(
+        publicClient,
+        stateView.address,
+        poolAddress,
+        deployer.account.address,
+        salt,
+        allBins,
+      );
+
+      const expectedRemaining = sharesPerBin - sharesToRemove;
+      for (const { binIdx, shares } of sharesAfter) {
+        if (binIdx === 1) {
+          assert.equal(shares, sharesPerBin, "Bin 1 should be unchanged");
+        } else {
+          assert.equal(
+            shares,
+            expectedRemaining,
+            `Bin ${binIdx} should have ${expectedRemaining}`,
+          );
+        }
+      }
+    });
+  });
 });
