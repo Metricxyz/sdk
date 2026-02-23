@@ -81,7 +81,7 @@ export {
   // Pool creation
   createPool,
   prepareFactoryCreatePoolParams,
-  encodeCreatePoolCalldata,
+  prepareCreatePoolCalldata,
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,

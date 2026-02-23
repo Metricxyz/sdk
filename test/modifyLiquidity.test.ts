@@ -59,7 +59,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       negativeBins: sdk.createUniformBins(10, 10000),
     };
 
-    const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);
+    const createPoolCalldata = sdk.prepareCreatePoolCalldata(poolParams);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,
@@ -94,7 +94,6 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
 
     // Use prepareModifyLiquidityCalldata to prepare the transaction
     const prepared = sdk.prepareModifyLiquidityCalldata(
-      poolAddress,
       salt,
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
@@ -102,13 +101,11 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     );
 
     // Verify prepared calldata is valid
-    assert.ok(prepared.to, "Should have target address");
     assert.ok(prepared.data.startsWith("0x"), "Should have valid calldata");
-    assert.equal(prepared.to, poolAddress, "Target should be pool address");
 
     // Send transaction manually using prepared calldata
     const hash = await deployer.sendTransaction({
-      to: prepared.to,
+      to: poolAddress,
       data: prepared.data,
     });
 
@@ -158,7 +155,6 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
 
     // Prepare second add liquidity
     const prepared2 = sdk.prepareModifyLiquidityCalldata(
-      poolAddress,
       salt, // Same salt = same position
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
@@ -166,7 +162,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     );
 
     const hash2 = await deployer.sendTransaction({
-      to: prepared2.to,
+      to: poolAddress,
       data: prepared2.data,
     });
 
@@ -262,7 +258,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       negativeBins: sdk.createUniformBins(10, 10000),
     };
 
-    const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);
+    const createPoolCalldata = sdk.prepareCreatePoolCalldata(poolParams);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,
@@ -285,7 +281,6 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     ];
 
     const prepared1 = sdk.prepareModifyLiquidityCalldata(
-      poolAddress,
       1n, // salt = 1
       deltas1,
       sdk.NO_SLIPPAGE_LIMIT,
@@ -293,7 +288,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     );
 
     const hash1 = await deployer.sendTransaction({
-      to: prepared1.to,
+      to: poolAddress,
       data: prepared1.data,
     });
     const receipt1 = await publicClient.waitForTransactionReceipt({
@@ -311,7 +306,6 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     ];
 
     const prepared2 = sdk.prepareModifyLiquidityCalldata(
-      poolAddress,
       2n, // salt = 2
       deltas2,
       sdk.NO_SLIPPAGE_LIMIT,
@@ -319,7 +313,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     );
 
     const hash2 = await deployer.sendTransaction({
-      to: prepared2.to,
+      to: poolAddress,
       data: prepared2.data,
     });
     const receipt2 = await publicClient.waitForTransactionReceipt({

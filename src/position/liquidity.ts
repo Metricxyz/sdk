@@ -19,8 +19,6 @@ export const NO_SLIPPAGE_LIMIT = MAX_INT128;
  * Prepared transaction data for modifyLiquidity
  */
 export interface PreparedModifyLiquidity {
-  /** Target pool address */
-  to: Address;
   /** Encoded calldata */
   data: Hex;
   /** Function arguments for reference */
@@ -58,7 +56,6 @@ function applySpecAmountBuffer(
  * Use this when you want to build the transaction yourself,
  * use multicall, or inspect the calldata before sending.
  *
- * @param poolAddress - Pool contract address
  * @param salt - Unique identifier for the position (80 bits)
  * @param deltas - Array of bin/shares changes (positive to add, negative to remove)
  * @param specAmount0 - Slippage protection for token0 (use NO_SLIPPAGE_LIMIT to disable)
@@ -68,16 +65,14 @@ function applySpecAmountBuffer(
  *
  * @example
  * const prepared = prepareModifyLiquidityCalldata(
- *   poolAddress,
  *   0n,
  *   [{ bin: 0, deltaShares: 1000n }],
  *   NO_SLIPPAGE_LIMIT,
  *   NO_SLIPPAGE_LIMIT
  * );
- * // Use prepared.to and prepared.data to send the transaction
+ * // Use prepared.data to send the transaction to the pool address
  */
 export function prepareModifyLiquidityCalldata(
-  poolAddress: Address,
   salt: bigint,
   deltas: LiquidityDelta[],
   specAmount0: bigint = NO_SLIPPAGE_LIMIT,
@@ -100,7 +95,6 @@ export function prepareModifyLiquidityCalldata(
   });
 
   return {
-    to: poolAddress,
     data,
     args: {
       salt,
@@ -315,7 +309,7 @@ export async function prepareRemoveLiquidityDeltas(
  *   { percentageToRemove: 50 }
  * );
  * if (prepared) {
- *   // Use prepared.to and prepared.data to send the transaction
+ *   // Use prepared.data to send the transaction to the pool address
  * }
  */
 export async function prepareRemoveLiquidityCalldata(
@@ -341,13 +335,7 @@ export async function prepareRemoveLiquidityCalldata(
     return null;
   }
 
-  return prepareModifyLiquidityCalldata(
-    poolAddress,
-    salt,
-    deltas,
-    specAmount0,
-    specAmount1,
-  );
+  return prepareModifyLiquidityCalldata(salt, deltas, specAmount0, specAmount1);
 }
 
 /**

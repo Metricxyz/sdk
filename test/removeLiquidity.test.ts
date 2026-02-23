@@ -58,7 +58,7 @@ describe("SDK Remove Liquidity", async () => {
     };
 
     // Create pool using calldata
-    const createPoolCalldata = sdk.encodeCreatePoolCalldata(params);
+    const createPoolCalldata = sdk.prepareCreatePoolCalldata(params);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,
@@ -102,7 +102,6 @@ describe("SDK Remove Liquidity", async () => {
 
     // Use prepareModifyLiquidityCalldata
     const prepared = sdk.prepareModifyLiquidityCalldata(
-      poolAddress,
       salt,
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
@@ -110,7 +109,7 @@ describe("SDK Remove Liquidity", async () => {
     );
 
     const hash = await deployer.sendTransaction({
-      to: prepared.to,
+      to: poolAddress,
       data: prepared.data,
     });
     await publicClient.waitForTransactionReceipt({ hash });
@@ -345,12 +344,11 @@ describe("SDK Remove Liquidity", async () => {
       );
 
       assert.ok(prepared, "Should return prepared calldata");
-      assert.ok(prepared!.to, "Should have target address");
       assert.ok(prepared!.data.startsWith("0x"), "Should have valid calldata");
 
       // Send transaction using prepared calldata
       const hash = await deployer.sendTransaction({
-        to: prepared!.to,
+        to: poolAddress,
         data: prepared!.data,
       });
 
@@ -413,7 +411,7 @@ describe("SDK Remove Liquidity", async () => {
 
       // Send transaction using prepared calldata
       const hash = await deployer.sendTransaction({
-        to: prepared!.to,
+        to: poolAddress,
         data: prepared!.data,
       });
 
@@ -484,7 +482,7 @@ describe("SDK Remove Liquidity", async () => {
 
       // Send transaction using prepared calldata
       const hash = await deployer.sendTransaction({
-        to: prepared!.to,
+        to: poolAddress,
         data: prepared!.data,
       });
 

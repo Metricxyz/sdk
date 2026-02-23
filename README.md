@@ -103,7 +103,7 @@ const arbAddresses = getAddressesOrThrow(42161);
 - `createPool(walletClient, publicClient, params)` - Create a new pool
 - `prepareFactoryCreatePoolParams(params)` - Prepare factory create pool parameters
 - `preparePoolBinData(params)` - Prepare bin data for pool creation
-- `encodeCreatePoolCalldata(params)` - Encode create pool calldata
+- `prepareCreatePoolCalldata(params)` - Encode create pool calldata
 - `getPoolImmutables(client, poolAddress)` - Get pool immutable parameters
 - `getPoolState(client, poolAddress)` - Get current pool state
 - `getBinState(client, poolAddress, binIdx)` - Get state of a specific bin

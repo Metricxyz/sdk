@@ -199,19 +199,17 @@ describe("SDK Integration Tests", async function () {
 
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
 
-      assert.ok(prepared.to, "Should have target address");
       assert.ok(prepared.data.startsWith("0x"), "Should have valid calldata");
 
       // Send transaction manually
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
 
@@ -245,7 +243,6 @@ describe("SDK Integration Tests", async function () {
 
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
@@ -253,7 +250,7 @@ describe("SDK Integration Tests", async function () {
       );
 
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
       await publicClient.waitForTransactionReceipt({ hash });
@@ -300,7 +297,6 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
@@ -308,7 +304,7 @@ describe("SDK Integration Tests", async function () {
       );
 
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
       await publicClient.waitForTransactionReceipt({ hash });
@@ -371,7 +367,6 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
@@ -379,7 +374,7 @@ describe("SDK Integration Tests", async function () {
       );
 
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
       await publicClient.waitForTransactionReceipt({ hash });
@@ -443,14 +438,13 @@ describe("SDK Integration Tests", async function () {
       const salt1 = 0n;
       // Use prepareModifyLiquidityCalldata for user1
       const prepared1 = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt1,
         deltas1,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const hash1 = await deployer.sendTransaction({
-        to: prepared1.to,
+        to: pool.address,
         data: prepared1.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: hash1 });
@@ -462,14 +456,13 @@ describe("SDK Integration Tests", async function () {
       const salt2 = 0n; // Different user, same salt is fine
       // Use prepareModifyLiquidityCalldata for user2
       const prepared2 = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt2,
         deltas2,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const hash2 = await user2.sendTransaction({
-        to: prepared2.to,
+        to: pool.address,
         data: prepared2.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: hash2 });
@@ -523,14 +516,13 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Add liquidity using prepareModifyLiquidityCalldata
       const preparedAdd = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         addDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const addHash = await deployer.sendTransaction({
-        to: preparedAdd.to,
+        to: pool.address,
         data: preparedAdd.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
@@ -556,14 +548,13 @@ describe("SDK Integration Tests", async function () {
 
       // Remove liquidity using prepareModifyLiquidityCalldata
       const preparedRemove = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         removeDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const removeHash = await deployer.sendTransaction({
-        to: preparedRemove.to,
+        to: pool.address,
         data: preparedRemove.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
@@ -624,14 +615,13 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Add liquidity using prepareModifyLiquidityCalldata
       const preparedAdd = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         addDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const addHash = await deployer.sendTransaction({
-        to: preparedAdd.to,
+        to: pool.address,
         data: preparedAdd.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
@@ -660,14 +650,13 @@ describe("SDK Integration Tests", async function () {
 
       // Remove liquidity using prepareModifyLiquidityCalldata
       const preparedRemove = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         removeDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const removeHash = await deployer.sendTransaction({
-        to: preparedRemove.to,
+        to: pool.address,
         data: preparedRemove.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
@@ -709,14 +698,13 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Add liquidity using prepareModifyLiquidityCalldata
       const preparedAdd = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         addDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const addHash = await deployer.sendTransaction({
-        to: preparedAdd.to,
+        to: pool.address,
         data: preparedAdd.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
@@ -735,14 +723,13 @@ describe("SDK Integration Tests", async function () {
 
       // Remove liquidity using prepareModifyLiquidityCalldata
       const preparedRemove = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         removeDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const removeHash = await deployer.sendTransaction({
-        to: preparedRemove.to,
+        to: pool.address,
         data: preparedRemove.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
@@ -818,42 +805,39 @@ describe("SDK Integration Tests", async function () {
 
       // User1 adds liquidity using prepareModifyLiquidityCalldata
       const prepared1 = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt1,
         [{ bin: 0, deltaShares: 100000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const hash1 = await deployer.sendTransaction({
-        to: prepared1.to,
+        to: pool.address,
         data: prepared1.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: hash1 });
 
       // User2 adds liquidity using prepareModifyLiquidityCalldata
       const prepared2 = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt2,
         [{ bin: 0, deltaShares: 200000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const hash2 = await user2.sendTransaction({
-        to: prepared2.to,
+        to: pool.address,
         data: prepared2.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: hash2 });
 
       // User1 removes all their liquidity using prepareModifyLiquidityCalldata
       const preparedRemove = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt1,
         [{ bin: 0, deltaShares: -100000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const removeHash = await deployer.sendTransaction({
-        to: preparedRemove.to,
+        to: pool.address,
         data: preparedRemove.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
@@ -902,14 +886,13 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const addHash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
@@ -944,14 +927,13 @@ describe("SDK Integration Tests", async function () {
       const salt = 0n;
       // Use prepareModifyLiquidityCalldata
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         deltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const addHash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
@@ -1081,7 +1063,6 @@ describe("SDK Integration Tests", async function () {
       // Execute modifyLiquidity with calculated deltas and specAmounts using prepareModifyLiquidityCalldata
       const salt = 0n;
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt,
         result.deltas,
         result.specAmount0,
@@ -1089,7 +1070,7 @@ describe("SDK Integration Tests", async function () {
       );
 
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
 
@@ -1155,14 +1136,13 @@ describe("SDK Integration Tests", async function () {
       const salt1 = 0n;
       // Use prepareModifyLiquidityCalldata
       const preparedInit = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt1,
         initialDeltas,
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
       const initHash = await deployer.sendTransaction({
-        to: preparedInit.to,
+        to: pool.address,
         data: preparedInit.data,
       });
       await publicClient.waitForTransactionReceipt({ hash: initHash });
@@ -1199,14 +1179,13 @@ describe("SDK Integration Tests", async function () {
       // Execute with new salt using prepareModifyLiquidityCalldata
       const salt2 = 1n;
       const prepared = sdk.prepareModifyLiquidityCalldata(
-        pool.address,
         salt2,
         result.deltas,
         result.specAmount0,
         result.specAmount1,
       );
       const hash = await deployer.sendTransaction({
-        to: prepared.to,
+        to: pool.address,
         data: prepared.data,
       });
 

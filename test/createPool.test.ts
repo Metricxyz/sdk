@@ -133,7 +133,7 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("createPool via factory using encodeCreatePoolCalldata", () => {
+  describe("createPool via factory using prepareCreatePoolCalldata", () => {
     it("should create a pool successfully using encoded calldata", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
@@ -156,8 +156,8 @@ describe("SDK createPool", async () => {
         curBinDistFromProvidedPricePercent: 0,
       };
 
-      // Use encodeCreatePoolCalldata to prepare the calldata
-      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
+      // Use prepareCreatePoolCalldata to prepare the calldata
+      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
 
       // Verify calldata is properly formatted
       assert.ok(calldata.startsWith("0x"), "Calldata should be hex encoded");
@@ -217,7 +217,7 @@ describe("SDK createPool", async () => {
       };
 
       // Encode calldata
-      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
+      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
 
       // Send transaction manually
       const hash = await deployer.sendTransaction({
@@ -261,7 +261,7 @@ describe("SDK createPool", async () => {
       };
 
       // Encode calldata
-      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
+      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
 
       // Send transaction manually
       const hash = await deployer.sendTransaction({
@@ -278,12 +278,12 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("encodeCreatePoolCalldata", () => {
+  describe("prepareCreatePoolCalldata", () => {
     it("should encode calldata for external use", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const calldata = sdk.encodeCreatePoolCalldata({
+      const calldata = sdk.prepareCreatePoolCalldata({
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,

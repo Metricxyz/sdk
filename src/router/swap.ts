@@ -12,8 +12,6 @@ import type { SwapExactInputParams, SwapExactOutputParams } from "../types.js";
  * Prepared transaction data for swap operations
  */
 export interface PreparedSwapTransaction {
-  /** Target router address */
-  to: Address;
   /** Encoded calldata */
   data: Hex;
   /** Value to send (for native ETH swaps) */
@@ -23,12 +21,10 @@ export interface PreparedSwapTransaction {
 /**
  * Prepare swapExactInput transaction calldata without sending.
  *
- * @param routerAddress - Router contract address
  * @param params - Swap parameters
  * @returns Prepared transaction data with calldata
  */
 export function prepareSwapExactInputCalldata(
-  routerAddress: Address,
   params: SwapExactInputParams,
 ): PreparedSwapTransaction {
   const data = encodeFunctionData({
@@ -46,7 +42,6 @@ export function prepareSwapExactInputCalldata(
   });
 
   return {
-    to: routerAddress,
     data,
   };
 }
@@ -54,12 +49,10 @@ export function prepareSwapExactInputCalldata(
 /**
  * Prepare swapExactOutput transaction calldata without sending.
  *
- * @param routerAddress - Router contract address
  * @param params - Swap parameters
  * @returns Prepared transaction data with calldata
  */
 export function prepareSwapExactOutputCalldata(
-  routerAddress: Address,
   params: SwapExactOutputParams,
 ): PreparedSwapTransaction {
   const data = encodeFunctionData({
@@ -77,7 +70,6 @@ export function prepareSwapExactOutputCalldata(
   });
 
   return {
-    to: routerAddress,
     data,
   };
 }
@@ -85,12 +77,10 @@ export function prepareSwapExactOutputCalldata(
 /**
  * Prepare swapExactInputNativeForTokens transaction calldata without sending.
  *
- * @param routerAddress - Router contract address
  * @param params - Swap parameters (without zeroForOne)
  * @returns Prepared transaction data with calldata and value
  */
 export function prepareSwapExactInputNativeForTokensCalldata(
-  routerAddress: Address,
   params: Omit<SwapExactInputParams, "zeroForOne">,
 ): PreparedSwapTransaction {
   const data = encodeFunctionData({
@@ -107,7 +97,6 @@ export function prepareSwapExactInputNativeForTokensCalldata(
   });
 
   return {
-    to: routerAddress,
     data,
     value: params.amountIn,
   };

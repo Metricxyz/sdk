@@ -6,7 +6,7 @@
 export {
   createPool,
   prepareFactoryCreatePoolParams,
-  encodeCreatePoolCalldata,
+  prepareCreatePoolCalldata,
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,
