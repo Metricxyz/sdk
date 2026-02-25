@@ -1,334 +1,180 @@
 /**
- * MetricAMM SDK - Liquidity Calculations
- * Functions for calculating liquidity distributions
+ * MetricAMM SDK - Liquidity
+ * Unified liquidity calculations and position operations.
  */
 
-import type { Address, PublicClient } from "viem";
+import type { Address, PublicClient, WalletClient, Hex } from "viem";
+import { encodeFunctionData } from "viem";
 import { MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
+import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type {
   LiquidityDelta,
-  CalculateUniformLiquidityParams,
-  CalculateAnyLiquidityParams,
-  CalculatedLiquidityDistribution,
+  AnyLiquidityBinInput,
 } from "../types.js";
 import { getPoolImmutables } from "./read.js";
 import {
   getSlot0,
-  getBinStatesExternal,
   getBinStatesScaled,
+  getPositionBinSharesRange,
+  getPositionBinSharesForBins,
 } from "../stateView/read.js";
+import {
+  ONE_E18,
+  ceilDiv,
+  toPriceX18,
+  convertToken0ToToken1,
+  convertToken1ToToken0,
+  scaledPositiveDeltaToExternal,
+} from "../utils/liquidityMath.js";
+export { convertToken0ToToken1, convertToken1ToToken0 };
+export const getPositionShares = getPositionBinSharesRange;
+export const getPositionSharesForBins = getPositionBinSharesForBins;
 
-const ONE_E18 = 1_000_000_000_000_000_000n;
-
-function ceilDiv(numerator: bigint, denominator: bigint): bigint {
-  if (denominator <= 0n) throw new Error("denominator must be > 0");
-  if (numerator < 0n) throw new Error("numerator must be >= 0");
-  return numerator === 0n ? 0n : (numerator + denominator - 1n) / denominator;
+export interface RemoveLiquidityParams {
+  percentageToRemove: number;
+  bins?: number[];
+  lowerBin?: number;
+  upperBin?: number;
 }
 
-function toPriceX18(currentPrice: number): bigint {
-  if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
-    throw new Error("currentPrice must be a positive finite number");
-  }
-  const priceX18 = BigInt(Math.round(currentPrice * 1e18));
-  if (priceX18 <= 0n) {
-    throw new Error("currentPrice is too small");
-  }
-  return priceX18;
+export interface BinRemovalSpec {
+  bin: number;
+  percentageToRemove?: number;
+  sharesToRemove?: bigint;
 }
 
-function convertToken0ToToken1(
-  amount0: bigint,
-  token0ScaleMultiplier: bigint,
-  token1ScaleMultiplier: bigint,
-  priceX18: bigint,
-): bigint {
-  return (
-    (amount0 * token0ScaleMultiplier * priceX18) /
-    (token1ScaleMultiplier * ONE_E18)
-  );
+export const NO_SLIPPAGE_LIMIT = MAX_INT128;
+
+type ModifyLiquidityParams = {
+  salt: bigint;
+  deltas: LiquidityDelta[];
+  specAmount0: bigint;
+  specAmount1: bigint;
+};
+
+export type ModifyLiquidityArgs = readonly [
+  bigint,
+  LiquidityDelta[],
+  bigint,
+  bigint,
+];
+
+export interface BuildModifyLiquidityArgsBase {
+  publicClient: PublicClient;
+  stateViewAddress: Address;
+  poolAddress: Address;
+  specAmountBufferPercent?: number;
 }
 
-function convertToken1ToToken0(
-  amount1: bigint,
-  token0ScaleMultiplier: bigint,
-  token1ScaleMultiplier: bigint,
-  priceX18: bigint,
-): bigint {
-  return (
-    (amount1 * token1ScaleMultiplier * ONE_E18) /
-    (token0ScaleMultiplier * priceX18)
-  );
+export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsBase {
+  bins: AnyLiquidityBinInput[];
+  currentPrice: number;
+  salt?: bigint;
 }
 
-function scaledPositiveDeltaToExternal(
-  scaledAmount: bigint,
-  scaleMultiplier: bigint,
-): bigint {
-  return ceilDiv(scaledAmount, scaleMultiplier);
+export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildModifyLiquidityArgsBase {
+  amountInTokensPerBin: bigint;
+  amountIsInToken0: boolean;
+  currentPrice: number;
+  lowerBin: number;
+  upperBin: number;
+  salt?: bigint;
+}
+
+export interface BuildModifyLiquidityArgsForPercentageRemovalParams extends BuildModifyLiquidityArgsBase {
+  owner: Address;
+  salt: bigint;
+  percentageToRemove: number;
+  bins?: number[];
+  lowerBin?: number;
+  upperBin?: number;
+}
+
+export interface BuildModifyLiquidityArgsForRemovalParams extends BuildModifyLiquidityArgsBase {
+  owner: Address;
+  salt: bigint;
+  specs: BinRemovalSpec[];
 }
 
 /**
- * Calculate uniform liquidity distribution across multiple bins.
- *
- * ## Algorithm Overview
- *
- * This function distributes liquidity uniformly BY VALUE across a range of bins.
- * The user specifies an amount per bin (in either token0 or token1), and the function
- * calculates the number of shares to add to each bin such that each bin receives
- * approximately the same value of liquidity.
- *
- * ## Steps:
- *
- * 1. **Convert amount to both tokens**: Using current price, convert the per-bin amount
- *    to equivalent values in both token0 and token1 (amount0PerBin, amount1PerBin).
- *
- * 2. **Fetch pool state**: Get pool immutables, current bin index, position within bin,
- *    and existing bin states (balances and total shares).
- *
- * 3. **Classify each bin**: as below current bin, above current bin, or current bin.
- *
- * 4. **Calculate shares for each bin**:
- *    - If bin has existing liquidity: shares = (targetAmount * totalShares) / binBalance
- *    - If bin is empty: shares = (targetAmount * scaleMultiplier * 1e18) / initialPerShare
- *    - Use ceiling division to avoid under-provisioning
- *
- * 5. **Accumulate token requirements**: Sum up specAmount0 and specAmount1 needed
- *    across all bins. For the current bin, add safety margin to ensure target value.
- *
- * @param publicClient Viem public client for reading blockchain state
- * @param stateViewAddress Address of MetricOmmPoolStateView contract
- * @param poolAddress Address of the MetricOmmPool
- * @param params Distribution parameters
- * @returns Object with deltas array and actual specAmount0/specAmount1 needed
+ * Prepare uniform liquidity distribution across a bin range.
  */
-export async function calculateUniformLiquidityDistribution(
-  publicClient: PublicClient,
-  stateViewAddress: Address,
-  poolAddress: Address,
-  params: CalculateUniformLiquidityParams,
-): Promise<CalculatedLiquidityDistribution> {
-  const {
-    amountInTokensPerBin,
-    amountIsInToken0,
-    currentPrice,
-    lowerBin,
-    upperBin,
-  } = params;
-
+export async function buildModifyLiquidityArgsForUniformAddition({
+  publicClient,
+  stateViewAddress,
+  poolAddress,
+  amountInTokensPerBin,
+  amountIsInToken0,
+  currentPrice,
+  lowerBin,
+  upperBin,
+  salt = 0n,
+  specAmountBufferPercent = 0,
+}: BuildModifyLiquidityArgsForUniformAdditionParams): Promise<ModifyLiquidityArgs> {
   if (lowerBin > upperBin) {
     throw new Error("lowerBin must be <= upperBin");
   }
 
-  const immutables = await getPoolImmutables(publicClient, poolAddress);
-  const slot0 = await getSlot0(publicClient, stateViewAddress, poolAddress);
-
-  const priceX18 = BigInt(Math.round(currentPrice * 1e18));
-
-  const amount0PerBin = amountIsInToken0
-    ? amountInTokensPerBin
-    : (amountInTokensPerBin * immutables.token1ScaleMultiplier * BigInt(1e18)) /
-      (immutables.token0ScaleMultiplier * priceX18);
-  const amount1PerBin = amountIsInToken0
-    ? (amountInTokensPerBin * immutables.token0ScaleMultiplier * priceX18) /
-      (immutables.token1ScaleMultiplier * BigInt(1e18))
-    : amountInTokensPerBin;
-
-  const targetPerBinToken1 = amount1PerBin;
-
-  if (amount0PerBin <= 0n)
-    throw new Error("small amount results in 0 amount0PerBin");
-  if (amount1PerBin <= 0n)
-    throw new Error("small amount results in 0 amount1PerBin");
-
-  if (amount0PerBin > MAX_INT104) {
-    throw new Error(
-      `amount0PerBin (${amount0PerBin}) exceeds int104 max. ` +
-        `This can happen when price is very low and amount is specified in token1. ` +
-        `Try using a smaller amount or specifying amount in token0.`,
-    );
-  }
-  if (amount1PerBin > MAX_INT104) {
-    throw new Error(
-      `amount1PerBin (${amount1PerBin}) exceeds int104 max. ` +
-        `This can happen when price is very high and amount is specified in token0. ` +
-        `Try using a smaller amount or specifying amount in token1.`,
-    );
-  }
-
-  const curBinIdx = slot0.curBinIdx;
-  const curPosInBin = slot0.curPosInBin;
-
-  const binIndices: number[] = [];
+  const bins: AnyLiquidityBinInput[] = [];
   for (let bin = lowerBin; bin <= upperBin; bin++) {
-    binIndices.push(bin);
-  }
-
-  const binStates = await getBinStatesExternal(
-    publicClient,
-    stateViewAddress,
-    poolAddress,
-    binIndices,
-  );
-
-  const deltas: LiquidityDelta[] = [];
-  let specAmount0 = 0n;
-  let specAmount1 = 0n;
-
-  for (let i = 0; i < binIndices.length; i++) {
-    const binIdx = binIndices[i];
-    const totalShares = binStates.totalShares[i];
-    let sharesToAdd: bigint;
-
-    const isBelowBin =
-      binIdx < curBinIdx ||
-      (binIdx === curBinIdx && curPosInBin === MAX_UINT104);
-    const isAboveBin =
-      binIdx > curBinIdx || (binIdx === curBinIdx && curPosInBin === 0n);
-
-    if (isBelowBin) {
-      if (totalShares >= 1n) {
-        const denom = binStates.token1Balances[i] + 1n;
-        const numer = amount1PerBin * totalShares;
-        sharesToAdd = (numer + denom - 1n) / denom;
-        if (sharesToAdd === 0n) sharesToAdd = 1n;
-      } else {
-        sharesToAdd =
-          (amount1PerBin * immutables.token1ScaleMultiplier * BigInt(1e18) +
-            immutables.initialScaledToken1PerShareE18 -
-            1n) /
-          immutables.initialScaledToken1PerShareE18;
-        if (sharesToAdd === 0n) sharesToAdd = 1n;
-      }
-      specAmount1 += amount1PerBin;
-    } else if (isAboveBin) {
-      if (totalShares >= 1n) {
-        const denom = binStates.token0Balances[i] + 1n;
-        const numer = amount0PerBin * totalShares;
-        sharesToAdd = (numer + denom - 1n) / denom;
-        if (sharesToAdd === 0n) sharesToAdd = 1n;
-      } else {
-        sharesToAdd =
-          (amount0PerBin * immutables.token0ScaleMultiplier * BigInt(1e18) +
-            immutables.initialScaledToken0PerShareE18 -
-            1n) /
-          immutables.initialScaledToken0PerShareE18;
-        if (sharesToAdd === 0n) sharesToAdd = 1n;
-      }
-      if (sharesToAdd > MAX_INT104) {
-        throw new Error(
-          `sharesToAdd (${sharesToAdd}) for bin ${binIdx} exceeds int104 max. ` +
-            `The converted amount is too large for this bin. ` +
-            `Try using a smaller amount or specifying amount in the token needed by this bin.`,
-        );
-      }
-      specAmount0 += amount0PerBin;
-    } else {
-      let shares: bigint;
-      let amount0: bigint;
-      let amount1: bigint;
-      if (totalShares >= 1n) {
-        const shares0 =
-          (amount0PerBin * totalShares) / (binStates.token0Balances[i] + 1n);
-        const shares1 =
-          (amount1PerBin * totalShares) / (binStates.token1Balances[i] + 1n);
-        shares = shares0 > shares1 ? shares0 : shares1;
-        amount0 = (shares * binStates.token0Balances[i]) / totalShares;
-        amount1 = (shares * binStates.token1Balances[i]) / totalShares;
-      } else {
-        const token0Portion = MAX_UINT104 - curPosInBin;
-        const token1Portion = curPosInBin;
-
-        const shares0 =
-          (amount0PerBin *
-            immutables.token0ScaleMultiplier *
-            BigInt(1e18) *
-            token0Portion) /
-          (immutables.initialScaledToken0PerShareE18 * MAX_UINT104);
-        const shares1 =
-          (amount1PerBin *
-            immutables.token1ScaleMultiplier *
-            BigInt(1e18) *
-            token1Portion) /
-          (immutables.initialScaledToken1PerShareE18 * MAX_UINT104);
-        shares = shares0 > shares1 ? shares0 : shares1;
-        amount0 =
-          (shares * immutables.initialScaledToken0PerShareE18 * token0Portion) /
-          BigInt(1e18);
-        amount1 =
-          (shares * immutables.initialScaledToken1PerShareE18 * token1Portion) /
-          BigInt(1e18);
-      }
-      const providedValueInToken1 =
-        amount1 +
-        (amount0 * immutables.token0ScaleMultiplier * priceX18) /
-          (immutables.token1ScaleMultiplier * BigInt(1e18));
-
-      if (providedValueInToken1 <= 0n)
-        throw new Error("small amount results in 0 providedValueInToken1");
-
-      const numerator = shares * amount1PerBin;
-      let sharesToAddCeil =
-        (numerator + providedValueInToken1 - 1n) / providedValueInToken1;
-      if (sharesToAddCeil === 0n) sharesToAddCeil = 1n;
-      sharesToAdd =
-        amount0PerBin > sharesToAddCeil ? amount0PerBin : sharesToAddCeil;
-
-      const added0 = (amount0 * sharesToAdd) / shares + 1n;
-      const added1 = (amount1 * sharesToAdd) / shares + 1n;
-      specAmount0 += added0;
-      specAmount1 += added1;
-
-      const providedValueBin =
-        added1 +
-        (added0 * immutables.token0ScaleMultiplier * priceX18) /
-          (immutables.token1ScaleMultiplier * BigInt(1e18));
-      const targetValueBin = targetPerBinToken1;
-      if (providedValueBin < targetValueBin) {
-        const topUp = targetValueBin - providedValueBin;
-        specAmount1 += topUp;
-      }
-
-      specAmount1 += targetValueBin;
-    }
-
-    deltas.push({
-      bin: binIdx,
-      deltaShares: sharesToAdd,
+    bins.push({
+      bin,
+      amountInToken: amountInTokensPerBin,
+      amountInToken0: amountIsInToken0,
     });
   }
 
-  return {
-    deltas,
-    specAmount0,
-    specAmount1,
-  };
+  return buildModifyLiquidityArgsForAddition({
+    publicClient,
+    stateViewAddress,
+    poolAddress,
+    bins,
+    currentPrice,
+    salt,
+    specAmountBufferPercent,
+  });
 }
 
 /**
- * Calculate per-bin liquidity distribution from arbitrary per-bin amounts.
+ * Prepare per-bin liquidity distribution from arbitrary per-bin amounts.
  *
  * Each input entry defines a single bin and a value expressed in token0 or token1.
  * The function computes `deltaShares` for every bin and totals `specAmount0/specAmount1`
  * needed to execute `modifyLiquidity` safely.
+ *
+ * ## Algorithm Overview
+ *
+ * This is the core distribution engine used by both:
+ * - direct per-bin plans (computeModifyLiquidityForAddition)
+ * - uniform plans via adapter (computeModifyLiquidityForUniformAddition)
+ *
+ * ## Steps
+ *
+ * 1. Validate inputs, price, bin range, and reject duplicate bins.
+ * 2. Convert each bin target into both token0/token1 amounts using current price.
+ * 3. Fetch slot0 and bin states, then classify each bin as below/current/above.
+ * 4. Compute shares to add using ceiling division to avoid under-provisioning:
+ *    - Existing bins: proportional to current scaled balances and total shares.
+ *    - Empty bins: derived from initial scaled per-share constants.
+ * 5. Convert scaled amounts back to external token amounts and accumulate
+ *    `specAmount0/specAmount1` with overflow checks.
  */
-export async function calculateAnyLiquidityDistribution(
-  publicClient: PublicClient,
-  stateViewAddress: Address,
-  poolAddress: Address,
-  params: CalculateAnyLiquidityParams,
-): Promise<CalculatedLiquidityDistribution> {
-  const { bins, currentPrice } = params;
+export async function buildModifyLiquidityArgsForAddition({
+  publicClient,
+  stateViewAddress,
+  poolAddress,
+  bins,
+  currentPrice,
+  salt = 0n,
+  specAmountBufferPercent = 0,
+}: BuildModifyLiquidityArgsForAdditionParams): Promise<ModifyLiquidityArgs> {
+  validateSpecAmountBufferPercent(specAmountBufferPercent);
 
   if (!Array.isArray(bins)) {
     throw new Error("bins must be an array");
   }
   if (bins.length === 0) {
-    return {
-      deltas: [],
-      specAmount0: 0n,
-      specAmount1: 0n,
-    };
+    return [salt, [], 0n, 0n];
   }
 
   const immutables = await getPoolImmutables(publicClient, poolAddress);
@@ -581,15 +427,257 @@ export async function calculateAnyLiquidityDistribution(
     });
   }
 
-  return {
+  const computed: ModifyLiquidityParams = {
+    salt,
     deltas,
-    specAmount0,
-    specAmount1,
+    specAmount0: applySpecAmountBuffer(specAmount0, specAmountBufferPercent),
+    specAmount1: applySpecAmountBuffer(specAmount1, specAmountBufferPercent),
+  };
+
+  return toModifyLiquidityArgs(computed);
+}
+
+export async function buildModifyLiquidityArgsForRemoval({
+  publicClient,
+  stateViewAddress,
+  poolAddress,
+  owner,
+  salt,
+  specs,
+  specAmountBufferPercent = 0,
+}: BuildModifyLiquidityArgsForRemovalParams): Promise<ModifyLiquidityArgs> {
+  validateSpecAmountBufferPercent(specAmountBufferPercent);
+
+  if (specs.length === 0) {
+    return [salt, [], NO_SLIPPAGE_LIMIT, NO_SLIPPAGE_LIMIT];
+  }
+
+  for (const spec of specs) {
+    if (spec.percentageToRemove != null && spec.sharesToRemove != null) {
+      throw new Error(
+        `Bin ${spec.bin}: specify either percentageToRemove or sharesToRemove, not both`,
+      );
+    }
+    if (spec.percentageToRemove == null && spec.sharesToRemove == null) {
+      throw new Error(
+        `Bin ${spec.bin}: must specify either percentageToRemove or sharesToRemove`,
+      );
+    }
+    if (
+      spec.percentageToRemove != null &&
+      (spec.percentageToRemove <= 0 || spec.percentageToRemove > 100)
+    ) {
+      throw new Error(
+        `Bin ${spec.bin}: percentageToRemove must be between 0 and 100`,
+      );
+    }
+  }
+
+  const binIndices = specs.map((s) => s.bin);
+  const positionShares = await getPositionBinSharesForBins(
+    publicClient,
+    stateViewAddress,
+    poolAddress,
+    owner,
+    salt,
+    binIndices,
+  );
+
+  const sharesMap = new Map(positionShares.map((p) => [p.binIdx, p.shares]));
+  const deltas: LiquidityDelta[] = [];
+
+  for (const spec of specs) {
+    const currentShares = sharesMap.get(spec.bin) ?? 0n;
+    if (currentShares === 0n) continue;
+
+    let sharesToRemove: bigint;
+
+    if (spec.sharesToRemove != null) {
+      sharesToRemove =
+        spec.sharesToRemove > currentShares
+          ? currentShares
+          : spec.sharesToRemove;
+    } else {
+      sharesToRemove =
+        spec.percentageToRemove === 100
+          ? currentShares
+          : (currentShares *
+              BigInt(Math.floor(spec.percentageToRemove! * 100))) /
+            10000n;
+    }
+
+    if (sharesToRemove > 0n) {
+      deltas.push({
+        bin: spec.bin,
+        deltaShares: -sharesToRemove,
+      });
+    }
+  }
+
+  const computed: ModifyLiquidityParams = {
+    salt,
+    deltas,
+    specAmount0: applySpecAmountBuffer(
+      NO_SLIPPAGE_LIMIT,
+      specAmountBufferPercent,
+    ),
+    specAmount1: applySpecAmountBuffer(
+      NO_SLIPPAGE_LIMIT,
+      specAmountBufferPercent,
+    ),
+  };
+
+  return toModifyLiquidityArgs(computed);
+}
+
+export async function buildModifyLiquidityArgsForPercentageRemoval({
+  publicClient,
+  stateViewAddress,
+  poolAddress,
+  owner,
+  salt,
+  percentageToRemove,
+  bins,
+  lowerBin = -10,
+  upperBin = 10,
+  specAmountBufferPercent = 0,
+}: BuildModifyLiquidityArgsForPercentageRemovalParams): Promise<ModifyLiquidityArgs> {
+  validateSpecAmountBufferPercent(specAmountBufferPercent);
+
+  if (percentageToRemove <= 0 || percentageToRemove > 100) {
+    throw new Error("percentageToRemove must be between 0 and 100");
+  }
+
+  const binsWithShares = bins
+    ? bins
+    : (
+        await getPositionBinSharesRange(
+          publicClient,
+          stateViewAddress,
+          poolAddress,
+          owner,
+          salt,
+          lowerBin,
+          upperBin,
+        )
+      ).map((p) => p.binIdx);
+
+  if (binsWithShares.length === 0) {
+    return [salt, [], NO_SLIPPAGE_LIMIT, NO_SLIPPAGE_LIMIT];
+  }
+
+  const specs: BinRemovalSpec[] = binsWithShares.map((bin) => ({
+    bin,
+    percentageToRemove,
+  }));
+
+  return buildModifyLiquidityArgsForRemoval({
+    publicClient,
+    stateViewAddress,
+    poolAddress,
+    owner,
+    salt,
+    specs,
+    specAmountBufferPercent,
+  });
+}
+
+export function encodeModifyLiquidityCalldata(
+  preparedModifyLiquidity: ModifyLiquidityParams | ModifyLiquidityArgs,
+): Hex {
+  const args = normalizeModifyLiquidityArgs(preparedModifyLiquidity);
+  return encodeFunctionData({
+    abi: MetricOmmPoolAbi,
+    functionName: "modifyLiquidity",
+    args,
+  });
+}
+
+export async function sendModifyLiquidity(
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  poolAddress: Address,
+  preparedModifyLiquidity: ModifyLiquidityParams | ModifyLiquidityArgs,
+  account: Address,
+): Promise<{ hash: Hex; amount0Delta: bigint; amount1Delta: bigint }> {
+  const args = normalizeModifyLiquidityArgs(preparedModifyLiquidity);
+
+  const { request, result } = await publicClient.simulateContract({
+    address: poolAddress,
+    abi: MetricOmmPoolAbi,
+    functionName: "modifyLiquidity",
+    args,
+    account,
+  });
+
+  const hash = await walletClient.writeContract(request);
+
+  await publicClient.waitForTransactionReceipt({ hash });
+
+  return {
+    hash,
+    amount0Delta: result[0] as bigint,
+    amount1Delta: result[1] as bigint,
   };
 }
 
-/**
- * Backward-compatible alias with the originally requested misspelled name.
- */
-export const calculateAnyLiquididtyDistributinon =
-  calculateAnyLiquidityDistribution;
+function validateSpecAmountBufferPercent(
+  specAmountBufferPercent: number,
+): void {
+  if (
+    !Number.isFinite(specAmountBufferPercent) ||
+    specAmountBufferPercent < 0
+  ) {
+    throw new Error("specAmountBufferPercent must be a non-negative number");
+  }
+}
+
+function applySpecAmountBuffer(
+  specAmount: bigint,
+  specAmountBufferPercent: number,
+): bigint {
+  if (specAmountBufferPercent === 0 || specAmount === NO_SLIPPAGE_LIMIT) {
+    return specAmount;
+  }
+
+  if (specAmount > 0n) {
+    const multiplier = BigInt(Math.floor((1 + specAmountBufferPercent) * 1e18));
+    return (specAmount * multiplier) / BigInt(1e18);
+  }
+
+  if (specAmount < 0n) {
+    const multiplier = BigInt(Math.floor((1 - specAmountBufferPercent) * 1e18));
+    if (multiplier <= 0n) {
+      return 0n;
+    }
+    return (specAmount * multiplier) / BigInt(1e18);
+  }
+
+  return specAmount;
+}
+
+function isModifyLiquidityArgs(
+  preparedOrArgs: ModifyLiquidityParams | ModifyLiquidityArgs,
+): preparedOrArgs is ModifyLiquidityArgs {
+  return Array.isArray(preparedOrArgs);
+}
+
+function toModifyLiquidityArgs(
+  preparedModifyLiquidity: ModifyLiquidityParams,
+): ModifyLiquidityArgs {
+  return [
+    preparedModifyLiquidity.salt,
+    preparedModifyLiquidity.deltas,
+    preparedModifyLiquidity.specAmount0,
+    preparedModifyLiquidity.specAmount1,
+  ];
+}
+
+function normalizeModifyLiquidityArgs(
+  preparedOrArgs: ModifyLiquidityParams | ModifyLiquidityArgs,
+): ModifyLiquidityArgs {
+  if (isModifyLiquidityArgs(preparedOrArgs)) {
+    return preparedOrArgs as ModifyLiquidityArgs;
+  }
+  return toModifyLiquidityArgs(preparedOrArgs);
+}

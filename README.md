@@ -100,16 +100,19 @@ const arbAddresses = getAddressesOrThrow(42161);
 
 ### Pool Functions
 
-- `createPool(walletClient, publicClient, params)` - Create a new pool
-- `prepareFactoryCreatePoolParams(params)` - Prepare factory create pool parameters
-- `preparePoolBinData(params)` - Prepare bin data for pool creation
-- `prepareCreatePoolCalldata(params)` - Encode create pool calldata
+- `preparePoolBinData(params)` - Prepare `PoolBinData` for pool creation
+- `buildArgsForCreatePool(params)` - Build `CreatePoolArgs` tuple for `createPool`
+- `prepareCreatePoolCalldata(argsOrParams)` - Encode create pool calldata from `CreatePoolArgs` or `CreatePoolParams`
+- `sendCreatePool(publicClient, walletClient, factoryAddress, argsOrParams, account)` - Send create pool transaction from `CreatePoolArgs` or `CreatePoolParams`
+- `createPool(publicClient, walletClient, factoryAddress, params, account)` - Alias of `sendCreatePool`
 - `getPoolImmutables(client, poolAddress)` - Get pool immutable parameters
 - `getPoolState(client, poolAddress)` - Get current pool state
 - `getBinState(client, poolAddress, binIdx)` - Get state of a specific bin
 - `getPositionBinShares(client, poolAddress, posKey)` - Get position bin shares
-- `calculateUniformLiquidityDistribution(...)` - Calculate uniform liquidity distribution
-- `calculateAnyLiquidityDistribution(...)` - Calculate custom liquidity distribution
+- `buildModifyLiquidityArgsForAddition(...)` - Build `ModifyLiquidityArgs` for custom addition
+- `buildModifyLiquidityArgsForUniformAddition(...)` - Build `ModifyLiquidityArgs` for uniform addition
+- `buildModifyLiquidityArgsForPercentageRemoval(...)` - Build `ModifyLiquidityArgs` for percentage removal
+- `buildModifyLiquidityArgsForRemoval(...)` - Build `ModifyLiquidityArgs` for custom removal
 
 ### StateView Functions (Recommended for reads)
 
@@ -128,12 +131,9 @@ const arbAddresses = getAddressesOrThrow(42161);
 
 ### Position Functions
 
-- `modifyLiquidity(walletClient, publicClient, params)` - Add or modify liquidity
-- `prepareModifyLiquidityCalldata(params)` - Encode modify liquidity calldata
 - `getPositionShares(client, poolAddress, owner, salt, bins)` - Get position shares
-- `prepareRemoveLiquidityDeltas(client, poolAddress, owner, salt, bins)` - Prepare removal deltas
-- `removeLiquidity(walletClient, publicClient, params)` - Remove liquidity from a pool
-- `prepareRemoveLiquidityCalldata(params)` - Encode remove liquidity calldata
+- `encodeModifyLiquidityCalldata(modifyLiquidityArgs)` - Encode modifyLiquidity calldata
+- `sendModifyLiquidity(publicClient, walletClient, poolAddress, modifyLiquidityArgs, account)` - Encode and send modifyLiquidity tx
 - `NO_SLIPPAGE_LIMIT` - Constant for no slippage limit
 
 ### Router Functions

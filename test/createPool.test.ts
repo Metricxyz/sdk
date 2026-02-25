@@ -89,12 +89,12 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("prepareFactoryCreatePoolParams", () => {
-    it("should prepare factory params correctly", async () => {
+  describe("prepareCreatePoolCalldata", () => {
+    it("should encode calldata from direct CreatePoolParams", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const params = sdk.prepareFactoryCreatePoolParams({
+      const params: sdk.CreatePoolParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -110,26 +110,11 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
-      });
+      };
 
-      assert.strictEqual(params.token0, token0.address);
-      assert.strictEqual(params.token1, token1.address);
-      assert.strictEqual(params.priceProvider, priceProvider.address);
-      assert.strictEqual(params.admin, deployer.account.address);
-
-      // Check fee conversions (1% = 10000 E6)
-      assert.strictEqual(params.adminFee, 50000); // 5% = 50000
-
-      // Check drift conversion (1% = 1_000_000 E8)
-      assert.strictEqual(params.maxDriftE8, 5000000n); // 5% = 5_000_000
-
-      // Check bin data arrays
-      assert.strictEqual(params.nonNegativeBinDataArray.length, 2); // 10 bins = 2 uint256
-      assert.strictEqual(params.negativeBinDataArray.length, 2);
-
-      // Salt should be generated
-      assert.ok(params.salt.startsWith("0x"));
-      assert.strictEqual(params.salt.length, 66); // 0x + 64 hex chars
+      const calldata = sdk.prepareCreatePoolCalldata(params);
+      assert.ok(calldata.startsWith("0x"));
+      assert.ok(calldata.length > 10);
     });
   });
 
@@ -138,7 +123,7 @@ describe("SDK createPool", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const poolConfig: sdk.CreatePoolFactoryParams = {
+      const poolConfig: sdk.CreatePoolParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -156,7 +141,6 @@ describe("SDK createPool", async () => {
         curBinDistFromProvidedPricePercent: 0,
       };
 
-      // Use prepareCreatePoolCalldata to prepare the calldata
       const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
 
       // Verify calldata is properly formatted
@@ -198,7 +182,7 @@ describe("SDK createPool", async () => {
         { lengthE6: 4000, addFeeBuyE6: 7, addFeeSellE6: 3 },
       ]);
 
-      const poolConfig: sdk.CreatePoolFactoryParams = {
+      const poolConfig: sdk.CreatePoolParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -235,7 +219,7 @@ describe("SDK createPool", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const poolConfig: sdk.CreatePoolFactoryParams = {
+      const poolConfig: sdk.CreatePoolParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -278,12 +262,12 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("prepareCreatePoolCalldata", () => {
+  describe("prepareCreatePoolCalldata (external)", () => {
     it("should encode calldata for external use", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const calldata = sdk.prepareCreatePoolCalldata({
+      const params: sdk.CreatePoolParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -299,7 +283,8 @@ describe("SDK createPool", async () => {
         initialToken1PerShare: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
-      });
+      };
+      const calldata = sdk.prepareCreatePoolCalldata(params);
 
       assert.ok(calldata.startsWith("0x"));
       // createPool selector + encoded struct

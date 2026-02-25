@@ -8,7 +8,7 @@ import MockERC20Artifact from "../artifacts/@metric/core/contracts/mocks/MockERC
 import MetricOmmPoolStateViewArtifact from "../artifacts/@metric/core/contracts/MetricOmmPoolStateView.sol/MetricOmmPoolStateView.json";
 import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
-describe("calculateUniformLiquidityDistribution (simplified matrix)", async function () {
+describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");
   const [deployer] = await viem.getWalletClients();
 
@@ -137,27 +137,29 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
     const before0 = (await token0.read.balanceOf([pool])) as bigint;
     const before1 = (await token1.read.balanceOf([pool])) as bigint;
 
-    const result = await sdk.calculateUniformLiquidityDistribution(
-      publicClient,
-      stateView,
-      pool,
-      params,
-    );
-
-    // Use direct pool modifyLiquidity
-    const walletClient = await viem.getWalletClient(deployer.account.address);
     const salt = saltCounter++;
-
-    const { hash } = await sdk.modifyLiquidity(
+    const result = await sdk.buildModifyLiquidityArgsForUniformAddition({
       publicClient,
-      walletClient,
-      pool,
+      stateViewAddress: stateView,
+      poolAddress: pool,
+      amountInTokensPerBin: params.amountInTokensPerBin,
+      amountIsInToken0: params.amountIsInToken0,
+      currentPrice: params.currentPrice,
+      lowerBin: params.lowerBin,
+      upperBin: params.upperBin,
       salt,
-      result.deltas,
-      deployer.account.address,
-      result.specAmount0,
-      result.specAmount1,
-    );
+    });
+
+    const deltas = result[1];
+    const specAmount0 = result[2];
+    const specAmount1 = result[3];
+
+    // Use direct pool modifyLiquidity calldata
+
+    const hash = await deployer.sendTransaction({
+      to: pool,
+      data: sdk.encodeModifyLiquidityCalldata(result),
+    });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     assert.equal(receipt.status, "success");
 
@@ -165,6 +167,37 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
     const after1 = (await token1.read.balanceOf([pool])) as bigint;
     const spent0 = after0 - before0;
     const spent1 = after1 - before1;
+    assert.ok(spent0 >= 0n && spent0 <= specAmount0);
+    assert.ok(spent1 >= 0n && spent1 <= specAmount1);
+
+    if (specAmount0 > 0n) {
+      const shortfall0 = specAmount0 - spent0;
+      const allowedShortfall0 = specAmount0 / 100n + 1n;
+      assert.ok(
+        shortfall0 <= allowedShortfall0,
+        `spec/spent mismatch token0: spec=${specAmount0}, spent=${spent0}, shortfall=${shortfall0}, allowed=${allowedShortfall0}`,
+      );
+    }
+    if (specAmount1 > 0n) {
+      const shortfall1 = specAmount1 - spent1;
+      const allowedShortfall1 = specAmount1 / 100n + 1n;
+      assert.ok(
+        shortfall1 <= allowedShortfall1,
+        `spec/spent mismatch token1: spec=${specAmount1}, spent=${spent1}, shortfall=${shortfall1}, allowed=${allowedShortfall1}`,
+      );
+    }
+
+    const binsCount = BigInt(deltas.length);
+    const headroom0 = specAmount0 - spent0;
+    const headroom1 = specAmount1 - spent1;
+    assert.ok(
+      headroom0 <= binsCount,
+      `specAmount0 headroom too large: ${headroom0} > ${binsCount}`,
+    );
+    assert.ok(
+      headroom1 <= binsCount,
+      `specAmount1 headroom too large: ${headroom1} > ${binsCount}`,
+    );
 
     const immutables = await sdk.getPoolImmutables(publicClient, pool);
 
@@ -186,7 +219,7 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
       ? toToken1Value(params.amountInTokensPerBin, immutables, priceX18)
       : params.amountInTokensPerBin;
     const activeBins = BigInt(
-      result.deltas.filter((d) => d.deltaShares !== 0n).length,
+      deltas.filter((d) => d.deltaShares !== 0n).length,
     );
     const target1 = targetPerBinToken1 * activeBins;
 
@@ -199,7 +232,7 @@ describe("calculateUniformLiquidityDistribution (simplified matrix)", async func
       );
     }
 
-    return { spent0, spent1 };
+    return { spent0, spent1, headroom0, headroom1 };
   };
 
   const decimalPairs = [

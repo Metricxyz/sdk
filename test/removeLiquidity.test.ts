@@ -39,7 +39,7 @@ describe("SDK Remove Liquidity", async () => {
 
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
 
-    const params: sdk.CreatePoolFactoryParams = {
+    const params: sdk.CreatePoolParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -100,17 +100,16 @@ describe("SDK Remove Liquidity", async () => {
       deltaShares: sharesPerBin,
     }));
 
-    // Use prepareModifyLiquidityCalldata
-    const prepared = sdk.prepareModifyLiquidityCalldata(
+    const modifyLiquidityArgs: sdk.ModifyLiquidityArgs = [
       salt,
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
       sdk.NO_SLIPPAGE_LIMIT,
-    );
+    ];
 
     const hash = await deployer.sendTransaction({
       to: poolAddress,
-      data: prepared.data,
+      data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
     });
     await publicClient.waitForTransactionReceipt({ hash });
 
@@ -187,7 +186,7 @@ describe("SDK Remove Liquidity", async () => {
     });
   });
 
-  describe("prepareRemoveLiquidityDeltas", () => {
+  describe("buildModifyLiquidityArgsForPercentageRemoval", () => {
     it("should prepare deltas to remove 50% of liquidity", async () => {
       const env = await networkHelpers.loadFixture(deployFixture);
       const { publicClient, stateView, poolAddress } = env;
@@ -197,20 +196,23 @@ describe("SDK Remove Liquidity", async () => {
       const salt = 0n;
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
-      const deltas = await sdk.prepareRemoveLiquidityDeltas(
-        publicClient,
-        stateView.address,
-        poolAddress,
-        deployer.account.address,
-        salt,
-        { percentageToRemove: 50 },
-      );
+      const [, deltas, specAmount0, specAmount1] =
+        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+          publicClient,
+          stateViewAddress: stateView.address,
+          poolAddress,
+          owner: deployer.account.address,
+          salt,
+          percentageToRemove: 50,
+        });
 
       assert.equal(
         deltas.length,
         bins.length,
         "Should have delta for each bin",
       );
+      assert.equal(specAmount0, sdk.NO_SLIPPAGE_LIMIT);
+      assert.equal(specAmount1, sdk.NO_SLIPPAGE_LIMIT);
 
       for (const delta of deltas) {
         assert.ok(
@@ -247,14 +249,14 @@ describe("SDK Remove Liquidity", async () => {
         10,
       );
 
-      const deltas = await sdk.prepareRemoveLiquidityDeltas(
+      const [, deltas] = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
         publicClient,
-        stateView.address,
+        stateViewAddress: stateView.address,
         poolAddress,
-        deployer.account.address,
+        owner: deployer.account.address,
         salt,
-        { percentageToRemove: 100 },
-      );
+        percentageToRemove: 100,
+      });
 
       assert.equal(
         deltas.length,
@@ -287,34 +289,34 @@ describe("SDK Remove Liquidity", async () => {
 
       await assert.rejects(
         () =>
-          sdk.prepareRemoveLiquidityDeltas(
+          sdk.buildModifyLiquidityArgsForPercentageRemoval({
             publicClient,
-            stateView.address,
+            stateViewAddress: stateView.address,
             poolAddress,
-            deployer.account.address,
+            owner: deployer.account.address,
             salt,
-            { percentageToRemove: 0 },
-          ),
+            percentageToRemove: 0,
+          }),
         /percentageToRemove must be between 0 and 100/,
       );
 
       await assert.rejects(
         () =>
-          sdk.prepareRemoveLiquidityDeltas(
+          sdk.buildModifyLiquidityArgsForPercentageRemoval({
             publicClient,
-            stateView.address,
+            stateViewAddress: stateView.address,
             poolAddress,
-            deployer.account.address,
+            owner: deployer.account.address,
             salt,
-            { percentageToRemove: 101 },
-          ),
+            percentageToRemove: 101,
+          }),
         /percentageToRemove must be between 0 and 100/,
       );
     });
   });
 
-  describe("removeLiquidity using prepareRemoveLiquidityCalldata", () => {
-    it("should remove 50% of liquidity using prepared calldata", async () => {
+  describe("removeLiquidity using buildModifyLiquidityArgsForPercentageRemoval", () => {
+    it("should remove 50% of liquidity using prepared payload", async () => {
       const env = await networkHelpers.loadFixture(deployFixture);
       const { publicClient, stateView, poolAddress } = env;
 
@@ -333,23 +335,26 @@ describe("SDK Remove Liquidity", async () => {
         10,
       );
 
-      // Use prepareRemoveLiquidityCalldata
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
+      // Use buildModifyLiquidityArgsForPercentageRemoval
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
         publicClient,
-        stateView.address,
+        stateViewAddress: stateView.address,
         poolAddress,
-        deployer.account.address,
+        owner: deployer.account.address,
         salt,
-        { percentageToRemove: 50 },
+        percentageToRemove: 50,
+      });
+
+      assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
+      assert.ok(
+        sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs).startsWith("0x"),
+        "Should have valid calldata",
       );
 
-      assert.ok(prepared, "Should return prepared calldata");
-      assert.ok(prepared!.data.startsWith("0x"), "Should have valid calldata");
-
-      // Send transaction using prepared calldata
+      // Send transaction using encoded payload
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared!.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -388,7 +393,7 @@ describe("SDK Remove Liquidity", async () => {
       console.log("Removed 50% liquidity, hash:", hash);
     });
 
-    it("should remove 100% of liquidity using prepared calldata", async () => {
+    it("should remove 100% of liquidity using prepared payload", async () => {
       const env = await networkHelpers.loadFixture(deployFixture);
       const { publicClient, stateView, poolAddress } = env;
 
@@ -397,22 +402,22 @@ describe("SDK Remove Liquidity", async () => {
       const salt = 0n;
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
-      // Use prepareRemoveLiquidityCalldata
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
+      // Use buildModifyLiquidityArgsForPercentageRemoval
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
         publicClient,
-        stateView.address,
+        stateViewAddress: stateView.address,
         poolAddress,
-        deployer.account.address,
+        owner: deployer.account.address,
         salt,
-        { percentageToRemove: 100 },
-      );
+        percentageToRemove: 100,
+      });
 
-      assert.ok(prepared, "Should return prepared calldata");
+      assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
-      // Send transaction using prepared calldata
+      // Send transaction using encoded payload
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared!.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -442,24 +447,27 @@ describe("SDK Remove Liquidity", async () => {
       const salt = 0n;
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
-      // prepareRemoveLiquidityCalldata returns null when no liquidity is found
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
-        publicClient,
-        stateView.address,
-        poolAddress,
-        deployer.account.address,
-        salt,
-        { percentageToRemove: 100, lowerBin: -5, upperBin: 4 },
-      );
+      // buildModifyLiquidityArgsForPercentageRemoval returns empty deltas when no liquidity is found
+      const modifyLiquidityArgs =
+        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+          publicClient,
+          stateViewAddress: stateView.address,
+          poolAddress,
+          owner: deployer.account.address,
+          salt,
+          percentageToRemove: 100,
+          lowerBin: -5,
+          upperBin: 4,
+        });
 
       assert.equal(
-        prepared,
-        null,
-        "Should return null when no liquidity found in range",
+        modifyLiquidityArgs[1].length,
+        0,
+        "Should return empty deltas when no liquidity found in range",
       );
     });
 
-    it("should remove liquidity with custom bin range using prepared calldata", async () => {
+    it("should remove liquidity with custom bin range using prepared payload", async () => {
       const env = await networkHelpers.loadFixture(deployFixture);
       const { publicClient, stateView, poolAddress } = env;
 
@@ -468,22 +476,25 @@ describe("SDK Remove Liquidity", async () => {
       const salt = 0n;
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
-      // Use prepareRemoveLiquidityCalldata with custom bin range
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
-        publicClient,
-        stateView.address,
-        poolAddress,
-        deployer.account.address,
-        salt,
-        { percentageToRemove: 100, lowerBin: -3, upperBin: 3 },
-      );
+      // Use buildModifyLiquidityArgsForPercentageRemoval with custom bin range
+      const modifyLiquidityArgs =
+        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+          publicClient,
+          stateViewAddress: stateView.address,
+          poolAddress,
+          owner: deployer.account.address,
+          salt,
+          percentageToRemove: 100,
+          lowerBin: -3,
+          upperBin: 3,
+        });
 
-      assert.ok(prepared, "Should return prepared calldata");
+      assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
-      // Send transaction using prepared calldata
+      // Send transaction using encoded payload
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared!.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -562,20 +573,22 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
 
       // Remove 100% from only bins -3, 1, 2 (non-contiguous)
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
-        publicClient,
-        stateView.address,
-        poolAddress,
-        deployer.account.address,
-        salt,
-        { percentageToRemove: 100, bins: [-3, 1, 2] },
-      );
+      const modifyLiquidityArgs =
+        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+          publicClient,
+          stateViewAddress: stateView.address,
+          poolAddress,
+          owner: deployer.account.address,
+          salt,
+          percentageToRemove: 100,
+          bins: [-3, 1, 2],
+        });
 
-      assert.ok(prepared, "Should return prepared calldata");
+      assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared!.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -613,20 +626,22 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
 
       // Remove 50% from bins -3 and 2 only
-      const prepared = await sdk.prepareRemoveLiquidityCalldata(
-        publicClient,
-        stateView.address,
-        poolAddress,
-        deployer.account.address,
-        salt,
-        { percentageToRemove: 50, bins: [-3, 2] },
-      );
+      const modifyLiquidityArgs =
+        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+          publicClient,
+          stateViewAddress: stateView.address,
+          poolAddress,
+          owner: deployer.account.address,
+          salt,
+          percentageToRemove: 50,
+          bins: [-3, 2],
+        });
 
-      assert.ok(prepared, "Should return prepared calldata");
+      assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared!.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -665,7 +680,7 @@ describe("SDK Remove Liquidity", async () => {
     });
   });
 
-  describe("prepareCustomRemoveLiquidityDeltas", () => {
+  describe("buildModifyLiquidityArgsForRemoval", () => {
     it("should remove different percentages from different bins", async () => {
       const env = await networkHelpers.loadFixture(deployFixture);
       const { publicClient, stateView, poolAddress } = env;
@@ -676,24 +691,25 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
 
       // Remove 100% from bin -3, 50% from bin 1, leave others untouched
-      const deltas = await sdk.prepareCustomRemoveLiquidityDeltas(
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForRemoval({
         publicClient,
-        stateView.address,
+        stateViewAddress: stateView.address,
         poolAddress,
-        deployer.account.address,
+        owner: deployer.account.address,
         salt,
-        [
+        specs: [
           { bin: -3, percentageToRemove: 100 },
           { bin: 1, percentageToRemove: 50 },
         ],
-      );
+      });
+
+      const deltas = modifyLiquidityArgs[1];
 
       assert.equal(deltas.length, 2, "Should have 2 deltas");
 
-      const prepared = sdk.prepareModifyLiquidityCalldata(salt, deltas);
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       assert.equal(receipt.status, "success", "Transaction should succeed");
@@ -745,17 +761,19 @@ describe("SDK Remove Liquidity", async () => {
 
       const sharesToRemove = parseUnits("30", 18);
 
-      const deltas = await sdk.prepareCustomRemoveLiquidityDeltas(
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForRemoval({
         publicClient,
-        stateView.address,
+        stateViewAddress: stateView.address,
         poolAddress,
-        deployer.account.address,
+        owner: deployer.account.address,
         salt,
-        [
+        specs: [
           { bin: 0, sharesToRemove },
           { bin: 2, sharesToRemove },
         ],
-      );
+      });
+
+      const deltas = modifyLiquidityArgs[1];
 
       assert.equal(deltas.length, 2, "Should have 2 deltas");
       for (const d of deltas) {
@@ -766,10 +784,9 @@ describe("SDK Remove Liquidity", async () => {
         );
       }
 
-      const prepared = sdk.prepareModifyLiquidityCalldata(salt, deltas);
       const hash = await deployer.sendTransaction({
         to: poolAddress,
-        data: prepared.data,
+        data: sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs),
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       assert.equal(receipt.status, "success", "Transaction should succeed");

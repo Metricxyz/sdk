@@ -8,10 +8,37 @@ import MockERC20Artifact from "../artifacts/@metric/core/contracts/mocks/MockERC
 import MetricOmmPoolStateViewArtifact from "../artifacts/@metric/core/contracts/MetricOmmPoolStateView.sol/MetricOmmPoolStateView.json";
 import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
-describe("calculateAnyLiquidityDistribution", async function () {
+describe("buildModifyLiquidityArgsForAddition", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");
   const [deployer] = await viem.getWalletClients();
   let saltCounter = 0n;
+
+  const argsToPlan = (args: sdk.ModifyLiquidityArgs) => ({
+    salt: args[0],
+    deltas: args[1],
+    specAmount0: args[2],
+    specAmount1: args[3],
+  });
+
+  const buildModifyLiquidityArgsForAdditionPlan = async (
+    publicClient: any,
+    stateViewAddress: Address,
+    poolAddress: Address,
+    params: sdk.CalculateAnyLiquidityParams,
+    salt: bigint = 0n,
+    specAmountBufferPercent: number = 0,
+  ) =>
+    argsToPlan(
+      await sdk.buildModifyLiquidityArgsForAddition({
+        publicClient,
+        stateViewAddress,
+        poolAddress,
+        bins: params.bins,
+        currentPrice: params.currentPrice,
+        salt,
+        specAmountBufferPercent,
+      }),
+    );
 
   async function setupEnv(config?: { decimals0?: number; decimals1?: number }) {
     const decimals0 = config?.decimals0 ?? 18;
@@ -155,25 +182,18 @@ describe("calculateAnyLiquidityDistribution", async function () {
     const before0 = (await token0.read.balanceOf([pool])) as bigint;
     const before1 = (await token1.read.balanceOf([pool])) as bigint;
 
-    const result = await sdk.calculateAnyLiquidityDistribution(
+    const salt = saltCounter++;
+    const result = await buildModifyLiquidityArgsForAdditionPlan(
       publicClient,
       stateView,
       pool,
       params,
-    );
-
-    const walletClient = await viem.getWalletClient(deployer.account.address);
-    const salt = saltCounter++;
-    const { hash, amount0Delta, amount1Delta } = await sdk.modifyLiquidity(
-      publicClient,
-      walletClient,
-      pool,
       salt,
-      result.deltas,
-      deployer.account.address,
-      result.specAmount0,
-      result.specAmount1,
     );
+    const hash = await deployer.sendTransaction({
+      to: pool,
+      data: sdk.encodeModifyLiquidityCalldata(result),
+    });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     assert.equal(receipt.status, "success");
 
@@ -182,8 +202,37 @@ describe("calculateAnyLiquidityDistribution", async function () {
     const spent0 = after0 - before0;
     const spent1 = after1 - before1;
 
-    assert.ok(amount0Delta >= 0n && amount0Delta <= result.specAmount0);
-    assert.ok(amount1Delta >= 0n && amount1Delta <= result.specAmount1);
+    assert.ok(spent0 >= 0n && spent0 <= result.specAmount0);
+    assert.ok(spent1 >= 0n && spent1 <= result.specAmount1);
+
+    if (result.specAmount0 > 0n) {
+      const shortfall0 = result.specAmount0 - spent0;
+      const allowedShortfall0 = result.specAmount0 / 100n + 1n;
+      assert.ok(
+        shortfall0 <= allowedShortfall0,
+        `spec/spent mismatch token0: spec=${result.specAmount0}, spent=${spent0}, shortfall=${shortfall0}, allowed=${allowedShortfall0}`,
+      );
+    }
+    if (result.specAmount1 > 0n) {
+      const shortfall1 = result.specAmount1 - spent1;
+      const allowedShortfall1 = result.specAmount1 / 100n + 1n;
+      assert.ok(
+        shortfall1 <= allowedShortfall1,
+        `spec/spent mismatch token1: spec=${result.specAmount1}, spent=${spent1}, shortfall=${shortfall1}, allowed=${allowedShortfall1}`,
+      );
+    }
+
+    const binsCount = BigInt(result.deltas.length);
+    const headroom0 = result.specAmount0 - spent0;
+    const headroom1 = result.specAmount1 - spent1;
+    assert.ok(
+      headroom0 <= binsCount,
+      `specAmount0 headroom too large: ${headroom0} > ${binsCount}`,
+    );
+    assert.ok(
+      headroom1 <= binsCount,
+      `specAmount1 headroom too large: ${headroom1} > ${binsCount}`,
+    );
 
     const immutables = await sdk.getPoolImmutables(publicClient, pool);
     const priceX18 = BigInt(Math.round(params.currentPrice * 1e18));
@@ -213,6 +262,8 @@ describe("calculateAnyLiquidityDistribution", async function () {
     return {
       spent0,
       spent1,
+      headroom0,
+      headroom1,
       result,
     };
   };
@@ -366,7 +417,7 @@ describe("calculateAnyLiquidityDistribution", async function () {
       { bin: 1, amountInToken: parseUnits("2", 18), amountInToken0: true },
     ];
 
-    const multiPlan = await sdk.calculateAnyLiquidityDistribution(
+    const multiPlan = await buildModifyLiquidityArgsForAdditionPlan(
       publicClient,
       stateView.address,
       pool.address,
@@ -381,7 +432,7 @@ describe("calculateAnyLiquidityDistribution", async function () {
     const singleDeltaByBin = new Map<number, bigint>();
 
     for (const entry of bins) {
-      const singlePlan = await sdk.calculateAnyLiquidityDistribution(
+      const singlePlan = await buildModifyLiquidityArgsForAdditionPlan(
         publicClient,
         stateView.address,
         pool.address,
@@ -419,7 +470,7 @@ describe("calculateAnyLiquidityDistribution", async function () {
       await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
-      sdk.calculateAnyLiquidityDistribution(
+      buildModifyLiquidityArgsForAdditionPlan(
         publicClient,
         stateView.address,
         pool.address,
@@ -448,7 +499,7 @@ describe("calculateAnyLiquidityDistribution", async function () {
       await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
-      sdk.calculateAnyLiquidityDistribution(
+      buildModifyLiquidityArgsForAdditionPlan(
         publicClient,
         stateView.address,
         pool.address,

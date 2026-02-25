@@ -180,8 +180,10 @@ export interface CalculateAnyLiquidityParams {
   currentPrice: number;
 }
 
-export interface CalculatedLiquidityDistribution {
+export interface PreparedLiquidityDistribution {
   deltas: LiquidityDelta[];
   specAmount0: bigint;
   specAmount1: bigint;
 }
+
+export type CalculatedLiquidityDistribution = PreparedLiquidityDistribution;

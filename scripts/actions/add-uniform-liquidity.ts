@@ -158,23 +158,22 @@ async function main() {
   // Calculate uniform distribution using SDK
   console.log("\n⏳ Calculating uniform liquidity distribution...\n");
 
-  const { deltas, specAmount0, specAmount1 } =
-    await sdk.calculateUniformLiquidityDistribution(
+  const [preparedSalt, deltas, specAmount0, specAmount1] =
+    await sdk.buildModifyLiquidityArgsForUniformAddition({
       publicClient,
-      addresses.stateView,
+      stateViewAddress: addresses.stateView,
       poolAddress,
-      {
-        amountInTokensPerBin: amountPerBin,
-        amountIsInToken0,
-        currentPrice,
-        lowerBin,
-        upperBin,
-      },
-    );
+      salt,
+      amountInTokensPerBin: amountPerBin,
+      amountIsInToken0,
+      currentPrice,
+      lowerBin,
+      upperBin,
+    });
 
   console.log("📝 Liquidity Configuration:");
   console.log("-".repeat(60));
-  console.log(`Salt:            ${salt}`);
+  console.log(`Salt:            ${preparedSalt}`);
   console.log(`Bin Range:       ${lowerBin} to ${upperBin} (${numBins} bins)`);
   console.log(`Amount per bin:  ${amountPerBinStr} ${amountToken}`);
   console.log(`\nEstimated Total Tokens Required:`);

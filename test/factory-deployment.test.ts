@@ -101,7 +101,7 @@ describe("Factory Deployment Flow", async () => {
     const [walletClient] = await viem.getWalletClients();
 
     // Create pool config using SDK
-    const poolConfig: sdk.CreatePoolFactoryParams = {
+    const poolConfig: sdk.CreatePoolParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -150,7 +150,7 @@ describe("Factory Deployment Flow", async () => {
     const { token0, token1, priceProvider, admin } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
-    const poolConfig: sdk.CreatePoolFactoryParams = {
+    const poolConfig: sdk.CreatePoolParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,

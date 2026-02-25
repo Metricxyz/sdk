@@ -12,6 +12,6 @@ export * from "./src/addresses.js";
 export * from "./src/abis/index.js";
 export * from "./src/utils/index.js";
 export * from "./src/pool/index.js";
+export * from "./src/pool/liquidity.js";
 export * from "./src/stateView/index.js";
-export * from "./src/position/index.js";
 export * from "./src/router/index.js";

@@ -30,6 +30,7 @@ export type {
   CalculateUniformLiquidityParams,
   AnyLiquidityBinInput,
   CalculateAnyLiquidityParams,
+  PreparedLiquidityDistribution,
   CalculatedLiquidityDistribution,
 } from "./types.js";
 
@@ -90,10 +91,6 @@ export {
   getPoolState,
   getBinState,
   getPositionBinShares,
-  // Liquidity calculations
-  calculateUniformLiquidityDistribution,
-  calculateAnyLiquidityDistribution,
-  calculateAnyLiquididtyDistributinon,
 } from "./pool/index.js";
 
 // ============ StateView Functions ============
@@ -112,21 +109,26 @@ export {
   getLastTradeTimestamp,
 } from "./stateView/index.js";
 
-// ============ Position Functions ============
+// ============ Liquidity Functions ============
 export {
-  modifyLiquidity,
-  prepareModifyLiquidityCalldata,
+  buildModifyLiquidityArgsForAddition,
+  buildModifyLiquidityArgsForUniformAddition,
+  buildModifyLiquidityArgsForPercentageRemoval,
+  buildModifyLiquidityArgsForRemoval,
+  encodeModifyLiquidityCalldata,
+  sendModifyLiquidity,
   getPositionShares,
   getPositionSharesForBins,
-  prepareRemoveLiquidityDeltas,
-  prepareCustomRemoveLiquidityDeltas,
-  removeLiquidity,
-  prepareRemoveLiquidityCalldata,
   NO_SLIPPAGE_LIMIT,
-  type PreparedModifyLiquidity,
+  type ModifyLiquidityArgs,
+  type BuildModifyLiquidityArgsBase,
+  type BuildModifyLiquidityArgsForAdditionParams,
+  type BuildModifyLiquidityArgsForUniformAdditionParams,
+  type BuildModifyLiquidityArgsForPercentageRemovalParams,
+  type BuildModifyLiquidityArgsForRemovalParams,
   type RemoveLiquidityParams,
   type BinRemovalSpec,
-} from "./position/index.js";
+} from "./pool/liquidity.js";
 
 // ============ Router Functions ============
 export {

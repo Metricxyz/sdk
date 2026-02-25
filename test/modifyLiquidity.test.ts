@@ -5,11 +5,11 @@ import { parseUnits } from "viem";
 import * as sdk from "../index.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 
-describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () => {
+describe("SDK modifyLiquidity using prepared payload encoding", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
 
-  it("should add liquidity to a position using prepared calldata", async () => {
+  it("should add liquidity to a position using prepared payload", async () => {
     const publicClient = await viem.getPublicClient();
 
     const token0 = await viem.deployContract("MockERC20", [
@@ -41,7 +41,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
 
     // Create pool using calldata
-    const poolParams: sdk.CreatePoolFactoryParams = {
+    const poolParams: sdk.CreatePoolParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -92,27 +92,28 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
 
     const salt = 0n;
 
-    // Use prepareModifyLiquidityCalldata to prepare the transaction
-    const prepared = sdk.prepareModifyLiquidityCalldata(
+    // Build a prepared modifyLiquidity payload
+    const modifyLiquidityArgs: sdk.ModifyLiquidityArgs = [
       salt,
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
       sdk.NO_SLIPPAGE_LIMIT,
-    );
+    ];
+    const calldata = sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs);
 
-    // Verify prepared calldata is valid
-    assert.ok(prepared.data.startsWith("0x"), "Should have valid calldata");
+    // Verify encoded payload is valid
+    assert.ok(calldata.startsWith("0x"), "Should have valid calldata");
 
-    // Send transaction manually using prepared calldata
+    // Send transaction manually using encoded payload
     const hash = await deployer.sendTransaction({
       to: poolAddress,
-      data: prepared.data,
+      data: calldata,
     });
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     assert.equal(receipt.status, "success", "Transaction should succeed");
 
-    console.log("Added liquidity via prepared calldata:");
+    console.log("Added liquidity via prepared payload:");
     console.log("  Transaction hash:", hash);
 
     // Verify position shares via StateView
@@ -153,17 +154,18 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     await token0.write.approve([poolAddress, mintAmount0]);
     await token1.write.approve([poolAddress, mintAmount1]);
 
-    // Prepare second add liquidity
-    const prepared2 = sdk.prepareModifyLiquidityCalldata(
+    // Build second add-liquidity payload
+    const modifyLiquidityArgs2: sdk.ModifyLiquidityArgs = [
       salt, // Same salt = same position
       deltas,
       sdk.NO_SLIPPAGE_LIMIT,
       sdk.NO_SLIPPAGE_LIMIT,
-    );
+    ];
+    const calldata2 = sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs2);
 
     const hash2 = await deployer.sendTransaction({
       to: poolAddress,
-      data: prepared2.data,
+      data: calldata2,
     });
 
     const receipt2 = await publicClient.waitForTransactionReceipt({
@@ -208,7 +210,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     );
   });
 
-  it("should create separate positions with different salts using prepared calldata", async () => {
+  it("should create separate positions with different salts using prepared payload", async () => {
     const publicClient = await viem.getPublicClient();
 
     const token0 = await viem.deployContract("MockERC20", [
@@ -240,7 +242,7 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
 
     // Create pool using calldata
-    const poolParams: sdk.CreatePoolFactoryParams = {
+    const poolParams: sdk.CreatePoolParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -275,21 +277,22 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
     await token0.write.approve([poolAddress, mintAmount0]);
     await token1.write.approve([poolAddress, mintAmount1]);
 
-    // Create position with salt=1 using prepared calldata
+    // Create position with salt=1 using prepared payload
     const deltas1: sdk.LiquidityDelta[] = [
       { bin: 0, deltaShares: parseUnits("100", 18) },
     ];
 
-    const prepared1 = sdk.prepareModifyLiquidityCalldata(
+    const modifyLiquidityArgs1: sdk.ModifyLiquidityArgs = [
       1n, // salt = 1
       deltas1,
       sdk.NO_SLIPPAGE_LIMIT,
       sdk.NO_SLIPPAGE_LIMIT,
-    );
+    ];
+    const calldata1 = sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs1);
 
     const hash1 = await deployer.sendTransaction({
       to: poolAddress,
-      data: prepared1.data,
+      data: calldata1,
     });
     const receipt1 = await publicClient.waitForTransactionReceipt({
       hash: hash1,
@@ -300,21 +303,22 @@ describe("SDK modifyLiquidity using prepareModifyLiquidityCalldata", async () =>
       "First position creation should succeed",
     );
 
-    // Create position with salt=2 using prepared calldata
+    // Create position with salt=2 using prepared payload
     const deltas2: sdk.LiquidityDelta[] = [
       { bin: 1, deltaShares: parseUnits("200", 18) },
     ];
 
-    const prepared2 = sdk.prepareModifyLiquidityCalldata(
+    const modifyLiquidityArgs2: sdk.ModifyLiquidityArgs = [
       2n, // salt = 2
       deltas2,
       sdk.NO_SLIPPAGE_LIMIT,
       sdk.NO_SLIPPAGE_LIMIT,
-    );
+    ];
+    const calldata2 = sdk.encodeModifyLiquidityCalldata(modifyLiquidityArgs2);
 
     const hash2 = await deployer.sendTransaction({
       to: poolAddress,
-      data: prepared2.data,
+      data: calldata2,
     });
     const receipt2 = await publicClient.waitForTransactionReceipt({
       hash: hash2,

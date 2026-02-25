@@ -140,7 +140,7 @@ async function main() {
   const negativeBinData = binTuplesToBinData(config.negativeBins);
 
   // Build pool params
-  const poolParams: sdk.CreatePoolFactoryParams = {
+  const poolParams: sdk.CreatePoolParams = {
     token0: config.token0 as `0x${string}`,
     token1: config.token1 as `0x${string}`,
     priceProvider: config.priceProvider as `0x${string}`,
@@ -212,7 +212,9 @@ async function main() {
   );
   console.log(`   Max drift: ${maxDrift}%`);
   console.log(`   Admin fee: ${adminFee}%`);
-  console.log(`   Report swap to price provider: ${config.reportSwapToPriceProvider}`);
+  console.log(
+    `   Report swap to price provider: ${config.reportSwapToPriceProvider}`,
+  );
 
   // Confirm before deploying
   console.log("\n⚠️  About to deploy pool on mainnet!");
