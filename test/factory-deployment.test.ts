@@ -123,8 +123,8 @@ describe("Factory Deployment Flow", async () => {
       curBinDistFromProvidedPricePercent: 0,
     };
 
-    // Use prepareCreatePoolCalldata to prepare calldata
-    const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
+    // Use encodeCreatePoolCalldata to prepare calldata
+    const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
 
     // Verify calldata is valid
     assert.ok(calldata.startsWith("0x"), "Calldata should be hex encoded");
@@ -169,7 +169,7 @@ describe("Factory Deployment Flow", async () => {
     };
 
     // Test calldata encoding (useful for multisig/batch transactions)
-    const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
+    const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
     assert.ok(calldata.startsWith("0x"), "Calldata should be hex encoded");
     assert.ok(calldata.length > 10, "Calldata should have content");
   });

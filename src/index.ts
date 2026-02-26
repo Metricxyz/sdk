@@ -23,9 +23,6 @@ export type {
   Slot0,
   Slot1,
   FeeConfig,
-  SwapParams,
-  SwapExactInputParams,
-  SwapExactOutputParams,
   PositionBinSharesResult,
   CalculateUniformLiquidityParams,
   AnyLiquidityBinInput,
@@ -82,7 +79,7 @@ export {
   // Pool creation
   createPool,
   prepareFactoryCreatePoolParams,
-  prepareCreatePoolCalldata,
+  encodeCreatePoolCalldata,
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,
@@ -116,7 +113,6 @@ export {
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
   encodeModifyLiquidityCalldata,
-  sendModifyLiquidity,
   getPositionShares,
   getPositionSharesForBins,
   NO_SLIPPAGE_LIMIT,
@@ -132,11 +128,18 @@ export {
 
 // ============ Router Functions ============
 export {
-  swapExactInput,
-  swapExactOutput,
-  swapExactInputNativeForTokens,
+  buildArgsForSwapExactInput,
+  buildArgsAndExpectedAmountsForSwapExactInput,
+  buildArgsForSwapExactOutput,
+  buildArgsExpectedAmountsForSwapExactOutput,
   prepareSwapExactInputCalldata,
   prepareSwapExactOutputCalldata,
   prepareSwapExactInputNativeForTokensCalldata,
   type PreparedSwapTransaction,
+  type BuildSwapExactInputParams,
+  type BuildSwapExactOutputParams,
+  type SwapExactInputParams,
+  type SwapExactOutputParams,
+  type SwapExactInputArgs,
+  type SwapExactOutputArgs,
 } from "./router/index.js";

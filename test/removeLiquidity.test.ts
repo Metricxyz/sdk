@@ -58,7 +58,7 @@ describe("SDK Remove Liquidity", async () => {
     };
 
     // Create pool using calldata
-    const createPoolCalldata = sdk.prepareCreatePoolCalldata(params);
+    const createPoolCalldata = sdk.encodeCreatePoolCalldata(params);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,

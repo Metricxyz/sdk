@@ -59,7 +59,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       negativeBins: sdk.createUniformBins(10, 10000),
     };
 
-    const createPoolCalldata = sdk.prepareCreatePoolCalldata(poolParams);
+    const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,
@@ -260,7 +260,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       negativeBins: sdk.createUniformBins(10, 10000),
     };
 
-    const createPoolCalldata = sdk.prepareCreatePoolCalldata(poolParams);
+    const createPoolCalldata = sdk.encodeCreatePoolCalldata(poolParams);
     const createHash = await deployer.sendTransaction({
       to: factory.address,
       data: createPoolCalldata,

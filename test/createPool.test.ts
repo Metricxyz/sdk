@@ -89,7 +89,7 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("prepareCreatePoolCalldata", () => {
+  describe("encodeCreatePoolCalldata", () => {
     it("should encode calldata from direct CreatePoolParams", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
@@ -112,13 +112,13 @@ describe("SDK createPool", async () => {
         curBinDistFromProvidedPricePercent: 0,
       };
 
-      const calldata = sdk.prepareCreatePoolCalldata(params);
+      const calldata = sdk.encodeCreatePoolCalldata(params);
       assert.ok(calldata.startsWith("0x"));
       assert.ok(calldata.length > 10);
     });
   });
 
-  describe("createPool via factory using prepareCreatePoolCalldata", () => {
+  describe("createPool via factory using encodeCreatePoolCalldata", () => {
     it("should create a pool successfully using encoded calldata", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
@@ -141,7 +141,7 @@ describe("SDK createPool", async () => {
         curBinDistFromProvidedPricePercent: 0,
       };
 
-      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
+      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
 
       // Verify calldata is properly formatted
       assert.ok(calldata.startsWith("0x"), "Calldata should be hex encoded");
@@ -201,7 +201,7 @@ describe("SDK createPool", async () => {
       };
 
       // Encode calldata
-      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
+      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
 
       // Send transaction manually
       const hash = await deployer.sendTransaction({
@@ -245,7 +245,7 @@ describe("SDK createPool", async () => {
       };
 
       // Encode calldata
-      const calldata = sdk.prepareCreatePoolCalldata(poolConfig);
+      const calldata = sdk.encodeCreatePoolCalldata(poolConfig);
 
       // Send transaction manually
       const hash = await deployer.sendTransaction({
@@ -262,7 +262,7 @@ describe("SDK createPool", async () => {
     });
   });
 
-  describe("prepareCreatePoolCalldata (external)", () => {
+  describe("encodeCreatePoolCalldata (external)", () => {
     it("should encode calldata for external use", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
@@ -284,7 +284,7 @@ describe("SDK createPool", async () => {
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };
-      const calldata = sdk.prepareCreatePoolCalldata(params);
+      const calldata = sdk.encodeCreatePoolCalldata(params);
 
       assert.ok(calldata.startsWith("0x"));
       // createPool selector + encoded struct

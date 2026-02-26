@@ -50,6 +50,19 @@ const contracts = [
     outputPath: path.join("src", "abis", "MetricOmmSwapRouter.ts"),
     exportName: "MetricOmmSwapRouterAbi",
   },
+  {
+    artifactPath: path.join(
+      "artifacts",
+      "@metric",
+      "core",
+      "contracts",
+      "interfaces",
+      "IPriceProvider.sol",
+      "IPriceProvider.json",
+    ),
+    outputPath: path.join("src", "abis", "PriceProvider.ts"),
+    exportName: "PriceProviderAbi",
+  },
 ];
 
 function renderAbiFile(artifactPath, exportName, abi) {

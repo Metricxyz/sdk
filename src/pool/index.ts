@@ -6,7 +6,7 @@
 export {
   createPool,
   prepareFactoryCreatePoolParams,
-  prepareCreatePoolCalldata,
+  encodeCreatePoolCalldata,
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,
@@ -27,7 +27,6 @@ export {
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
   encodeModifyLiquidityCalldata,
-  sendModifyLiquidity,
   getPositionShares,
   getPositionSharesForBins,
   NO_SLIPPAGE_LIMIT,

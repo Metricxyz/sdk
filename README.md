@@ -8,23 +8,10 @@ TypeScript SDK for interacting with Metric OMM AMM contracts using [viem](https:
 npm install @nradko/metric-omm-sdk viem
 ```
 
-## Supported Chains
-
-| Chain    | Chain ID | Status      |
-| -------- | -------- | ----------- |
-| Ethereum | 1        | ✅ Deployed |
-| Base     | 8453     | ✅ Deployed |
-| Arbitrum | 42161    | ✅ Deployed |
-
 ## Quick Start
 
 ```typescript
-import {
-  getSlot0,
-  getAddressesOrThrow,
-  ChainId,
-  ADDRESSES,
-} from "@nradko/metric-omm-sdk";
+import { getSlot0, ChainId, ADDRESSES } from "@nradko/metric-omm-sdk";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -33,10 +20,7 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 
-// Get deployed addresses for Ethereum
 const addresses = ADDRESSES[ChainId.ETHEREUM];
-
-// Read pool state via StateView (recommended)
 const slot0 = await getSlot0(publicClient, addresses.stateView, poolAddress);
 console.log(`Current Bin: ${slot0.curBinIdx}`);
 ```
@@ -74,99 +58,107 @@ const ethAddresses = ADDRESSES[ChainId.ETHEREUM];
 const arbAddresses = getAddressesOrThrow(42161);
 ```
 
-## Features
-
-- ✅ Multi-chain support (Ethereum, Base, Arbitrum)
-- ✅ Pool creation and state reading
-- ✅ MetricOmmPoolStateView integration for efficient off-chain reads
-- ✅ Liquidity position management (add, remove, modify)
-- ✅ Uniform and custom liquidity distribution calculations
-- ✅ Swap Router with exact input/output and native ETH support
-- ✅ Bin data packing utilities
-- ✅ Price conversion helpers (Q64 format)
-- ✅ Pre-bundled contract ABIs with full TypeScript inference
-- ✅ Deterministic cross-chain addresses via CREATE2
-
-## API Reference
-
-### Address Helpers
-
-- `ADDRESSES` - Record of all deployed addresses by chain ID
-- `ChainId` - Enum of supported chain IDs
-- `getAddresses(chainId)` - Get addresses for a chain (returns `undefined` if unsupported)
-- `getAddressesOrThrow(chainId)` - Get addresses or throw if unsupported
-- `isChainSupported(chainId)` - Check if a chain is supported
-- `isChainDeployed(chainId)` - Check if contracts are deployed on a chain
-
-### Pool Functions
-
-- `preparePoolBinData(params)` - Prepare `PoolBinData` for pool creation
-- `buildArgsForCreatePool(params)` - Build `CreatePoolArgs` tuple for `createPool`
-- `prepareCreatePoolCalldata(argsOrParams)` - Encode create pool calldata from `CreatePoolArgs` or `CreatePoolParams`
-- `sendCreatePool(publicClient, walletClient, factoryAddress, argsOrParams, account)` - Send create pool transaction from `CreatePoolArgs` or `CreatePoolParams`
-- `createPool(publicClient, walletClient, factoryAddress, params, account)` - Alias of `sendCreatePool`
-- `getPoolImmutables(client, poolAddress)` - Get pool immutable parameters
-- `getPoolState(client, poolAddress)` - Get current pool state
-- `getBinState(client, poolAddress, binIdx)` - Get state of a specific bin
-- `getPositionBinShares(client, poolAddress, posKey)` - Get position bin shares
-- `buildModifyLiquidityArgsForAddition(...)` - Build `ModifyLiquidityArgs` for custom addition
-- `buildModifyLiquidityArgsForUniformAddition(...)` - Build `ModifyLiquidityArgs` for uniform addition
-- `buildModifyLiquidityArgsForPercentageRemoval(...)` - Build `ModifyLiquidityArgs` for percentage removal
-- `buildModifyLiquidityArgsForRemoval(...)` - Build `ModifyLiquidityArgs` for custom removal
-
-### StateView Functions (Recommended for reads)
-
-- `getSlot0(client, stateViewAddress, poolAddress)` - Get slot0 data (bin index, position, drift, fees)
-- `getSlot1(client, stateViewAddress, poolAddress)` - Get bin totals
-- `getBinStateExternal(client, stateViewAddress, poolAddress, binIdx)` - Read a single bin
-- `getBinStatesExternal(client, stateViewAddress, poolAddress, binIndices)` - Batch read bins
-- `getBinStatesScaled(client, stateViewAddress, poolAddress, binIndices)` - Batch read bins (scaled)
-- `getBinTotalShares(client, stateViewAddress, poolAddress, binIdx)` - Get bin total shares
-- `getPositionBinSharesFromStateView(...)` - Get position shares via state view
-- `toPositionBinKey(...)` - Compute position bin key
-- `getPositionBinSharesRange(...)` - Get position shares for a range of bins
-- `getFeeConfig(client, stateViewAddress, poolAddress)` - Get fee configuration
-- `getPriceProvider(client, stateViewAddress, poolAddress)` - Get price provider address
-- `getLastTradeTimestamp(client, stateViewAddress, poolAddress)` - Get last trade timestamp
-
-### Position Functions
-
-- `getPositionShares(client, poolAddress, owner, salt, bins)` - Get position shares
-- `encodeModifyLiquidityCalldata(modifyLiquidityArgs)` - Encode modifyLiquidity calldata
-- `sendModifyLiquidity(publicClient, walletClient, poolAddress, modifyLiquidityArgs, account)` - Encode and send modifyLiquidity tx
-- `NO_SLIPPAGE_LIMIT` - Constant for no slippage limit
-
-### Router Functions
-
-- `swapExactInput(walletClient, publicClient, params)` - Swap with exact input amount
-- `swapExactOutput(walletClient, publicClient, params)` - Swap with exact output amount
-- `swapExactInputNativeForTokens(walletClient, publicClient, params)` - Swap native ETH for tokens
-- `prepareSwapExactInputCalldata(params)` - Encode exact input swap calldata
-- `prepareSwapExactOutputCalldata(params)` - Encode exact output swap calldata
-- `prepareSwapExactInputNativeForTokensCalldata(params)` - Encode native swap calldata
-
-### Utility Functions
-
-- `priceToQ64(price)` - Convert decimal price to Q64 fixed-point format
-- `q64ToPrice(q64)` - Convert Q64 fixed-point to decimal price
-- `packBinData(binData)` - Pack a single bin data struct
-- `packBins5(bins)` - Pack up to 5 bins into a single slot
-- `packBinDataArray(bins)` - Pack an array of bin data
-- `unpackBinData(packed)` - Unpack bin data from packed format
-- `createBins(params)` - Create bin data array
-- `createUniformBins(count, weight, ...)` - Create uniform bin distribution
-
 ### ABIs
 
-ABIs are available as typed constants for direct use with viem:
+ABIs are available as typed constants for direct use:
 
 ```typescript
 import {
   MetricOmmPoolAbi,
-  MetricOmmPoolFactoryAbi,
-  MetricOmmPoolStateViewAbi,
   MetricOmmSwapRouterAbi,
 } from "@nradko/metric-omm-sdk/abis";
+```
+
+## Usage
+
+The SDK is args-first. You build typed tuple args with a `buildArgs...` helper, then send the transaction yourself via `walletClient.writeContract`.
+
+### Liquidity
+
+Build `ModifyLiquidityArgs` with the strategy you want (uniform addition, custom addition, percentage removal, or custom removal), then call pool `modifyLiquidity` with those args.
+
+Available builders:
+
+- `buildModifyLiquidityArgsForAddition(...)` - custom per-bin addition amounts
+- `buildModifyLiquidityArgsForUniformAddition(...)` - uniform addition across a bin range
+- `buildModifyLiquidityArgsForRemoval(...)` - remove custom per-bin share amounts/percentages
+- `buildModifyLiquidityArgsForPercentageRemoval(...)` - remove a fixed percentage from selected bins/range
+
+```typescript
+import {
+  buildModifyLiquidityArgsForUniformAddition,
+  getAddressesOrThrow,
+} from "@nradko/metric-omm-sdk";
+import { MetricOmmPoolAbi } from "@nradko/metric-omm-sdk/abis";
+
+const addresses = getAddressesOrThrow(1);
+
+const modifyLiquidityArgs = await buildModifyLiquidityArgsForUniformAddition({
+  publicClient,
+  stateViewAddress: addresses.stateView,
+  poolAddress,
+  amountInTokensPerBin: 1_000_000n,
+  amountIsInToken0: true,
+  currentPrice: 3000,
+  lowerBin: -5,
+  upperBin: 5,
+  salt: 0n,
+});
+
+const hash = await walletClient.writeContract({
+  address: poolAddress,
+  abi: MetricOmmPoolAbi,
+  functionName: "modifyLiquidity",
+  args: modifyLiquidityArgs,
+  account,
+});
+```
+
+### Swaps
+
+Build swap args first, then call the router function directly.
+
+Available Args builders:
+
+- `buildArgsForSwapExactInput(...)`
+- `buildArgsForSwapExactOutput(...)`
+
+Additionally, these builders return args plus expected input/output amounts:
+
+- `buildArgsAndExpectedAmountsForSwapExactInput(...)`
+- `buildArgsExpectedAmountsForSwapExactOutput(...)`
+
+```typescript
+import {
+  buildArgsAndExpectedAmountsForSwapExactInput,
+  getAddressesOrThrow,
+} from "@nradko/metric-omm-sdk";
+import { MetricOmmSwapRouterAbi } from "@nradko/metric-omm-sdk/abis";
+
+const addresses = getAddressesOrThrow(1);
+
+const result = await buildArgsAndExpectedAmountsForSwapExactInput({
+  publicClient,
+  routerAddress: addresses.router,
+  pool: poolAddress,
+  recipient: account,
+  zeroForOne: true,
+  amountIn: 1_000_000_000_000_000_000n,
+  slippagePercent: 0.5,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 60 * 20),
+});
+
+const expectedInput = result.expectedInput;
+const expectedOutput = result.expectedOutput;
+const args = result.args;
+
+const hash = await walletClient.writeContract({
+  address: addresses.router,
+  abi: MetricOmmSwapRouterAbi,
+  functionName: "swapExactInput",
+  args,
+  account,
+});
 ```
 
 ## Development
@@ -208,6 +200,71 @@ npm test
 npm run build
 ```
 
-## License
+## API Reference
 
-MIT
+### Address Helpers
+
+- `ADDRESSES` - Record of all deployed addresses by chain ID
+- `ChainId` - Enum of supported chain IDs
+- `getAddresses(chainId)` - Get addresses for a chain (returns `undefined` if unsupported)
+- `getAddressesOrThrow(chainId)` - Get addresses or throw if unsupported
+- `isChainSupported(chainId)` - Check if a chain is supported
+- `isChainDeployed(chainId)` - Check if contracts are deployed on a chain
+
+### Pool Functions
+
+- `preparePoolBinData(params)` - Prepare legacy uniform bin arrays for pool creation
+- `prepareFactoryCreatePoolParams(params)` - Build factory-ready pool params struct
+- `encodeCreatePoolCalldata(params)` - Encode create-pool calldata from `CreatePoolFactoryParams`
+- `createPool(publicClient, walletClient, factoryAddress, params, account)` - Simulate and send pool creation transaction
+- `getPoolImmutables(client, poolAddress)` - Get pool immutable parameters
+- `getPoolState(client, poolAddress)` - Get current pool state
+- `getBinState(client, poolAddress, binIdx)` - Get state of a specific bin
+- `getPositionBinShares(client, poolAddress, posKey)` - Get position bin shares
+
+### Liquidity Functions
+
+- `buildModifyLiquidityArgsForAddition(...)` - Build `ModifyLiquidityArgs` for custom addition
+- `buildModifyLiquidityArgsForUniformAddition(...)` - Build `ModifyLiquidityArgs` for uniform addition
+- `buildModifyLiquidityArgsForPercentageRemoval(...)` - Build `ModifyLiquidityArgs` for percentage removal
+- `buildModifyLiquidityArgsForRemoval(...)` - Build `ModifyLiquidityArgs` for custom removal
+- `encodeModifyLiquidityCalldata(modifyLiquidityArgs)` - Encode `modifyLiquidity` calldata
+- `getPositionShares(client, stateViewAddress, poolAddress, owner, salt, lowerBin?, upperBin?)` - Get position shares in a bin range
+- `getPositionSharesForBins(client, stateViewAddress, poolAddress, owner, salt, bins)` - Get position shares for explicit bins
+- `NO_SLIPPAGE_LIMIT` - Constant for no slippage limit
+
+### StateView Functions (Recommended for reads)
+
+- `getSlot0(client, stateViewAddress, poolAddress)` - Get slot0 data (bin index, position, drift, fees)
+- `getSlot1(client, stateViewAddress, poolAddress)` - Get bin totals
+- `getBinStateExternal(client, stateViewAddress, poolAddress, binIdx)` - Read a single bin
+- `getBinStatesExternal(client, stateViewAddress, poolAddress, binIndices)` - Batch read bins
+- `getBinStatesScaled(client, stateViewAddress, poolAddress, binIndices)` - Batch read bins (scaled)
+- `getBinTotalShares(client, stateViewAddress, poolAddress, binIdx)` - Get bin total shares
+- `getPositionBinSharesFromStateView(...)` - Get position shares via state view
+- `toPositionBinKey(...)` - Compute position bin key
+- `getPositionBinSharesRange(...)` - Get position shares for a range of bins
+- `getFeeConfig(client, stateViewAddress, poolAddress)` - Get fee configuration
+- `getPriceProvider(client, stateViewAddress, poolAddress)` - Get price provider address
+- `getLastTradeTimestamp(client, stateViewAddress, poolAddress)` - Get last trade timestamp
+
+### Router Functions
+
+- `buildArgsForSwapExactInput(params)` - Build `SwapExactInputArgs` using on-chain quote and slippage
+- `buildArgsAndExpectedAmountsForSwapExactInput(params)` - Build exact-input args and return expected input/output amounts
+- `buildArgsForSwapExactOutput(params)` - Build `SwapExactOutputArgs` using on-chain quote and slippage
+- `buildArgsExpectedAmountsForSwapExactOutput(params)` - Build exact-output args and return expected input/output amounts
+- `prepareSwapExactInputCalldata(argsOrParams)` - Encode exact input swap calldata
+- `prepareSwapExactOutputCalldata(argsOrParams)` - Encode exact output swap calldata
+- `prepareSwapExactInputNativeForTokensCalldata(params)` - Encode native exact-input swap calldata
+
+### Utility Functions
+
+- `priceToQ64(price)` - Convert decimal price to Q64 fixed-point format
+- `q64ToPrice(q64)` - Convert Q64 fixed-point to decimal price
+- `packBinData(binData)` - Pack a single bin data struct
+- `packBins5(bins)` - Pack up to 5 bins into a single slot
+- `packBinDataArray(bins)` - Pack an array of bin data
+- `unpackBinData(packed)` - Unpack bin data from packed format
+- `createBins(params)` - Create bin data array
+- `createUniformBins(count, weight, ...)` - Create uniform bin distribution

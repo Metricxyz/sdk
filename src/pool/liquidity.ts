@@ -3,14 +3,11 @@
  * Unified liquidity calculations and position operations.
  */
 
-import type { Address, PublicClient, WalletClient, Hex } from "viem";
+import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
-import type {
-  LiquidityDelta,
-  AnyLiquidityBinInput,
-} from "../types.js";
+import type { LiquidityDelta, AnyLiquidityBinInput } from "../types.js";
 import { getPoolImmutables } from "./read.js";
 import {
   getSlot0,
@@ -591,34 +588,6 @@ export function encodeModifyLiquidityCalldata(
     functionName: "modifyLiquidity",
     args,
   });
-}
-
-export async function sendModifyLiquidity(
-  publicClient: PublicClient,
-  walletClient: WalletClient,
-  poolAddress: Address,
-  preparedModifyLiquidity: ModifyLiquidityParams | ModifyLiquidityArgs,
-  account: Address,
-): Promise<{ hash: Hex; amount0Delta: bigint; amount1Delta: bigint }> {
-  const args = normalizeModifyLiquidityArgs(preparedModifyLiquidity);
-
-  const { request, result } = await publicClient.simulateContract({
-    address: poolAddress,
-    abi: MetricOmmPoolAbi,
-    functionName: "modifyLiquidity",
-    args,
-    account,
-  });
-
-  const hash = await walletClient.writeContract(request);
-
-  await publicClient.waitForTransactionReceipt({ hash });
-
-  return {
-    hash,
-    amount0Delta: result[0] as bigint,
-    amount1Delta: result[1] as bigint,
-  };
 }
 
 function validateSpecAmountBufferPercent(

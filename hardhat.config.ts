@@ -46,6 +46,7 @@ const config: HardhatUserConfig = {
       "@metric/core/contracts/mocks/MockERC20.sol",
       "@metric/core/contracts/mocks/MockOracle.sol",
       "@metric/core/contracts/mocks/TestCaller.sol",
+      "@metric/core/contracts/interfaces/IPriceProvider.sol",
       // @metric/periphery contracts
       "@metric/periphery/contracts/MetricOmmSwapRouter.sol",
       "@metric/periphery/contracts/MetricOmmPoolQuoter.sol",

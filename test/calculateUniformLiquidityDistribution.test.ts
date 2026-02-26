@@ -288,7 +288,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     return setupEnv({ decimals0: 18, decimals1: 18 });
   }
 
-  const fixtureMap = {
+  const fixtureMap: Record<string, () => Promise<any>> = {
     "dec6/6": setupEnv6_6,
     "dec18/6": setupEnv18_6,
     "dec18/18": setupEnv18_18,
@@ -309,7 +309,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
                   token1,
                   priceProvider,
                 } = (await networkHelpers.loadFixture(
-                  fixtureMap[decimals.label as asy] as any,
+                  fixtureMap[decimals.label],
                 )) as any;
 
                 // Set the oracle price for this test

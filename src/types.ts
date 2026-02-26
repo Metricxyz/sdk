@@ -112,32 +112,7 @@ export interface FeeConfig {
   adminFeeDest: Address;
 }
 
-// ============ Swap Types ============
 
-export interface SwapParams {
-  pool: Address;
-  recipient: Address;
-  zeroForOne: boolean;
-  amountSpecified: bigint;
-  priceLimitX64: bigint;
-  deadline: bigint;
-}
-
-export interface SwapExactInputParams extends Omit<
-  SwapParams,
-  "amountSpecified"
-> {
-  amountIn: bigint;
-  minAmountOut: bigint;
-}
-
-export interface SwapExactOutputParams extends Omit<
-  SwapParams,
-  "amountSpecified"
-> {
-  amountOut: bigint;
-  maxAmountIn: bigint;
-}
 
 // ============ Position Types ============
 
@@ -152,31 +127,21 @@ export interface PositionBinSharesResult {
 // ============ Liquidity Types ============
 
 export interface CalculateUniformLiquidityParams {
-  /** Value given in amount of token to be added to each bin  */
   amountInTokensPerBin: bigint;
-  /** True if amountInTokensPerBin is in token0, false if in token1 */
   amountIsInToken0: boolean;
-  /** Current market price: token0/token1 (e.g., 3000 means 1 token0 = 3000 token1) */
   currentPrice: number;
-  /** Lower bin index (inclusive) */
   lowerBin: number;
-  /** Upper bin index (inclusive) */
   upperBin: number;
 }
 
 export interface AnyLiquidityBinInput {
-  /** Bin index */
   bin: number;
-  /** Value amount for this bin */
   amountInToken: bigint;
-  /** True if amountInToken is token0, false if token1 */
   amountInToken0: boolean;
 }
 
 export interface CalculateAnyLiquidityParams {
-  /** Per-bin amounts and token side */
   bins: AnyLiquidityBinInput[];
-  /** Current market price: token0/token1 (e.g., 3000 means 1 token0 = 3000 token1) */
   currentPrice: number;
 }
 

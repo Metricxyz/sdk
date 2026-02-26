@@ -224,7 +224,7 @@ export async function createPool(
 /**
  * Encode pool creation calldata for use with multicall or external signers.
  */
-export function prepareCreatePoolCalldata(params: CreatePoolFactoryParams): Hex {
+export function encodeCreatePoolCalldata(params: CreatePoolFactoryParams): Hex {
   const factoryParams = prepareFactoryCreatePoolParams(params);
   const args = buildCreatePoolArgs(factoryParams);
 
