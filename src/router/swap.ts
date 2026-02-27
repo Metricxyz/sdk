@@ -6,7 +6,7 @@
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { MAX_UINT128, POOL_ABI, SWAP_ROUTER_ABI } from "../constants.js";
-import { PriceProviderAbi } from "../abis/PriceProvider.js";
+import { PriceProviderUiAbi } from "../abis/PriceProviderUi.js";
 
 const BPS_BASE = 10_000n;
 export interface PreparedSwapTransaction {
@@ -54,6 +54,11 @@ export type SwapExactOutputParams = {
   deadline: bigint;
 };
 
+export interface BuildSwapPrices {
+  bidPriceX64: bigint;
+  askPriceX64: bigint;
+}
+
 export interface BuildSwapExactInputParams {
   publicClient: PublicClient;
   routerAddress: Address;
@@ -62,6 +67,7 @@ export interface BuildSwapExactInputParams {
   zeroForOne: boolean;
   amountIn: bigint;
   slippagePercent: number;
+  prices?: BuildSwapPrices;
   priceLimitX64?: bigint;
   deadline: bigint;
 }
@@ -74,9 +80,20 @@ export interface BuildSwapExactOutputParams {
   zeroForOne: boolean;
   amountOut: bigint;
   slippagePercent: number;
+  prices?: BuildSwapPrices;
   priceLimitX64?: bigint;
   deadline: bigint;
 }
+
+export type QuoteExpectedAmountsForSwapExactInputParams = Omit<
+  BuildSwapExactInputParams,
+  "recipient" | "deadline"
+>;
+
+export type QuoteExpectedAmountsForSwapExactOutputParams = Omit<
+  BuildSwapExactOutputParams,
+  "recipient" | "deadline"
+>;
 
 function toSlippageBps(slippagePercent: number): bigint {
   if (!Number.isFinite(slippagePercent) || slippagePercent < 0) {
@@ -114,11 +131,23 @@ async function readBidAskFromPoolPriceProvider(
 
   const [bidPriceX64, askPriceX64] = (await publicClient.readContract({
     address: priceProviderAddress,
-    abi: PriceProviderAbi,
-    functionName: "getBidAndAskPrice",
+    abi: PriceProviderUiAbi,
+    functionName: "getBidAndAskPriceUi",
   })) as [bigint, bigint];
 
   return { bidPriceX64, askPriceX64 };
+}
+
+async function resolveBidAskPrices(params: {
+  publicClient: PublicClient;
+  pool: Address;
+  prices?: BuildSwapPrices;
+}): Promise<{ bidPriceX64: bigint; askPriceX64: bigint }> {
+  if (params.prices) {
+    return params.prices;
+  }
+
+  return readBidAskFromPoolPriceProvider(params.publicClient, params.pool);
 }
 
 export async function buildArgsForSwapExactInput(
@@ -128,33 +157,31 @@ export async function buildArgsForSwapExactInput(
   const priceLimitX64 =
     params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
 
-  const { bidPriceX64, askPriceX64 } = await readBidAskFromPoolPriceProvider(
-    params.publicClient,
-    params.pool,
-  );
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
 
-  const [amount0Delta, amount1Delta] =
-    (await params.publicClient.simulateContract({
-      address: params.routerAddress,
-      abi: SWAP_ROUTER_ABI,
-      functionName: "quoteSwap",
-      args: [
-        params.pool,
-        params.zeroForOne,
-        params.amountIn,
-        priceLimitX64,
-        bidPriceX64,
-        askPriceX64,
-      ],
-      account: params.recipient,
-    })) as unknown as [bigint, bigint];
+  const {
+    result: [amount0Delta, amount1Delta],
+  } = (await params.publicClient.simulateContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      params.amountIn,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+    account: params.recipient,
+  })) as unknown as { result: [bigint, bigint] };
 
   const amountSwapWillResultIn = params.zeroForOne
     ? absBigInt(amount1Delta)
     : absBigInt(amount0Delta);
 
   const minAmountOut =
-    amountSwapWillResultIn * BPS_BASE * (BPS_BASE - slippageBps);
+    (amountSwapWillResultIn * (BPS_BASE - slippageBps)) / BPS_BASE;
 
   return [
     params.pool,
@@ -178,26 +205,24 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
   const priceLimitX64 =
     params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
 
-  const { bidPriceX64, askPriceX64 } = await readBidAskFromPoolPriceProvider(
-    params.publicClient,
-    params.pool,
-  );
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
 
-  const [amount0Delta, amount1Delta] =
-    (await params.publicClient.simulateContract({
-      address: params.routerAddress,
-      abi: SWAP_ROUTER_ABI,
-      functionName: "quoteSwap",
-      args: [
-        params.pool,
-        params.zeroForOne,
-        params.amountIn,
-        priceLimitX64,
-        bidPriceX64,
-        askPriceX64,
-      ],
-      account: params.recipient,
-    })) as unknown as [bigint, bigint];
+  const {
+    result: [amount0Delta, amount1Delta],
+  } = (await params.publicClient.simulateContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      params.amountIn,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+    account: params.recipient,
+  })) as unknown as { result: [bigint, bigint] };
 
   const expectedOutput = params.zeroForOne
     ? absBigInt(amount1Delta)
@@ -207,7 +232,7 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
     ? absBigInt(amount0Delta)
     : absBigInt(amount1Delta);
 
-  const minAmountOut = expectedOutput * BPS_BASE * (BPS_BASE - slippageBps);
+  const minAmountOut = (expectedOutput * (BPS_BASE - slippageBps)) / BPS_BASE;
 
   const args: SwapExactInputArgs = [
     params.pool,
@@ -226,6 +251,39 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
   };
 }
 
+export async function quoteExpectedAmountsForSwapExactInput(
+  params: QuoteExpectedAmountsForSwapExactInputParams,
+): Promise<{ expectedInput: bigint; expectedOutput: bigint }> {
+  const priceLimitX64 =
+    params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
+
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
+
+  const [amount0Delta, amount1Delta] = (await params.publicClient.readContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      params.amountIn,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+  })) as [bigint, bigint];
+
+  const expectedOutput = params.zeroForOne
+    ? absBigInt(amount1Delta)
+    : absBigInt(amount0Delta);
+
+  const expectedInput = params.zeroForOne
+    ? absBigInt(amount0Delta)
+    : absBigInt(amount1Delta);
+
+  return { expectedInput, expectedOutput };
+}
+
 export async function buildArgsForSwapExactOutput(
   params: BuildSwapExactOutputParams,
 ): Promise<SwapExactOutputArgs> {
@@ -233,26 +291,24 @@ export async function buildArgsForSwapExactOutput(
   const priceLimitX64 =
     params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
 
-  const { bidPriceX64, askPriceX64 } = await readBidAskFromPoolPriceProvider(
-    params.publicClient,
-    params.pool,
-  );
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
 
-  const [amount0Delta, amount1Delta] =
-    (await params.publicClient.simulateContract({
-      address: params.routerAddress,
-      abi: SWAP_ROUTER_ABI,
-      functionName: "quoteSwap",
-      args: [
-        params.pool,
-        params.zeroForOne,
-        -params.amountOut,
-        priceLimitX64,
-        bidPriceX64,
-        askPriceX64,
-      ],
-      account: params.recipient,
-    })) as unknown as [bigint, bigint];
+  const {
+    result: [amount0Delta, amount1Delta],
+  } = (await params.publicClient.simulateContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      -params.amountOut,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+    account: params.recipient,
+  })) as unknown as { result: [bigint, bigint] };
 
   const quotedAmountIn = params.zeroForOne
     ? absBigInt(amount0Delta)
@@ -274,7 +330,7 @@ export async function buildArgsForSwapExactOutput(
   ];
 }
 
-export async function buildArgsExpectedAmountsForSwapExactOutput(
+export async function buildArgsAndExpectedAmountsForSwapExactOutput(
   params: BuildSwapExactOutputParams,
 ): Promise<{
   args: SwapExactOutputArgs;
@@ -285,26 +341,24 @@ export async function buildArgsExpectedAmountsForSwapExactOutput(
   const priceLimitX64 =
     params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
 
-  const { bidPriceX64, askPriceX64 } = await readBidAskFromPoolPriceProvider(
-    params.publicClient,
-    params.pool,
-  );
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
 
-  const [amount0Delta, amount1Delta] =
-    (await params.publicClient.simulateContract({
-      address: params.routerAddress,
-      abi: SWAP_ROUTER_ABI,
-      functionName: "quoteSwap",
-      args: [
-        params.pool,
-        params.zeroForOne,
-        -params.amountOut,
-        priceLimitX64,
-        bidPriceX64,
-        askPriceX64,
-      ],
-      account: params.recipient,
-    })) as unknown as [bigint, bigint];
+  const {
+    result: [amount0Delta, amount1Delta],
+  } = (await params.publicClient.simulateContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      -params.amountOut,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+    account: params.recipient,
+  })) as unknown as { result: [bigint, bigint] };
 
   const expectedInput = params.zeroForOne
     ? absBigInt(amount0Delta)
@@ -334,6 +388,39 @@ export async function buildArgsExpectedAmountsForSwapExactOutput(
     expectedInput,
     expectedOutput,
   };
+}
+
+export async function quoteExpectedAmountsForSwapExactOutput(
+  params: QuoteExpectedAmountsForSwapExactOutputParams,
+): Promise<{ expectedInput: bigint; expectedOutput: bigint }> {
+  const priceLimitX64 =
+    params.priceLimitX64 ?? defaultPriceLimitX64(params.zeroForOne);
+
+  const { bidPriceX64, askPriceX64 } = await resolveBidAskPrices(params);
+
+  const [amount0Delta, amount1Delta] = (await params.publicClient.readContract({
+    address: params.routerAddress,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "quoteSwap",
+    args: [
+      params.pool,
+      params.zeroForOne,
+      -params.amountOut,
+      priceLimitX64,
+      bidPriceX64,
+      askPriceX64,
+    ],
+  })) as [bigint, bigint];
+
+  const expectedInput = params.zeroForOne
+    ? absBigInt(amount0Delta)
+    : absBigInt(amount1Delta);
+
+  const expectedOutput = params.zeroForOne
+    ? absBigInt(amount1Delta)
+    : absBigInt(amount0Delta);
+
+  return { expectedInput, expectedOutput };
 }
 
 export function encodeSwapExactInputCalldata(

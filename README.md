@@ -126,7 +126,14 @@ Available Args builders:
 Additionally, these builders return args plus expected input/output amounts:
 
 - `buildArgsAndExpectedAmountsForSwapExactInput(...)`
-- `buildArgsExpectedAmountsForSwapExactOutput(...)`
+- `buildArgsAndExpectedAmountsForSwapExactOutput(...)`
+
+Quote-only helpers (no `recipient`/`deadline` required):
+
+- `quoteExpectedAmountsForSwapExactInput(...)`
+- `quoteExpectedAmountsForSwapExactOutput(...)`
+
+All swap build/quote helpers accept optional `prices: { bidPriceX64, askPriceX64 }`. If provided, the SDK uses them directly and skips reading from the pool price provider.
 
 ```typescript
 import {
@@ -252,8 +259,10 @@ npm run build
 
 - `buildArgsForSwapExactInput(params)` - Build `SwapExactInputArgs` using on-chain quote and slippage
 - `buildArgsAndExpectedAmountsForSwapExactInput(params)` - Build exact-input args and return expected input/output amounts
+- `quoteExpectedAmountsForSwapExactInput(params)` - Quote expected input/output for exact-input flow without building tx args
 - `buildArgsForSwapExactOutput(params)` - Build `SwapExactOutputArgs` using on-chain quote and slippage
-- `buildArgsExpectedAmountsForSwapExactOutput(params)` - Build exact-output args and return expected input/output amounts
+- `buildArgsAndExpectedAmountsForSwapExactOutput(params)` - Build exact-output args and return expected input/output amounts
+- `quoteExpectedAmountsForSwapExactOutput(params)` - Quote expected input/output for exact-output flow without building tx args
 - `prepareSwapExactInputCalldata(argsOrParams)` - Encode exact input swap calldata
 - `prepareSwapExactOutputCalldata(argsOrParams)` - Encode exact output swap calldata
 - `prepareSwapExactInputNativeForTokensCalldata(params)` - Encode native exact-input swap calldata

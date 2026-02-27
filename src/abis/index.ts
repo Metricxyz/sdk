@@ -9,3 +9,5 @@ export { MetricOmmPoolAbi } from "./MetricOmmPool.js";
 export { MetricOmmPoolStateViewAbi } from "./MetricOmmPoolStateView.js";
 export { MetricOmmSwapRouterAbi } from "./MetricOmmSwapRouter.js";
 export { MetricOmmPoolFactoryAbi } from "./MetricOmmPoolFactory.js";
+export { PriceProviderAbi } from "./PriceProvider.js";
+export { PriceProviderUiAbi } from "./PriceProviderUi.js";
