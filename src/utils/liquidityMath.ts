@@ -10,25 +10,25 @@ export function ceilDiv(numerator: bigint, denominator: bigint): bigint {
   return numerator === 0n ? 0n : (numerator + denominator - 1n) / denominator;
 }
 
-export function toPriceX18(currentPrice: number): bigint {
+export function toPriceE18(currentPrice: number): bigint {
   if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
     throw new Error("currentPrice must be a positive finite number");
   }
-  const priceX18 = BigInt(Math.round(currentPrice * 1e18));
-  if (priceX18 <= 0n) {
+  const priceE18 = BigInt(Math.round(currentPrice * 1e18));
+  if (priceE18 <= 0n) {
     throw new Error("currentPrice is too small");
   }
-  return priceX18;
+  return priceE18;
 }
 
 export function convertToken0ToToken1(
   amount0: bigint,
   token0ScaleMultiplier: bigint,
   token1ScaleMultiplier: bigint,
-  priceX18: bigint,
+  priceE18: bigint,
 ): bigint {
   return (
-    (amount0 * token0ScaleMultiplier * priceX18) /
+    (amount0 * token0ScaleMultiplier * priceE18) /
     (token1ScaleMultiplier * ONE_E18)
   );
 }

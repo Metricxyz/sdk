@@ -18,7 +18,7 @@ import {
 import {
   ONE_E18,
   ceilDiv,
-  toPriceX18,
+  toPriceE18,
   convertToken0ToToken1,
   convertToken1ToToken0,
   scaledPositiveDeltaToExternal,
@@ -163,7 +163,7 @@ export async function buildModifyLiquidityArgsForAddition({
   bins,
   currentPrice,
   salt = 0n,
-  specAmountBufferPercent = 0,
+  specAmountBufferPercent = 1,
 }: BuildModifyLiquidityArgsForAdditionParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
@@ -175,7 +175,7 @@ export async function buildModifyLiquidityArgsForAddition({
   }
 
   const immutables = await getPoolImmutables(publicClient, poolAddress);
-  const priceX18 = toPriceX18(currentPrice);
+  const priceE18 = toPriceE18(currentPrice);
 
   const targetsByBin = new Map<
     number,
@@ -205,14 +205,14 @@ export async function buildModifyLiquidityArgsForAddition({
           entry.amountInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
-          priceX18,
+          priceE18,
         );
     const amount1 = entry.amountInToken0
       ? convertToken0ToToken1(
           entry.amountInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
-          priceX18,
+          priceE18,
         )
       : entry.amountInToken;
     const targetValueInToken1 = entry.amountInToken0
@@ -220,7 +220,7 @@ export async function buildModifyLiquidityArgsForAddition({
           entry.amountInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
-          priceX18,
+          priceE18,
         )
       : entry.amountInToken;
 
@@ -259,6 +259,9 @@ export async function buildModifyLiquidityArgsForAddition({
       target.targetAmount0 * immutables.token0ScaleMultiplier;
     const targetAmount1Scaled =
       target.targetAmount1 * immutables.token1ScaleMultiplier;
+
+    const targetValueInToken1Scaled =
+      target.targetValueInToken1 * immutables.token1ScaleMultiplier;
 
     const token0BalanceScaled = binStates.token0BalancesScaled[i];
     const token1BalanceScaled = binStates.token1BalancesScaled[i];
@@ -318,40 +321,24 @@ export async function buildModifyLiquidityArgsForAddition({
       }
     } else {
       if (totalShares > 0n) {
-        const sharesFromToken0 =
-          targetAmount0Scaled > 0n
-            ? ceilDiv(targetAmount0Scaled * totalShares, token0BalanceScaled)
-            : 0n;
-        const sharesFromToken1 =
-          targetAmount1Scaled > 0n
-            ? ceilDiv(targetAmount1Scaled * totalShares, token1BalanceScaled)
-            : 0n;
+        const totalValueInToken1Scaled =
+          token1BalanceScaled +
+          convertToken0ToToken1(token0BalanceScaled, 1n, 1n, priceE18);
+
         sharesToAdd =
-          sharesFromToken0 > sharesFromToken1
-            ? sharesFromToken0
-            : sharesFromToken1;
+          (targetValueInToken1Scaled * totalShares) / totalValueInToken1Scaled;
       } else {
         const token0Portion = MAX_UINT104 - curPosInBin;
         const token1Portion = curPosInBin;
 
-        const sharesFromToken0 =
-          targetAmount0Scaled > 0n
-            ? ceilDiv(
-                targetAmount0Scaled * ONE_E18 * MAX_UINT104,
-                immutables.initialScaledToken0PerShareE18 * token0Portion,
-              )
-            : 0n;
-        const sharesFromToken1 =
-          targetAmount1Scaled > 0n
-            ? ceilDiv(
-                targetAmount1Scaled * ONE_E18 * MAX_UINT104,
-                immutables.initialScaledToken1PerShareE18 * token1Portion,
-              )
-            : 0n;
         sharesToAdd =
-          sharesFromToken0 > sharesFromToken1
-            ? sharesFromToken0
-            : sharesFromToken1;
+          (targetValueInToken1Scaled * ONE_E18) /
+          ((immutables.initialScaledToken1PerShareE18 * token1Portion +
+            (immutables.initialScaledToken0PerShareE18 *
+              token0Portion *
+              priceE18) /
+              ONE_E18) /
+            MAX_UINT104);
       }
     }
 

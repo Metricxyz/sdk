@@ -19,7 +19,7 @@ export { priceToQ64, q64ToPrice } from "./price.js";
 export {
   ONE_E18,
   ceilDiv,
-  toPriceX18,
+  toPriceE18 as toPriceX18,
   convertToken0ToToken1,
   convertToken1ToToken0,
   scaledPositiveDeltaToExternal,
