@@ -218,18 +218,17 @@ async function main() {
   console.log("\n🚀 Executing transaction...\n");
 
   try {
-    // For removal, we use negative specAmounts (minimum tokens to receive)
-    // Using 0n means we accept any amount back (no slippage protection)
-    const { hash, amount0Delta, amount1Delta } = await sdk.modifyLiquidity(
-      publicClient,
-      walletClient,
-      poolAddress,
-      salt,
-      deltas,
+    // For removal, use no minimum receive constraints (0, 0)
+    const hash = await walletClient.sendTransaction({
       account,
-      0n, // specAmount0 - no minimum for removal
-      0n, // specAmount1 - no minimum for removal
-    );
+      to: poolAddress,
+      data: sdk.encodeModifyLiquidityCalldata([
+        salt,
+        deltas,
+        0n,
+        0n,
+      ]),
+    });
 
     console.log(`Transaction hash: ${hash}`);
     console.log("⏳ Waiting for confirmation...\n");

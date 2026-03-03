@@ -12,7 +12,6 @@
 import { network } from "hardhat";
 
 const { viem } = await network.connect();
-import { getContract } from "viem";
 import * as readline from "readline";
 import * as sdk from "../../index.js";
 import { logErrorDetails } from "../utils/decodeError.js";
@@ -51,12 +50,6 @@ const [walletClient] = await viem.getWalletClients();
 // Get chain ID and addresses
 const chainId = await publicClient.getChainId();
 const addresses = sdk.getAddressesOrThrow(chainId);
-
-const pool = getContract({
-  address: poolAddress as `0x${string}`,
-  abi: sdk.MetricOmmPoolAbi,
-  client: { public: publicClient, wallet: walletClient },
-});
 
 // Read pool state via StateView/EXTSLOAD
 const feeConfig = await sdk.getFeeConfig(
@@ -101,8 +94,16 @@ console.log();
 
 // Simulate the transaction first
 console.log("🔍 Simulating setPriceProvider transaction...");
+let request;
 try {
-  await pool.simulate.setPriceProvider([newPriceProvider as `0x${string}`]);
+  const simulated = await publicClient.simulateContract({
+    address: poolAddress as `0x${string}`,
+    abi: sdk.MetricOmmPoolAbi,
+    functionName: "setPriceProvider",
+    args: [newPriceProvider as `0x${string}`],
+    account: walletClient.account.address,
+  });
+  request = simulated.request;
   console.log("✅ Simulation successful\n");
 } catch (error: any) {
   logErrorDetails(error, sdk.MetricOmmPoolAbi);
@@ -111,9 +112,7 @@ try {
 
 // Send setPriceProvider transaction
 console.log("📝 Sending setPriceProvider transaction...");
-const hash = await pool.write.setPriceProvider([
-  newPriceProvider as `0x${string}`,
-]);
+const hash = await walletClient.writeContract(request);
 console.log(`Transaction hash: ${hash}`);
 
 // Wait for confirmation

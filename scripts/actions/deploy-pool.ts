@@ -225,13 +225,11 @@ async function main() {
   console.log("⏳ Creating pool...\n");
 
   try {
-    const { hash, poolAddress } = await sdk.createPool(
-      publicClient,
-      walletClient,
-      config.factory as `0x${string}`,
-      poolParams,
-      walletClient.account.address,
-    );
+    const hash = await walletClient.sendTransaction({
+      account: walletClient.account.address,
+      to: config.factory as `0x${string}`,
+      data: sdk.encodeCreatePoolCalldata(poolParams),
+    });
 
     console.log("✅ Transaction sent!");
     console.log(`   Hash: ${hash}`);
@@ -245,21 +243,16 @@ async function main() {
       console.log(`   Block: ${receipt.blockNumber}`);
       console.log(`   Gas used: ${receipt.gasUsed}`);
 
-      // Try to extract pool address from logs
-      if (poolAddress) {
-        console.log(`\n📍 Pool address: ${poolAddress}`);
-      } else {
-        // Parse PoolCreated event
-        const poolCreatedTopic =
-          "0xe1c304acd9cda85cdced26da15edf3fd1a07d96caf4f9cedb068823618b93d4d";
-        const poolCreatedLog = receipt.logs.find(
-          (log) => log.topics[0] === poolCreatedTopic,
-        );
-        if (poolCreatedLog && poolCreatedLog.data) {
-          // Pool address is in the data field (first 32 bytes after removing 0x)
-          const poolAddr = "0x" + poolCreatedLog.data.slice(26, 66);
-          console.log(`\n📍 Pool address: ${poolAddr}`);
-        }
+      // Parse PoolCreated event
+      const poolCreatedTopic =
+        "0xe1c304acd9cda85cdced26da15edf3fd1a07d96caf4f9cedb068823618b93d4d";
+      const poolCreatedLog = receipt.logs.find(
+        (log) => log.topics[0] === poolCreatedTopic,
+      );
+      if (poolCreatedLog && poolCreatedLog.data) {
+        // Pool address is in the data field (first 32 bytes after removing 0x)
+        const poolAddr = "0x" + poolCreatedLog.data.slice(26, 66);
+        console.log(`\n📍 Pool address: ${poolAddr}`);
       }
     } else {
       console.error("\n❌ Transaction reverted!");

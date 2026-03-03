@@ -262,17 +262,18 @@ async function main() {
   console.log("\n🚀 Executing transaction...\n");
 
   try {
-    const { hash } = await sdk.modifyLiquidity(
-      publicClient,
-      walletClient,
-      poolAddress,
-      salt,
-      deltas,
+    const specAmount0WithBuffer = (specAmount0 * 101n) / 100n;
+    const specAmount1WithBuffer = (specAmount1 * 101n) / 100n;
+    const hash = await walletClient.sendTransaction({
       account,
-      specAmount0,
-      specAmount1,
-      0.01, // 1% buffer for rounding tolerance
-    );
+      to: poolAddress,
+      data: sdk.encodeModifyLiquidityCalldata([
+        preparedSalt,
+        deltas,
+        specAmount0WithBuffer,
+        specAmount1WithBuffer,
+      ]),
+    });
 
     console.log(`Adding liquidity with ${deltas.length} bin deltas...`);
     console.log(`Transaction hash: ${hash}`);

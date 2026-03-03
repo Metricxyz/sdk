@@ -18,28 +18,6 @@ import * as sdk from "../../index.js";
 
 const { viem } = await network.connect();
 
-const PRICE_PROVIDER_ABI = [
-  {
-    type: "function",
-    name: "getBidAndAskPrice",
-    inputs: [],
-    outputs: [
-      { name: "bid", type: "uint128", internalType: "uint128" },
-      { name: "ask", type: "uint128", internalType: "uint128" },
-    ],
-    stateMutability: "view",
-  },
-] as const;
-
-// Helper to format Q64 fixed point to human readable
-function formatQ64(value: bigint): string {
-  const Q64 = 2n ** 64n;
-  const integerPart = value / Q64;
-  const fractionalPart = value % Q64;
-  const fractionalDecimal = Number(fractionalPart) / Number(Q64);
-  return (Number(integerPart) + fractionalDecimal).toFixed(6);
-}
-
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -166,8 +144,51 @@ async function main() {
   const slippageStr = await prompt("Slippage tolerance % (default: 0.5): ");
   const slippagePercent = slippageStr ? parseFloat(slippageStr) : 0.5;
 
-  // Use no price limit (let slippage protection handle it)
-  const priceLimitX64 = zeroForOne ? 1n : sdk.MAX_UINT128;
+  // Use no explicit price limit override; SDK handles sensible defaults
+  const priceLimitX64 = zeroForOne ? 0n : sdk.MAX_UINT128;
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes
+
+  let requiredAmount: bigint;
+  let requiredAllowance: bigint;
+  let expectedInput: bigint;
+  let expectedOutput: bigint;
+  let swapCalldata: `0x${string}`;
+
+  if (isExactInput) {
+    const built = await sdk.buildArgsAndExpectedAmountsForSwapExactInput({
+      publicClient,
+      routerAddress: addresses.router,
+      pool: poolAddress,
+      recipient: account,
+      zeroForOne,
+      amountIn: amount,
+      slippagePercent,
+      priceLimitX64,
+      deadline,
+    });
+    requiredAmount = amount;
+    requiredAllowance = amount;
+    expectedInput = built.expectedInput;
+    expectedOutput = built.expectedOutput;
+    swapCalldata = sdk.prepareSwapExactInputCalldata(built.args);
+  } else {
+    const built = await sdk.buildArgsAndExpectedAmountsForSwapExactOutput({
+      publicClient,
+      routerAddress: addresses.router,
+      pool: poolAddress,
+      recipient: account,
+      zeroForOne,
+      amountOut: amount,
+      slippagePercent,
+      priceLimitX64,
+      deadline,
+    });
+    requiredAmount = built.args[5]; // maxAmountIn
+    requiredAllowance = built.args[5];
+    expectedInput = built.expectedInput;
+    expectedOutput = built.expectedOutput;
+    swapCalldata = sdk.prepareSwapExactOutputCalldata(built.args);
+  }
 
   console.log("\n📝 Swap Parameters:");
   console.log("-".repeat(60));
@@ -179,6 +200,12 @@ async function main() {
     `Amount:          ${formatUnits(amount, isExactInput ? inputDecimals : outputDecimals)} ${isExactInput ? inputToken : outputToken}`,
   );
   console.log(`Slippage:        ${slippagePercent}%`);
+  console.log(
+    `Expected Input:  ${formatUnits(expectedInput, inputDecimals)} ${inputToken}`,
+  );
+  console.log(
+    `Expected Output: ${formatUnits(expectedOutput, outputDecimals)} ${outputToken}`,
+  );
   console.log();
 
   // Check balances
@@ -196,86 +223,10 @@ async function main() {
   // Check input balance
   const inputBalance = zeroForOne ? balance0 : balance1;
 
-  let requiredAmount: bigint;
-  if (isExactInput) {
-    // For exact input, we need exactly the amount specified
-    requiredAmount = amount;
-  } else {
-    // For exact output, we need to estimate input based on price
-    // Query price provider to get a better estimate
-    try {
-      const priceProviderAddress = await sdk.getPriceProvider(
-        publicClient,
-        addresses.stateView,
-        poolAddress,
-      );
-      const priceProvider = getContract({
-        address: priceProviderAddress,
-        abi: PRICE_PROVIDER_ABI,
-        client: publicClient,
-      });
-      const [bidPrice, askPrice] = await priceProvider.read.getBidAndAskPrice();
-
-      // Price is in Q64 format (token1/token0)
-      // If zeroForOne (selling token0 for token1): input = output / price
-      // If oneForZero (selling token1 for token0): input = output * price
-      const Q64 = 2n ** 64n;
-
-      let estimatedInput: bigint;
-      if (zeroForOne) {
-        // Selling WETH for USDC: need WETH = USDC_amount / price
-        // Use bid price (lower) to be conservative
-        estimatedInput = (amount * Q64) / bidPrice;
-        // Adjust for decimal difference (output is token1 decimals, input is token0 decimals)
-        estimatedInput =
-          (estimatedInput * BigInt(10 ** decimals0)) / BigInt(10 ** decimals1);
-      } else {
-        // Selling USDC for WETH: need USDC = WETH_amount * price
-        // Use ask price (higher) to be conservative
-        estimatedInput = (amount * askPrice) / Q64;
-        // Adjust for decimal difference (output is token0 decimals, input is token1 decimals)
-        estimatedInput =
-          (estimatedInput * BigInt(10 ** decimals1)) / BigInt(10 ** decimals0);
-      }
-
-      // Add slippage buffer
-      requiredAmount =
-        estimatedInput +
-        (estimatedInput * BigInt(Math.floor(slippagePercent * 100))) / 10000n;
-    } catch (e) {
-      // If price provider fails, use a very conservative estimate (can't check properly)
-      console.log("⚠️  Could not query price provider for balance estimation");
-      requiredAmount = 0n; // Skip balance check
-    }
-  }
-
   if (requiredAmount > 0n && inputBalance < requiredAmount) {
     console.error(`\n❌ Insufficient ${inputToken} balance!`);
     console.error(`  Have: ${formatUnits(inputBalance, inputDecimals)}`);
     console.error(`  Need: ${formatUnits(requiredAmount, inputDecimals)}`);
-
-    // Query and display price provider info
-    try {
-      const priceProviderAddress = await sdk.getPriceProvider(
-        publicClient,
-        addresses.stateView,
-        poolAddress,
-      );
-      console.log(`\n📊 Price Provider Info:`);
-      console.log(`  Address: ${priceProviderAddress}`);
-
-      const priceProvider = getContract({
-        address: priceProviderAddress,
-        abi: PRICE_PROVIDER_ABI,
-        client: publicClient,
-      });
-
-      const [bidPrice, askPrice] = await priceProvider.read.getBidAndAskPrice();
-      console.log(`  Bid Price: ${formatQ64(bidPrice)} ${symbol1}/${symbol0}`);
-      console.log(`  Ask Price: ${formatQ64(askPrice)} ${symbol1}/${symbol0}`);
-    } catch (e) {
-      // Ignore price provider errors
-    }
 
     process.exit(1);
   }
@@ -291,7 +242,6 @@ async function main() {
     account,
     addresses.router,
   ]);
-  const requiredAllowance = isExactInput ? amount : amount * 2n; // 2x for exact output safety
 
   if (allowance < requiredAllowance) {
     console.log(
@@ -312,53 +262,14 @@ async function main() {
     process.exit(0);
   }
 
-  // Execute swap
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes
-
   console.log("\n🚀 Executing swap...\n");
 
   try {
-    let hash: `0x${string}`;
-
-    if (isExactInput) {
-      // Calculate min output with slippage (estimate based on 1:1 for simplicity)
-      const minAmountOut = 0n; // No minimum - rely on price limit
-
-      hash = await sdk.swapExactInput(
-        publicClient,
-        walletClient,
-        addresses.router,
-        {
-          pool: poolAddress,
-          recipient: account,
-          zeroForOne,
-          amountIn: amount,
-          priceLimitX64,
-          minAmountOut,
-          deadline,
-        },
-        account,
-      );
-    } else {
-      // Calculate max input with slippage
-      const maxAmountIn = sdk.MAX_UINT128; // No maximum - rely on price limit
-
-      hash = await sdk.swapExactOutput(
-        publicClient,
-        walletClient,
-        addresses.router,
-        {
-          pool: poolAddress,
-          recipient: account,
-          zeroForOne,
-          amountOut: amount,
-          priceLimitX64,
-          maxAmountIn,
-          deadline,
-        },
-        account,
-      );
-    }
+    const hash = await walletClient.sendTransaction({
+      account,
+      to: addresses.router,
+      data: swapCalldata,
+    });
 
     console.log(`Transaction hash: ${hash}`);
     console.log("⏳ Waiting for confirmation...\n");
