@@ -110,7 +110,7 @@ export {
 export {
   buildModifyLiquidityArgsForAddition,
   buildModifyLiquidityArgsForUniformAddition,
-  buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount,
+  buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount,
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
   encodeModifyLiquidityCalldata,
@@ -121,7 +121,7 @@ export {
   type BuildModifyLiquidityArgsBase,
   type BuildModifyLiquidityArgsForAdditionParams,
   type BuildModifyLiquidityArgsForUniformAdditionParams,
-  type BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams,
+  type BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams,
   type BuildModifyLiquidityArgsForPercentageRemovalParams,
   type BuildModifyLiquidityArgsForRemovalParams,
   type RemoveLiquidityParams,

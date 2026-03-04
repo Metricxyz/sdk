@@ -5,7 +5,7 @@
 
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
-import { MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
+import { Q64, MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type { LiquidityDelta, LiquidityBinValueInput } from "../types.js";
 import { getPoolImmutables } from "./read.js";
@@ -78,12 +78,12 @@ export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildM
   salt?: bigint;
 }
 
-export interface BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsBase {
+export interface BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsBase {
   bins: number[];
   weights?: number[];
   totalValueToAddInToken: bigint;
   totalValueInToken0: boolean;
-  currentPrice: number;
+  currentPriceX64: bigint;
   salt?: bigint;
 }
 
@@ -115,7 +115,7 @@ export async function buildModifyLiquidityArgsForUniformAddition({
   lowerBin,
   upperBin,
   salt = 0n,
-  specAmountBufferPercent = 0,
+  specAmountBufferPercent = 1,
 }: BuildModifyLiquidityArgsForUniformAdditionParams): Promise<ModifyLiquidityArgs> {
   if (lowerBin > upperBin) {
     throw new Error("lowerBin must be <= upperBin");
@@ -149,7 +149,7 @@ export async function buildModifyLiquidityArgsForUniformAddition({
  * 2. Compute linear scale so selected specAmount token matches totalValueToAddInToken.
  * 3. Rebuild with scaled per-bin value and caller-provided specAmountBufferPercent.
  */
-export async function buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount({
+export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
   publicClient,
   stateViewAddress,
   poolAddress,
@@ -157,10 +157,10 @@ export async function buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmo
   weights,
   totalValueToAddInToken,
   totalValueInToken0,
-  currentPrice,
+  currentPriceX64,
   salt = 0n,
   specAmountBufferPercent = 1,
-}: BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams): Promise<ModifyLiquidityArgs> {
+}: BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
   if (!Array.isArray(bins) || bins.length === 0) {
@@ -171,8 +171,21 @@ export async function buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmo
       throw new Error("weights must be an array with the same length as bins");
     }
   }
+  const uniqueBins = new Set(bins);
+  if (uniqueBins.size !== bins.length) {
+    throw new Error("bins must not contain duplicates");
+  }
   if (totalValueToAddInToken <= 0n) {
     throw new Error("totalValueToAddInToken must be > 0");
+  }
+  if (currentPriceX64 <= 0n) {
+    throw new Error("currentPriceX64 must be > 0");
+  }
+
+  const currentPrice =
+    Number(currentPriceX64.toString()) / Number(Q64.toString());
+  if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+    throw new Error("currentPriceX64 is out of supported numeric range");
   }
 
   const weightScale = 1_000_000n;
@@ -529,7 +542,7 @@ export async function buildModifyLiquidityArgsForRemoval({
   owner,
   salt,
   specs,
-  specAmountBufferPercent = 0,
+  specAmountBufferPercent = 1,
 }: BuildModifyLiquidityArgsForRemovalParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
@@ -625,7 +638,7 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
   bins,
   lowerBin = -10,
   upperBin = 10,
-  specAmountBufferPercent = 0,
+  specAmountBufferPercent = 1,
 }: BuildModifyLiquidityArgsForPercentageRemovalParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 

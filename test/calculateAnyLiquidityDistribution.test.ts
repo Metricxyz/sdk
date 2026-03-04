@@ -296,15 +296,6 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       maxDriftE8: 1_000_000n,
     });
   }
-  async function setupEnv18_6Near95Pos() {
-    saltCounter = 0n;
-    return setupEnv({
-      decimals0: 18,
-      decimals1: 6,
-      maxDriftE8: 1_000_000n,
-      curBinDistFromProvidedPriceE6: 9500,
-    });
-  }
 
   const decimalPairs = [
     { label: "dec6/6", decimals0: 6, decimals1: 6 },
@@ -695,7 +686,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
   });
 
-  it("buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount allocates weighted value proportionally", async () => {
+  it("buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount allocates weighted value proportionally", async () => {
     const { publicClient, pool, stateView, token0, token1, priceProvider } =
       await networkHelpers.loadFixture(setupEnv18_6HighDrift);
 
@@ -794,7 +785,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
 
     const args =
-      await sdk.buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount({
+      await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
         publicClient,
         stateViewAddress: stateView.address,
         poolAddress: pool.address,
@@ -802,7 +793,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         weights,
         totalValueToAddInToken,
         totalValueInToken0: false,
-        currentPrice: 1,
+        currentPriceX64: q64Price,
         salt: 888n,
         specAmountBufferPercent: 0,
       });
@@ -839,7 +830,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
           slot0BeforeAdd.curPosInBin === maxUint104);
       const isAboveBin =
         delta.bin > slot0BeforeAdd.curBinIdx ||
-        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === 0n);
+        (delta.bin === slot0BeforeAdd.curBinIdx &&
+          slot0BeforeAdd.curPosInBin === 0n);
 
       let amount0ScaledToAdd = 0n;
       let amount1ScaledToAdd = 0n;
@@ -895,11 +887,17 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       valuesInToken1.push(valueInToken1);
     }
 
-    const unitValues = valuesInToken1.map((value, i) =>
-      (value * 1_000_000n) / BigInt(weights[i]),
+    const unitValues = valuesInToken1.map(
+      (value, i) => (value * 1_000_000n) / BigInt(weights[i]),
     );
-    const minUnitValue = unitValues.reduce((m, v) => (v < m ? v : m), unitValues[0]);
-    const maxUnitValue = unitValues.reduce((m, v) => (v > m ? v : m), unitValues[0]);
+    const minUnitValue = unitValues.reduce(
+      (m, v) => (v < m ? v : m),
+      unitValues[0],
+    );
+    const maxUnitValue = unitValues.reduce(
+      (m, v) => (v > m ? v : m),
+      unitValues[0],
+    );
     const unitSpread = maxUnitValue - minUnitValue;
     const allowedSpread = maxUnitValue / 5n + 1n; // 20%
 

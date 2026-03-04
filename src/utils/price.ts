@@ -19,5 +19,5 @@ export function priceToQ64(price: number | bigint): bigint {
  * Convert Q64 format to regular price
  */
 export function q64ToPrice(priceX64: bigint): number {
-  return Number(priceX64) / Number(Q64);
+  return Number(priceX64.toString()) / Number(Q64.toString());
 }
