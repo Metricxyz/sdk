@@ -112,8 +112,6 @@ export interface FeeConfig {
   adminFeeDest: Address;
 }
 
-
-
 // ============ Position Types ============
 
 /**
@@ -127,21 +125,21 @@ export interface PositionBinSharesResult {
 // ============ Liquidity Types ============
 
 export interface CalculateUniformLiquidityParams {
-  amountInTokensPerBin: bigint;
-  amountIsInToken0: boolean;
+  valuePerBinInToken: bigint;
+  valueIsInToken0: boolean;
   currentPrice: number;
   lowerBin: number;
   upperBin: number;
 }
 
-export interface AnyLiquidityBinInput {
+export interface LiquidityBinValueInput {
   bin: number;
-  amountInToken: bigint;
-  amountInToken0: boolean;
+  targetValueInToken: bigint;
+  targetValueInToken0: boolean;
 }
 
 export interface CalculateAnyLiquidityParams {
-  bins: AnyLiquidityBinInput[];
+  bins: LiquidityBinValueInput[];
   currentPrice: number;
 }
 

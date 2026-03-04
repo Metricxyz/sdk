@@ -247,9 +247,9 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     let targetTotalInToken1 = 0n;
     for (const entry of params.bins) {
-      targetTotalInToken1 += entry.amountInToken0
-        ? toToken1Value(entry.amountInToken, immutables, priceX18)
-        : entry.amountInToken;
+      targetTotalInToken1 += entry.targetValueInToken0
+        ? toToken1Value(entry.targetValueInToken, immutables, priceX18)
+        : entry.targetValueInToken;
     }
 
     const actualTotalInToken1 =
@@ -361,13 +361,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
                     bins: [
                       {
                         bin: 0,
-                        amountInToken: amountForSide(
+                        targetValueInToken: amountForSide(
                           true,
                           decimals.decimals0,
                           decimals.decimals1,
                           price,
                         ),
-                        amountInToken0: true,
+                        targetValueInToken0: true,
                       },
                     ],
                     currentPrice: price,
@@ -387,13 +387,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
                   bins: [
                     {
                       bin: binCase.bin,
-                      amountInToken: amountForSide(
+                      targetValueInToken: amountForSide(
                         amountInToken0,
                         decimals.decimals0,
                         decimals.decimals1,
                         price,
                       ),
-                      amountInToken0,
+                      targetValueInToken0: amountInToken0,
                     },
                   ],
                   currentPrice: price,
@@ -436,10 +436,22 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     const q64Price = sdk.priceToQ64(price);
     await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
 
-    const bins: sdk.AnyLiquidityBinInput[] = [
-      { bin: -1, amountInToken: parseUnits("300", 6), amountInToken0: false },
-      { bin: 0, amountInToken: parseUnits("1", 18), amountInToken0: true },
-      { bin: 1, amountInToken: parseUnits("2", 18), amountInToken0: true },
+    const bins: sdk.LiquidityBinValueInput[] = [
+      {
+        bin: -1,
+        targetValueInToken: parseUnits("300", 6),
+        targetValueInToken0: false,
+      },
+      {
+        bin: 0,
+        targetValueInToken: parseUnits("1", 18),
+        targetValueInToken0: true,
+      },
+      {
+        bin: 1,
+        targetValueInToken: parseUnits("2", 18),
+        targetValueInToken0: true,
+      },
     ];
 
     const multiPlan = await buildModifyLiquidityArgsForAdditionPlan(
@@ -490,12 +502,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     assert.equal(executed.result.deltas.length, 3);
   });
 
-  it("handles current-bin addition when curPosInBin is near 95%", async () => {
+  it("handles current-bin addition when curPosInBin is near an edge", async () => {
     const { publicClient, pool, stateView, token0, token1, priceProvider } =
       await networkHelpers.loadFixture(setupEnv18_6HighDrift);
 
     const maxUint104 = (1n << 104n) - 1n;
     const minTargetPos = (maxUint104 * 90n) / 100n;
+    const maxLowerEdgePos = (maxUint104 * 10n) / 100n;
 
     const q64Price = sdk.priceToQ64(1);
     await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
@@ -516,56 +529,87 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       stateView.address,
       pool.address,
     );
-    const currentBinState = await sdk.getBinStatesScaled(
-      publicClient,
-      stateView.address,
-      pool.address,
-      [beforeSlot0.curBinIdx],
-    );
-
-    const token0AvailableExternal =
-      currentBinState.token0BalancesScaled[0] / 1n;
-    const amountOutDesired = (token0AvailableExternal * 90n) / 100n;
-    assert.ok(
-      amountOutDesired > 0n,
-      "current bin has no token0 available for specified-output setup",
-    );
-
+    const immutables = await sdk.getPoolImmutables(publicClient, pool.address);
     const router = await viem.deployContract("MetricOmmSwapRouter", [
       token0.address,
     ]);
+    await token0.write.approve([router.address, parseUnits("1000000", 18)]);
     await token1.write.approve([router.address, parseUnits("1000000", 6)]);
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
     const maxUint128 = (1n << 128n) - 1n;
-    await router.write.swapExactOutput([
-      pool.address,
-      deployer.account.address,
-      false,
-      amountOutDesired,
-      maxUint128,
-      parseUnits("1000000", 6),
-      deadline,
-    ]);
-
-    const selectedSlot0 = await sdk.getSlot0(
+    let selectedSlot0 = await sdk.getSlot0(
       publicClient,
       stateView.address,
       pool.address,
     );
 
+    for (let i = 0; i < 20; i++) {
+      if (selectedSlot0.curPosInBin >= minTargetPos) break;
+
+      const posBefore = selectedSlot0.curPosInBin;
+      let swapApplied = false;
+      const candidates = [
+        {
+          zeroForOne: true,
+          amountIn: parseUnits("100", 18),
+          priceLimitX64: 1n,
+        },
+        {
+          zeroForOne: true,
+          amountIn: parseUnits("10", 18),
+          priceLimitX64: 1n,
+        },
+        {
+          zeroForOne: true,
+          amountIn: parseUnits("1", 18),
+          priceLimitX64: 1n,
+        },
+      ];
+
+      for (const candidate of candidates) {
+        try {
+          await router.write.swapExactInput([
+            pool.address,
+            deployer.account.address,
+            candidate.zeroForOne,
+            candidate.amountIn,
+            candidate.priceLimitX64,
+            0n,
+            deadline,
+          ]);
+          selectedSlot0 = await sdk.getSlot0(
+            publicClient,
+            stateView.address,
+            pool.address,
+          );
+          if (selectedSlot0.curPosInBin > posBefore) {
+            swapApplied = true;
+            break;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (!swapApplied) {
+        break;
+      }
+    }
+
     assert.ok(
-      selectedSlot0.curPosInBin >= minTargetPos &&
-        selectedSlot0.curPosInBin < maxUint104,
-      `failed to move curPosInBin near upper side with specified-out setup; got ${selectedSlot0.curPosInBin}`,
+      (selectedSlot0.curPosInBin >= minTargetPos &&
+        selectedSlot0.curPosInBin < maxUint104) ||
+        selectedSlot0.curPosInBin <= maxLowerEdgePos,
+      `failed to move curPosInBin near an edge with specified-in setup; got ${selectedSlot0.curPosInBin}`,
     );
 
     const params: sdk.CalculateAnyLiquidityParams = {
       bins: [
         {
           bin: selectedSlot0.curBinIdx,
-          amountInToken: parseUnits("2", 6),
-          amountInToken0: false,
+          targetValueInToken: parseUnits("2", 6),
+          targetValueInToken0: false,
         },
       ],
       currentPrice: 1,
@@ -577,7 +621,6 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       pool.address,
       [selectedSlot0.curBinIdx],
     );
-    const immutables = await sdk.getPoolImmutables(publicClient, pool.address);
 
     const { result, spent0, spent1 } = await planAndExecuteAny(
       publicClient,
@@ -652,6 +695,230 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
   });
 
+  it("buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount allocates weighted value proportionally", async () => {
+    const { publicClient, pool, stateView, token0, token1, priceProvider } =
+      await networkHelpers.loadFixture(setupEnv18_6HighDrift);
+
+    const q64Price = sdk.priceToQ64(1);
+    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+
+    const seedHash = await deployer.sendTransaction({
+      to: pool.address,
+      data: sdk.encodeModifyLiquidityCalldata([
+        777n,
+        [
+          { bin: -1, deltaShares: 10_000_000n },
+          { bin: 0, deltaShares: 10_000_000n },
+          { bin: 1, deltaShares: 10_000_000n },
+        ],
+        sdk.NO_SLIPPAGE_LIMIT,
+        sdk.NO_SLIPPAGE_LIMIT,
+      ]),
+    });
+    await publicClient.waitForTransactionReceipt({ hash: seedHash });
+
+    const slot0BeforeSwap = await sdk.getSlot0(
+      publicClient,
+      stateView.address,
+      pool.address,
+    );
+    const immutables = await sdk.getPoolImmutables(publicClient, pool.address);
+    const bin0StateBeforeSwap = await sdk.getBinStatesScaled(
+      publicClient,
+      stateView.address,
+      pool.address,
+      [slot0BeforeSwap.curBinIdx],
+    );
+
+    const token0AvailableExternal =
+      bin0StateBeforeSwap.token0BalancesScaled[0] /
+      immutables.token0ScaleMultiplier;
+    const token1AvailableExternal =
+      bin0StateBeforeSwap.token1BalancesScaled[0] /
+      immutables.token1ScaleMultiplier;
+
+    const swapOutToken0 = token0AvailableExternal >= token1AvailableExternal;
+    const availableOutExternal = swapOutToken0
+      ? token0AvailableExternal
+      : token1AvailableExternal;
+    const amountOutDesired =
+      availableOutExternal > 1n ? availableOutExternal / 2n : 1n;
+    assert.ok(
+      availableOutExternal > 0n,
+      "current bin has no available token balance for specified-out setup",
+    );
+
+    const router = await viem.deployContract("MetricOmmSwapRouter", [
+      token0.address,
+    ]);
+    await token0.write.approve([router.address, parseUnits("1000000", 18)]);
+    await token1.write.approve([router.address, parseUnits("1000000", 6)]);
+
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+    const maxUint128 = (1n << 128n) - 1n;
+    await router.write.swapExactOutput([
+      pool.address,
+      deployer.account.address,
+      swapOutToken0 ? false : true,
+      amountOutDesired,
+      maxUint128,
+      swapOutToken0 ? parseUnits("1000000", 6) : parseUnits("1000000", 18),
+      deadline,
+    ]);
+
+    const slot0AfterSwap = await sdk.getSlot0(
+      publicClient,
+      stateView.address,
+      pool.address,
+    );
+    assert.ok(
+      slot0AfterSwap.curBinIdx !== slot0BeforeSwap.curBinIdx ||
+        slot0AfterSwap.curPosInBin !== slot0BeforeSwap.curPosInBin,
+      "expected current bin position to move after specified-out swap",
+    );
+
+    const bins = [-3, -1, 0, 1, 3];
+    const weights = [1, 2, 3, 2, 1];
+    const totalValueToAddInToken = parseUnits("9", 6);
+
+    const beforeTargetStates = await sdk.getBinStatesScaled(
+      publicClient,
+      stateView.address,
+      pool.address,
+      bins,
+    );
+    const slot0BeforeAdd = await sdk.getSlot0(
+      publicClient,
+      stateView.address,
+      pool.address,
+    );
+
+    const args =
+      await sdk.buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress: pool.address,
+        bins,
+        weights,
+        totalValueToAddInToken,
+        totalValueInToken0: false,
+        currentPrice: 1,
+        salt: 888n,
+        specAmountBufferPercent: 0,
+      });
+
+    const [salt, deltas, specAmount0, specAmount1] = args;
+    assert.equal(salt, 888n);
+    assert.equal(deltas.length, bins.length);
+
+    const hash = await deployer.sendTransaction({
+      to: pool.address,
+      data: sdk.encodeModifyLiquidityCalldata(args),
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    assert.equal(receipt.status, "success");
+
+    const binToIndex = new Map<number, number>();
+    bins.forEach((bin, i) => binToIndex.set(bin, i));
+
+    const ceilDivLocal = (a: bigint, b: bigint) => (a + b - 1n) / b;
+    const maxUint104 = (1n << 104n) - 1n;
+
+    const valuesInToken1: bigint[] = [];
+    for (const delta of deltas) {
+      const idx = binToIndex.get(delta.bin);
+      assert.ok(idx != null, `unexpected delta bin ${delta.bin}`);
+
+      const token0BalScaled = beforeTargetStates.token0BalancesScaled[idx!];
+      const token1BalScaled = beforeTargetStates.token1BalancesScaled[idx!];
+      const totalShares = beforeTargetStates.totalShares[idx!];
+
+      const isBelowBin =
+        delta.bin < slot0BeforeAdd.curBinIdx ||
+        (delta.bin === slot0BeforeAdd.curBinIdx &&
+          slot0BeforeAdd.curPosInBin === maxUint104);
+      const isAboveBin =
+        delta.bin > slot0BeforeAdd.curBinIdx ||
+        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === 0n);
+
+      let amount0ScaledToAdd = 0n;
+      let amount1ScaledToAdd = 0n;
+
+      if (totalShares > 0n) {
+        amount0ScaledToAdd = ceilDivLocal(
+          delta.deltaShares * token0BalScaled,
+          totalShares,
+        );
+        amount1ScaledToAdd = ceilDivLocal(
+          delta.deltaShares * token1BalScaled,
+          totalShares,
+        );
+      } else if (isBelowBin) {
+        amount1ScaledToAdd = ceilDivLocal(
+          delta.deltaShares * immutables.initialScaledToken1PerShareE18,
+          1_000_000_000_000_000_000n,
+        );
+      } else if (isAboveBin) {
+        amount0ScaledToAdd = ceilDivLocal(
+          delta.deltaShares * immutables.initialScaledToken0PerShareE18,
+          1_000_000_000_000_000_000n,
+        );
+      } else {
+        const token0Portion = maxUint104 - slot0BeforeAdd.curPosInBin;
+        const token1Portion = slot0BeforeAdd.curPosInBin;
+        amount0ScaledToAdd = ceilDivLocal(
+          delta.deltaShares *
+            immutables.initialScaledToken0PerShareE18 *
+            token0Portion,
+          1_000_000_000_000_000_000n * maxUint104,
+        );
+        amount1ScaledToAdd = ceilDivLocal(
+          delta.deltaShares *
+            immutables.initialScaledToken1PerShareE18 *
+            token1Portion,
+          1_000_000_000_000_000_000n * maxUint104,
+        );
+      }
+
+      const amount0External = ceilDivLocal(
+        amount0ScaledToAdd,
+        immutables.token0ScaleMultiplier,
+      );
+      const amount1External = ceilDivLocal(
+        amount1ScaledToAdd,
+        immutables.token1ScaleMultiplier,
+      );
+      const valueInToken1 =
+        amount1External +
+        toToken1Value(amount0External, immutables, 1_000_000_000_000_000_000n);
+
+      valuesInToken1.push(valueInToken1);
+    }
+
+    const unitValues = valuesInToken1.map((value, i) =>
+      (value * 1_000_000n) / BigInt(weights[i]),
+    );
+    const minUnitValue = unitValues.reduce((m, v) => (v < m ? v : m), unitValues[0]);
+    const maxUnitValue = unitValues.reduce((m, v) => (v > m ? v : m), unitValues[0]);
+    const unitSpread = maxUnitValue - minUnitValue;
+    const allowedSpread = maxUnitValue / 5n + 1n; // 20%
+
+    assert.ok(
+      unitSpread <= allowedSpread,
+      `weighted per-bin values are not proportional enough; spread=${unitSpread}, max=${maxUnitValue}`,
+    );
+
+    const specDiff1 =
+      specAmount1 > totalValueToAddInToken
+        ? specAmount1 - totalValueToAddInToken
+        : totalValueToAddInToken - specAmount1;
+    const allowedSpecDiff1 = totalValueToAddInToken / 10n + 1n; // 10%
+    assert.ok(
+      specDiff1 <= allowedSpecDiff1,
+      `specAmount1 not close to target total; spec=${specAmount1}, target=${totalValueToAddInToken}, diff=${specDiff1}, specAmount0=${specAmount0}`,
+    );
+  });
+
   it("throws when bins contain duplicates", async () => {
     const { publicClient, pool, stateView } =
       await networkHelpers.loadFixture(setupEnv18_6);
@@ -665,13 +932,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
           bins: [
             {
               bin: -1,
-              amountInToken: parseUnits("100", 6),
-              amountInToken0: false,
+              targetValueInToken: parseUnits("100", 6),
+              targetValueInToken0: false,
             },
             {
               bin: -1,
-              amountInToken: parseUnits("200", 6),
-              amountInToken0: false,
+              targetValueInToken: parseUnits("200", 6),
+              targetValueInToken0: false,
             },
           ],
           currentPrice: 1,
@@ -694,8 +961,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
           bins: [
             {
               bin: 0,
-              amountInToken: parseUnits("1", 18),
-              amountInToken0: true,
+              targetValueInToken: parseUnits("1", 18),
+              targetValueInToken0: true,
             },
           ],
           currentPrice: 0,

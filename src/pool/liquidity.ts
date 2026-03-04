@@ -7,7 +7,7 @@ import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
-import type { LiquidityDelta, AnyLiquidityBinInput } from "../types.js";
+import type { LiquidityDelta, LiquidityBinValueInput } from "../types.js";
 import { getPoolImmutables } from "./read.js";
 import {
   getSlot0,
@@ -64,7 +64,7 @@ export interface BuildModifyLiquidityArgsBase {
 }
 
 export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsBase {
-  bins: AnyLiquidityBinInput[];
+  bins: LiquidityBinValueInput[];
   currentPrice: number;
   salt?: bigint;
 }
@@ -75,6 +75,15 @@ export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildM
   currentPrice: number;
   lowerBin: number;
   upperBin: number;
+  salt?: bigint;
+}
+
+export interface BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsBase {
+  bins: number[];
+  weights?: number[];
+  totalValueToAddInToken: bigint;
+  totalValueInToken0: boolean;
+  currentPrice: number;
   salt?: bigint;
 }
 
@@ -112,12 +121,12 @@ export async function buildModifyLiquidityArgsForUniformAddition({
     throw new Error("lowerBin must be <= upperBin");
   }
 
-  const bins: AnyLiquidityBinInput[] = [];
+  const bins: LiquidityBinValueInput[] = [];
   for (let bin = lowerBin; bin <= upperBin; bin++) {
     bins.push({
       bin,
-      amountInToken: amountInTokensPerBin,
-      amountInToken0: amountIsInToken0,
+      targetValueInToken: amountInTokensPerBin,
+      targetValueInToken0: amountIsInToken0,
     });
   }
 
@@ -126,6 +135,98 @@ export async function buildModifyLiquidityArgsForUniformAddition({
     stateViewAddress,
     poolAddress,
     bins,
+    currentPrice,
+    salt,
+    specAmountBufferPercent,
+  });
+}
+
+/**
+ * Prepare uniform liquidity across arbitrary bins from a TOTAL value budget.
+ *
+ * Algorithm:
+ * 1. Calibrate by assigning weighted 1e18 targets per bin with zero buffer.
+ * 2. Compute linear scale so selected specAmount token matches totalValueToAddInToken.
+ * 3. Rebuild with scaled per-bin value and caller-provided specAmountBufferPercent.
+ */
+export async function buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount({
+  publicClient,
+  stateViewAddress,
+  poolAddress,
+  bins,
+  weights,
+  totalValueToAddInToken,
+  totalValueInToken0,
+  currentPrice,
+  salt = 0n,
+  specAmountBufferPercent = 1,
+}: BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams): Promise<ModifyLiquidityArgs> {
+  validateSpecAmountBufferPercent(specAmountBufferPercent);
+
+  if (!Array.isArray(bins) || bins.length === 0) {
+    throw new Error("bins must be a non-empty array");
+  }
+  if (weights != null) {
+    if (!Array.isArray(weights) || weights.length !== bins.length) {
+      throw new Error("weights must be an array with the same length as bins");
+    }
+  }
+  if (totalValueToAddInToken <= 0n) {
+    throw new Error("totalValueToAddInToken must be > 0");
+  }
+
+  const weightScale = 1_000_000n;
+  const calibrationTargets = bins.map((_, i) => {
+    const weight = weights?.[i] ?? 1;
+    if (!Number.isFinite(weight) || weight <= 0) {
+      throw new Error(`weights[${i}] must be a positive finite number`);
+    }
+    const scaledWeight = BigInt(Math.round(weight * Number(weightScale)));
+    if (scaledWeight <= 0n) {
+      throw new Error(`weights[${i}] is too small after scaling`);
+    }
+    return ceilDiv(ONE_E18 * scaledWeight, weightScale);
+  });
+
+  const calibrationBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
+    bin,
+    targetValueInToken: calibrationTargets[i],
+    targetValueInToken0: totalValueInToken0,
+  }));
+
+  const [, , calibrationSpecAmount0, calibrationSpecAmount1] =
+    await buildModifyLiquidityArgsForAddition({
+      publicClient,
+      stateViewAddress,
+      poolAddress,
+      bins: calibrationBins,
+      currentPrice,
+      salt,
+      specAmountBufferPercent: 0,
+    });
+
+  const calibrationSpecAmount = totalValueInToken0
+    ? calibrationSpecAmount0
+    : calibrationSpecAmount1;
+
+  if (calibrationSpecAmount <= 0n) {
+    throw new Error(
+      "failed to calibrate uniform total amount scaling: specAmount is zero",
+    );
+  }
+
+  const scaledBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
+    bin,
+    targetValueInToken:
+      (calibrationTargets[i] * totalValueToAddInToken) / calibrationSpecAmount,
+    targetValueInToken0: totalValueInToken0,
+  }));
+
+  return buildModifyLiquidityArgsForAddition({
+    publicClient,
+    stateViewAddress,
+    poolAddress,
+    bins: scaledBins,
     currentPrice,
     salt,
     specAmountBufferPercent,
@@ -195,34 +296,34 @@ export async function buildModifyLiquidityArgsForAddition({
         `bin ${entry.bin} is out of range [${immutables.lowestBin}, ${immutables.highestBin}]`,
       );
     }
-    if (entry.amountInToken <= 0n) {
+    if (entry.targetValueInToken <= 0n) {
       throw new Error(`amountInToken for bin ${entry.bin} must be > 0`);
     }
 
-    const amount0 = entry.amountInToken0
-      ? entry.amountInToken
+    const amount0 = entry.targetValueInToken0
+      ? entry.targetValueInToken
       : convertToken1ToToken0(
-          entry.amountInToken,
+          entry.targetValueInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
           priceE18,
         );
-    const amount1 = entry.amountInToken0
+    const amount1 = entry.targetValueInToken0
       ? convertToken0ToToken1(
-          entry.amountInToken,
+          entry.targetValueInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
           priceE18,
         )
-      : entry.amountInToken;
-    const targetValueInToken1 = entry.amountInToken0
+      : entry.targetValueInToken;
+    const targetValueInToken1 = entry.targetValueInToken0
       ? convertToken0ToToken1(
-          entry.amountInToken,
+          entry.targetValueInToken,
           immutables.token0ScaleMultiplier,
           immutables.token1ScaleMultiplier,
           priceE18,
         )
-      : entry.amountInToken;
+      : entry.targetValueInToken;
 
     if (targetsByBin.has(entry.bin)) {
       throw new Error(`duplicate bin ${entry.bin} is not supported`);

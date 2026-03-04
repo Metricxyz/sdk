@@ -24,6 +24,7 @@ export {
 export {
   buildModifyLiquidityArgsForAddition,
   buildModifyLiquidityArgsForUniformAddition,
+  buildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmount,
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
   encodeModifyLiquidityCalldata,
@@ -34,6 +35,7 @@ export {
   type BuildModifyLiquidityArgsBase,
   type BuildModifyLiquidityArgsForAdditionParams,
   type BuildModifyLiquidityArgsForUniformAdditionParams,
+  type BuildModifyLiquidityArgsForUniformAddtionWithTotalTokenAmountParams,
   type BuildModifyLiquidityArgsForPercentageRemovalParams,
   type BuildModifyLiquidityArgsForRemovalParams,
   type RemoveLiquidityParams,
