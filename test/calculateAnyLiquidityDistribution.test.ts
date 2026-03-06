@@ -917,6 +917,29 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
   });
 
+  it("buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount avoids int104 overflow in calibration for high-price token1 inputs", async () => {
+    const { publicClient, pool, stateView } =
+      await networkHelpers.loadFixture(setupEnv18_6);
+
+    const args =
+      await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress: pool.address,
+        bins: [-2, -1, 0, 1],
+        totalValueToAddInToken: 1_000_000n,
+        totalValueInToken0: false,
+        currentPriceX64: 1309319182557697118630402n,
+        specAmountBufferPercent: 0.01,
+      });
+
+    assert.equal(args[1].length, 4);
+    for (const delta of args[1]) {
+      assert.ok(delta.deltaShares > 0n);
+      assert.ok(delta.deltaShares <= sdk.MAX_INT104);
+    }
+  });
+
   it("throws when bins contain duplicates", async () => {
     const { publicClient, pool, stateView } =
       await networkHelpers.loadFixture(setupEnv18_6);

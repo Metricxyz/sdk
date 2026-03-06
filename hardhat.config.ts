@@ -8,6 +8,12 @@ import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
 
+const baseLocalForkBlockNumber = process.env.BASE_LOCAL_FORK_BLOCK_NUMBER
+  ? Number(process.env.BASE_LOCAL_FORK_BLOCK_NUMBER)
+  : undefined;
+
+const baseLocalForkRpcUrl = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+
 const config: HardhatUserConfig = {
   plugins: [
     hardhatViem,
@@ -56,6 +62,17 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       type: "edr-simulated",
+    },
+    "base-local-fork": {
+      type: "edr-simulated",
+      chainType: "op",
+      forking: {
+        url: baseLocalForkRpcUrl,
+        ...(baseLocalForkBlockNumber != null &&
+        Number.isFinite(baseLocalForkBlockNumber)
+          ? { blockNumber: baseLocalForkBlockNumber }
+          : {}),
+      },
     },
     sepolia: {
       type: "http",

@@ -188,18 +188,12 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("currentPriceX64 is out of supported numeric range");
   }
 
-  const weightScale = 1_000_000n;
-  const calibrationTargets = bins.map((_, i) => {
-    const weight = weights?.[i] ?? 1;
-    if (!Number.isFinite(weight) || weight <= 0) {
-      throw new Error(`weights[${i}] must be a positive finite number`);
-    }
-    const scaledWeight = BigInt(Math.round(weight * Number(weightScale)));
-    if (scaledWeight <= 0n) {
-      throw new Error(`weights[${i}] is too small after scaling`);
-    }
-    return ceilDiv(ONE_E18 * scaledWeight, weightScale);
-  });
+  const calibrationValue = totalValueToAddInToken / BigInt(bins.length) + 1n;
+  const calibrationTargets: bigint[] = weights
+    ? weights.map(
+        (w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n,
+      )
+    : Array(bins.length).fill(calibrationValue);
 
   const calibrationBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
     bin,

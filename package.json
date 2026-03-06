@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "TypeScript SDK for interacting with Metric AMM contracts",
   "type": "module",
   "main": "dist/index.js",
@@ -68,6 +68,7 @@
     "@nomicfoundation/hardhat-viem": "^3.0.1",
     "@nomicfoundation/hardhat-viem-assertions": "^3.0.4",
     "@types/node": "^22.18.8",
+    "dotenv": "^17.3.1",
     "hardhat": "^3.0.17",
     "typescript": "~5.8.0"
   }
