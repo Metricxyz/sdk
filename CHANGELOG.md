@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No unreleased changes.
 
+## [0.0.11] - 2026-03-09
+
+### Added
+
+- Live-network debug tests for liquidity argument diagnostics:
+	- `test/debug-base-live.test.ts`
+	- `test/debug-arbitrum-live.test.ts`
+
+### Changed
+
+- `specAmountBufferPercent` semantics were aligned with the name and are now treated as percent units (`1` = 1%, `0.01` = 0.01%).
+- Base/Arbitrum debug workflows were updated to use Hardhat keystore-backed RPC configuration for reproducible live checks.
+
+### Fixed
+
+- `scripts/actions/remove-liquidity.ts`: fixed percentage-to-shares conversion so entered percentages map correctly to removed shares.
+
 ## [0.0.6] - 2026-02-27
 
 ### Added

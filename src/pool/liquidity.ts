@@ -692,7 +692,9 @@ function validateSpecAmountBufferPercent(
     !Number.isFinite(specAmountBufferPercent) ||
     specAmountBufferPercent < 0
   ) {
-    throw new Error("specAmountBufferPercent must be a non-negative number");
+    throw new Error(
+      "specAmountBufferPercent must be a non-negative percent number",
+    );
   }
 }
 
@@ -704,13 +706,15 @@ function applySpecAmountBuffer(
     return specAmount;
   }
 
+  const bufferRatio = specAmountBufferPercent / 100;
+
   if (specAmount > 0n) {
-    const multiplier = BigInt(Math.floor((1 + specAmountBufferPercent) * 1e18));
+    const multiplier = BigInt(Math.floor((1 + bufferRatio) * 1e18));
     return (specAmount * multiplier) / BigInt(1e18);
   }
 
   if (specAmount < 0n) {
-    const multiplier = BigInt(Math.floor((1 - specAmountBufferPercent) * 1e18));
+    const multiplier = BigInt(Math.floor((1 - bufferRatio) * 1e18));
     if (multiplier <= 0n) {
       return 0n;
     }

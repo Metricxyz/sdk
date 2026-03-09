@@ -34,7 +34,7 @@ describe("debug/base live throw reproduction", async function () {
       totalValueToAddInToken: 1_000_000n,
       totalValueInToken0: false,
       currentPriceX64: 1309319182557697118630402n,
-      specAmountBufferPercent: 0.01,
+      specAmountBufferPercent: 1,
     };
 
     const args =

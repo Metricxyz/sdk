@@ -174,7 +174,7 @@ async function main() {
   for (const { binIdx, shares } of positionShares) {
     // Calculate shares to remove (negative delta)
     const sharesToRemove =
-      (shares * BigInt(Math.floor(percentToRedeem * 10000))) / 1000000n;
+      (shares * BigInt(Math.floor(percentToRedeem * 100))) / 10000n;
     if (sharesToRemove > 0n) {
       deltas.push({
         bin: binIdx,
@@ -222,12 +222,7 @@ async function main() {
     const hash = await walletClient.sendTransaction({
       account,
       to: poolAddress,
-      data: sdk.encodeModifyLiquidityCalldata([
-        salt,
-        deltas,
-        0n,
-        0n,
-      ]),
+      data: sdk.encodeModifyLiquidityCalldata([salt, deltas, 0n, 0n]),
     });
 
     console.log(`Transaction hash: ${hash}`);
