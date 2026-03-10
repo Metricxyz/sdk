@@ -24,13 +24,15 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist artifacts cache",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "sync:contracts": "npx hardhat build --force",
     "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
     "test": "hardhat test",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "postinstall": "npm run sync:abis",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "prepare": "npm run setup:hooks"
   },
   "keywords": [
     "metric",

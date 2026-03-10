@@ -115,7 +115,7 @@ export async function buildModifyLiquidityArgsForUniformAddition({
   lowerBin,
   upperBin,
   salt = 0n,
-  specAmountBufferPercent = 1,
+  specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForUniformAdditionParams): Promise<ModifyLiquidityArgs> {
   if (lowerBin > upperBin) {
     throw new Error("lowerBin must be <= upperBin");
@@ -159,7 +159,7 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
   totalValueInToken0,
   currentPriceX64,
   salt = 0n,
-  specAmountBufferPercent = 1,
+  specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
@@ -271,7 +271,7 @@ export async function buildModifyLiquidityArgsForAddition({
   bins,
   currentPrice,
   salt = 0n,
-  specAmountBufferPercent = 1,
+  specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForAdditionParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
@@ -536,7 +536,7 @@ export async function buildModifyLiquidityArgsForRemoval({
   owner,
   salt,
   specs,
-  specAmountBufferPercent = 1,
+  specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForRemovalParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 
@@ -632,7 +632,7 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
   bins,
   lowerBin = -10,
   upperBin = 10,
-  specAmountBufferPercent = 1,
+  specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForPercentageRemovalParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
 

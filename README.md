@@ -187,6 +187,12 @@ Dependencies are pinned to exact commit SHAs in `package.json`.
 npm install
 ```
 
+This repo uses a native Git hook (no Husky) for pre-commit checks. If needed, you can set it manually:
+
+```bash
+npm run setup:hooks
+```
+
 After install, `postinstall` runs automatically and compiles contracts and extracts ABIs.
 
 To regenerate ABIs manually:
@@ -200,6 +206,8 @@ npm run sync:abis
 ```bash
 npm test
 ```
+
+Commits are blocked unless `bunx hardhat test` succeeds.
 
 ### Building
 
