@@ -2,7 +2,7 @@
  * Approve ERC20 tokens for MetricOmmPool
  *
  * Usage:
- *   npx hardhat run scripts/actions/approve-erc20.ts --network base
+ *   npx hardhat run exec/erc20/approve-erc20.ts --network base
  *
  * The script will prompt for:
  *   - Token address to approve
@@ -15,7 +15,7 @@ import { network } from "hardhat";
 const { viem } = await network.connect();
 import { maxUint256, getContract, formatUnits, erc20Abi } from "viem";
 import * as readline from "readline";
-import { logErrorDetails } from "../utils/decodeError.js";
+import { logErrorDetails } from "../../scripts/utils/decodeError.js";
 
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({

@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Added
 
-- No unreleased changes.
+- **Moved scripts** to interact with (pool|factory|router|erc20) to exec/(pool|factory|router|erc20)/
+- **New executables** allowing to collect fees from pool and factory:
+  - `exec/pool/collect-protocol-fees.ts`
+  - `exec/factory/collect.ts`
+- Factory fee collection SDK helpers:
+  - `getFactoryAssetBalances` to read factory balances for multiple assets (including native ETH via zero address).
+  - `collectFactoryFees` to sequentially execute `collectTokens`/`collectETH` for non-zero assets.
+
+### Changed
 
 ## [0.0.11] - 2026-03-09
 

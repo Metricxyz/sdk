@@ -26,16 +26,18 @@ describe("debug/base live throw reproduction", async function () {
     const pinnedBlock = await publicClient.getBlockNumber();
     assert.equal(pinnedBlock, 43008508n);
 
-    const params: sdk.BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams = {
-      publicClient,
-      stateViewAddress: "0xe6b102a2aea65b9b59e4F8B86B38E221886675A8" as Address,
-      poolAddress: "0x71089bACc43B7d03A2BB48E90C95F8164377f8aD" as Address,
-      bins: [-2, -1, 0, 1],
-      totalValueToAddInToken: 1_000_000n,
-      totalValueInToken0: false,
-      currentPriceX64: 1309319182557697118630402n,
-      specAmountBufferPercent: 1,
-    };
+    const params: sdk.BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams =
+      {
+        publicClient,
+        stateViewAddress:
+          "0xe6b102a2aea65b9b59e4F8B86B38E221886675A8" as Address,
+        poolAddress: "0x71089bACc43B7d03A2BB48E90C95F8164377f8aD" as Address,
+        bins: [-2, -1, 0, 1],
+        totalValueToAddInToken: 1_000_000n,
+        totalValueInToken0: false,
+        currentPriceX64: 1309319182557697118630402n,
+        specAmountBufferPercent: 1,
+      };
 
     const args =
       await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount(

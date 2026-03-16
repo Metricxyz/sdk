@@ -2,8 +2,8 @@
  * Read the poolDeployer address from a MetricOmmPoolFactory contract.
  *
  * Usage:
- *   npx hardhat run scripts/actions/read-pool-deployer.ts --network ethereum
- *   npx hardhat run scripts/actions/read-pool-deployer.ts --network arbitrum
+ *   npx hardhat run exec/pool/read-pool-deployer.ts --network ethereum
+ *   npx hardhat run exec/pool/read-pool-deployer.ts --network arbitrum
  *
  * Environment variables (optional):
  *   FACTORY_ADDRESS - Factory contract address (defaults to SDK addresses for the chain)

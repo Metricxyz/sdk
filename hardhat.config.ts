@@ -13,6 +13,11 @@ const baseLocalForkBlockNumber = process.env.BASE_LOCAL_FORK_BLOCK_NUMBER
   : undefined;
 
 const baseLocalForkRpcUrl = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+const arbitrumLocalForkBlockNumber = process.env.ARBITRUM_LOCAL_FORK_BLOCK_NUMBER
+  ? Number(process.env.ARBITRUM_LOCAL_FORK_BLOCK_NUMBER)
+  : undefined;
+
+const arbitrumLocalForkRpcUrl = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc";
 
 const config: HardhatUserConfig = {
   plugins: [
@@ -71,6 +76,17 @@ const config: HardhatUserConfig = {
         ...(baseLocalForkBlockNumber != null &&
         Number.isFinite(baseLocalForkBlockNumber)
           ? { blockNumber: baseLocalForkBlockNumber }
+          : {}),
+      },
+    },
+    "arbitrum-local-fork": {
+      type: "edr-simulated",
+      chainType: "generic",
+      forking: {
+        url: arbitrumLocalForkRpcUrl,
+        ...(arbitrumLocalForkBlockNumber != null &&
+        Number.isFinite(arbitrumLocalForkBlockNumber)
+          ? { blockNumber: arbitrumLocalForkBlockNumber }
           : {}),
       },
     },

@@ -2,7 +2,7 @@
  * Perform a swap on MetricOmmPool using SDK
  *
  * Usage:
- *   npx hardhat run scripts/actions/swap.ts --network ethereum
+ *   npx hardhat run exec/router/swap.ts --network ethereum
  *
  * Environment variables (optional, will prompt if not set):
  *   POOL_ADDRESS - Pool contract address

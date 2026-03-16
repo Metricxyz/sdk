@@ -2,10 +2,10 @@
  * Deploy a pool using configuration from a JSON file.
  *
  * Usage:
- *   npx hardhat run scripts/actions/deploy-pool.ts --network ethereum -- --config scripts/pool-config.json
+ *   npx hardhat run exec/factory/create-pool.ts --network ethereum -- --config scripts/pool-config.json
  *
  * Or with environment variable:
- *   POOL_CONFIG=scripts/pool-config.json npx hardhat run scripts/actions/deploy-pool.ts --network ethereum
+ *   POOL_CONFIG=scripts/pool-config.json npx hardhat run exec/factory/create-pool.ts --network ethereum
  */
 // @ts-nocheck - viem version mismatch between hardhat and sdk
 

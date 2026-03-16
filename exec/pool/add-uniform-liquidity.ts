@@ -2,7 +2,7 @@
  * Add uniform liquidity to MetricOmmPool directly
  *
  * Usage:
- *   npx hardhat run scripts/actions/add-uniform-liquidity.ts --network ethereum
+ *   npx hardhat run exec/pool/add-uniform-liquidity.ts --network ethereum
  *
  * Environment variables (optional, will prompt if not set):
  *   POOL_ADDRESS - Pool contract address

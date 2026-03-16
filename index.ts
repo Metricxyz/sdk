@@ -15,3 +15,4 @@ export * from "./src/pool/index.js";
 export * from "./src/pool/liquidity.js";
 export * from "./src/stateView/index.js";
 export * from "./src/router/index.js";
+export * from "./src/factory/index.js";

@@ -2,7 +2,7 @@
  * Remove liquidity from MetricOmmPool directly
  *
  * Usage:
- *   npx hardhat run scripts/actions/remove-liquidity.ts --network ethereum
+ *   npx hardhat run exec/pool/remove-liquidity.ts --network ethereum
  *
  * Environment variables (optional, will prompt if not set):
  *   POOL_ADDRESS - Pool contract address

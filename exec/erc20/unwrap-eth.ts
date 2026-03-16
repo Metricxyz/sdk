@@ -2,7 +2,7 @@
  * Unwrap WETH to ETH
  *
  * Usage:
- *   npx hardhat run scripts/actions/unwrap-eth.ts --network base
+ *   npx hardhat run exec/erc20/unwrap-eth.ts --network base
  *
  * The script will prompt for:
  *   - Amount of WETH to unwrap (in WETH, e.g., "0.1")
@@ -13,7 +13,7 @@ import { network } from "hardhat";
 const { viem } = await network.connect();
 import { getContract, parseEther, formatEther } from "viem";
 import * as readline from "readline";
-import { logErrorDetails } from "../utils/decodeError.js";
+import { logErrorDetails } from "../../scripts/utils/decodeError.js";
 
 const WETH_ABI = [
   {

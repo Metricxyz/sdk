@@ -2,7 +2,7 @@
  * Set Price Provider for MetricOmmPool
  *
  * Usage:
- *   npx hardhat run scripts/actions/set-price-provider.ts --network base
+ *   npx hardhat run exec/pool/set-price-provider.ts --network base
  *
  * The script will prompt for:
  *   - Pool address (MetricOmmPool address)
@@ -14,7 +14,7 @@ import { network } from "hardhat";
 const { viem } = await network.connect();
 import * as readline from "readline";
 import * as sdk from "../../index.js";
-import { logErrorDetails } from "../utils/decodeError.js";
+import { logErrorDetails } from "../../scripts/utils/decodeError.js";
 
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({

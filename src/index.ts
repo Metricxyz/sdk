@@ -149,3 +149,13 @@ export {
   type SwapExactInputArgs,
   type SwapExactOutputArgs,
 } from "./router/index.js";
+
+// ============ Factory Functions ============
+export {
+  getFactoryAssetBalances,
+  collectFactoryFees,
+  type FactoryAssetBalance,
+  type CollectFactoryFeesParams,
+  type CollectedFactoryFeeTx,
+  type CollectFactoryFeesResult,
+} from "./factory/index.js";
