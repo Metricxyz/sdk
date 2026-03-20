@@ -7,17 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-03-20
+
 ### Added
 
-- **Moved scripts** to interact with (pool|factory|router|erc20) to exec/(pool|factory|router|erc20)/
-- **New executables** allowing to collect fees from pool and factory:
+- **Moved scripts** to interact with (pool|factory|router|erc20) to `exec/(pool|factory|router|erc20)/`.
+- **New executables for collecting fees**:
   - `exec/pool/collect-protocol-fees.ts`
   - `exec/factory/collect.ts`
+- New executables for inspecting pool state and quoting swaps:
+  - `exec/pool/inspect-pool.ts` — detailed pool state view.
+  - `exec/router/quote-swap.ts` — CLI swap quote tool.
 - Factory fee collection SDK helpers:
-  - `getFactoryAssetBalances` to read factory balances for multiple assets (including native ETH via zero address).
-  - `collectFactoryFees` to sequentially execute `collectTokens`/`collectETH` for non-zero assets.
+  - `getFactoryAssetBalances` — reads factory balances for multiple assets (including native ETH via zero address).
+  - `collectFactoryFees` — sequentially executes `collectTokens`/`collectETH` for non-zero assets.
+- `quoteSwap` — low-level swap quote function exposed from `src/router/swap.ts`; returns `amount0Delta`, `amount1Delta`, `amountIn`, and `amountOut`.
+- `QuoteSwapParams` and `QuoteSwapResult` types exported from the router module.
 
 ### Changed
+
+- `getPoolState` now reads via `StateView` contract (`slot0` + `slot1` calls) instead of calling `getState` directly on the pool. **Breaking**: requires a `stateViewAddress` argument.
+- Default `specAmountBufferPercent` changed from `1` to `0` across all liquidity builder functions (`buildModifyLiquidityArgsForAddition`, `buildModifyLiquidityArgsForUniformAddition`, `buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount`, `buildModifyLiquidityArgsForRemoval`, `buildModifyLiquidityArgsForPercentageRemoval`).
 
 ## [0.0.11] - 2026-03-09
 
