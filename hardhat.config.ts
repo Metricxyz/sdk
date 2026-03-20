@@ -108,6 +108,12 @@ const config: HardhatUserConfig = {
       url: configVariable("ETHEREUM_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
+     ethereum_view: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ETHEREUM_RPC_URL"),
+      accounts: [],
+    },
     arbitrum: {
       type: "http",
       chainType: "generic",

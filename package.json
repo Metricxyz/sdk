@@ -30,7 +30,8 @@
     "test": "hardhat test",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "postinstall": "npm run sync:abis",
+    "init:submodules": "git -C node_modules/@metric/core submodule update --init --recursive && git -C node_modules/@metric/periphery submodule update --init --recursive",
+    "postinstall": "npm run init:submodules && npm run sync:abis",
     "prepublishOnly": "npm run clean && npm run build",
     "prepare": "npm run setup:hooks"
   },

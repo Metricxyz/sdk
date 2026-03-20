@@ -3,6 +3,7 @@
  */
 
 export {
+  quoteSwap,
   buildArgsForSwapExactInput,
   buildArgsAndExpectedAmountsForSwapExactInput,
   quoteExpectedAmountsForSwapExactInput,
@@ -21,4 +22,6 @@ export {
   type SwapExactOutputParams,
   type SwapExactInputArgs,
   type SwapExactOutputArgs,
+  type QuoteSwapParams,
+  type QuoteSwapResult,
 } from "./swap.js";

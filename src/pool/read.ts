@@ -4,7 +4,7 @@
  */
 
 import type { Address, PublicClient } from "viem";
-import { POOL_ABI } from "../constants.js";
+import { POOL_ABI, STATE_VIEW_ABI } from "../constants.js";
 import type { PoolImmutables, PoolState, BinState } from "../types.js";
 
 /**
@@ -52,26 +52,36 @@ export async function getPoolImmutables(
 }
 
 /**
- * Read pool state
+ * Read pool state via StateView (slot0 + slot1)
  */
 export async function getPoolState(
   publicClient: PublicClient,
+  stateViewAddress: Address,
   poolAddress: Address,
 ): Promise<PoolState> {
-  const result = (await publicClient.readContract({
-    address: poolAddress,
-    abi: POOL_ABI,
-    functionName: "getState",
-  })) as any[];
+  const [slot0, slot1] = await Promise.all([
+    publicClient.readContract({
+      address: stateViewAddress,
+      abi: STATE_VIEW_ABI,
+      functionName: "slot0",
+      args: [poolAddress],
+    }) as Promise<any[]>,
+    publicClient.readContract({
+      address: stateViewAddress,
+      abi: STATE_VIEW_ABI,
+      functionName: "slot1",
+      args: [poolAddress],
+    }) as Promise<any[]>,
+  ]);
 
   return {
-    curBinIdx: result[0],
-    curPosInBin: result[1],
-    curBinDistFromProvidedPriceE6: result[2],
-    driftE8: result[3],
-    performanceFeeE6: result[4],
-    totalScaledToken0InBins: result[5],
-    totalScaledToken1InBins: result[6],
+    curBinIdx: slot0[0],
+    curPosInBin: slot0[1],
+    curBinDistFromProvidedPriceE6: slot0[2],
+    driftE8: slot0[3],
+    performanceFeeE6: slot0[4],
+    totalScaledToken0InBins: slot1[0],
+    totalScaledToken1InBins: slot1[1],
   };
 }
 
