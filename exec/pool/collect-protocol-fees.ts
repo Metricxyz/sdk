@@ -1,5 +1,5 @@
 /**
- * Collect protocol fees from one or more MetricOmmPools.
+ * Collect protocol fees from one or more MetricOmmPools via Multicall3.
  *
  * Usage (single pool):
  *   POOL_ADDRESS=0x... npx hardhat run exec/pool/collect-protocol-fees.ts --network ethereum
@@ -8,15 +8,18 @@
  *   POOL_ADDRESSES=0x...,0x...,0x... npx hardhat run exec/pool/collect-protocol-fees.ts --network ethereum
  *
  * Environment variables:
- *   POOL_ADDRESS  - Single pool address (will prompt if neither var is set)
+ *   POOL_ADDRESS   - Single pool address (will prompt if neither var is set)
  *   POOL_ADDRESSES - Comma-separated list of pool addresses
  */
 
 import { network } from "hardhat";
-import { erc20Abi, formatUnits } from "viem";
+import { erc20Abi, encodeFunctionData, formatUnits } from "viem";
 import * as readline from "readline";
 import * as sdk from "../../index.js";
+import { Mutlicall3Abi } from "../../src/abis/Multicall3.js";
 import { logErrorDetails } from "../../scripts/utils/decodeError.js";
+
+const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
 const { viem } = await network.connect();
 
@@ -60,7 +63,7 @@ async function getPoolAddresses(): Promise<`0x${string}`[]> {
     .filter(Boolean) as `0x${string}`[];
 }
 
-async function collectFromPool(
+async function inspectPool(
   publicClient: Awaited<ReturnType<typeof viem.getPublicClient>>,
   poolAddress: `0x${string}`,
   addresses: ReturnType<typeof sdk.getAddressesOrThrow>,
@@ -106,15 +109,19 @@ async function collectFromPool(
   console.log(`Accrued ${symbol0} fees: ${formatUnits(fees0, decimals0)} (${fees0} raw)`);
   console.log(`Accrued ${symbol1} fees: ${formatUnits(fees1, decimals1)} (${fees1} raw)`);
 
-  let request;
+  // Simulate pool-level call first so we can safely skip problematic pools.
+  const callData = encodeFunctionData({
+    abi: sdk.MetricOmmPoolAbi,
+    functionName: "collectProtocolFees",
+  });
+
   try {
-    const simulated = await publicClient.simulateContract({
+    await publicClient.simulateContract({
       address: poolAddress,
       abi: sdk.MetricOmmPoolAbi,
       functionName: "collectProtocolFees",
       account,
     });
-    request = simulated.request;
     console.log("Simulation: OK");
   } catch (error: any) {
     console.error(`Simulation FAILED for pool ${poolAddress}:`);
@@ -123,19 +130,19 @@ async function collectFromPool(
   }
 
   return {
-    request,
+    poolAddress,
+    callData,
     symbol0,
     symbol1,
     decimals0,
     decimals1,
     token0Addr: immutables.token0,
     token1Addr: immutables.token1,
-    poolAddress,
   };
 }
 
 async function main() {
-  console.log("\nMetricOMM Collect Protocol Fees\n");
+  console.log("\nMetricOMM Collect Protocol Fees (Multicall3)\n");
 
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
@@ -143,7 +150,6 @@ async function main() {
 
   const chainId = await publicClient.getChainId();
   const addresses = sdk.getAddressesOrThrow(chainId);
-
   console.log(`Chain ID: ${chainId}`);
   console.log(`Caller:   ${account}\n`);
 
@@ -153,7 +159,7 @@ async function main() {
 
   const results = await Promise.all(
     poolAddresses.map((poolAddress, i) =>
-      collectFromPool(publicClient, poolAddress, addresses, account, i, poolAddresses.length),
+      inspectPool(publicClient, poolAddress, addresses, account, i, poolAddresses.length),
     ),
   );
 
@@ -172,28 +178,57 @@ async function main() {
     process.exit(1);
   }
 
+  const calls = valid.map((pool) => ({
+    target: pool.poolAddress,
+    allowFailure: false,
+    callData: pool.callData,
+  }));
+
+  console.log(`\nBatching ${calls.length} collectProtocolFees call(s) via Multicall3...`);
+  try {
+    await publicClient.simulateContract({
+      address: MULTICALL3_ADDRESS,
+      abi: Mutlicall3Abi,
+      functionName: "aggregate3",
+      args: [calls],
+      account,
+    });
+    console.log("Batch simulation: OK");
+  } catch (error: any) {
+    console.error("\nBatch simulation failed:");
+    logErrorDetails(error, Mutlicall3Abi);
+    process.exit(1);
+  }
+
   console.log(`\nReady to collect from ${valid.length} pool(s).`);
-  const confirm = await prompt("Proceed with all transactions? (yes/no): ");
+  const confirm = await prompt("Proceed with batched transaction? (yes/no): ");
   if (!["yes", "y"].includes(confirm.toLowerCase())) {
     console.log("\nCollection cancelled.\n");
     return;
   }
 
+  console.log("\nSending aggregate3 transaction...");
+  const hash = await walletClient.writeContract({
+    address: MULTICALL3_ADDRESS,
+    abi: Mutlicall3Abi,
+    functionName: "aggregate3",
+    args: [calls],
+    account,
+  });
+
+  console.log(`Transaction hash: ${hash}`);
+  console.log("Waiting for confirmation...");
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+  if (receipt.status !== "success") {
+    console.error("\nERROR: Transaction failed\n");
+    process.exit(1);
+  }
+
+  console.log(`Confirmed in block ${receipt.blockNumber}`);
+
   for (const pool of valid) {
-    console.log(`\nCollecting from ${pool.poolAddress}...`);
-    const hash = await walletClient.writeContract(pool.request);
-    console.log(`Transaction hash: ${hash}`);
-
-    console.log("Waiting for confirmation...");
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-    if (receipt.status !== "success") {
-      console.error(`ERROR: collectProtocolFees failed for ${pool.poolAddress}`);
-      continue;
-    }
-
-    console.log(`Confirmed in block ${receipt.blockNumber}`);
-
     const [bal0After, bal1After] = await Promise.all([
       publicClient.readContract({
         address: pool.token0Addr,
@@ -209,11 +244,17 @@ async function main() {
       }) as Promise<bigint>,
     ]);
 
-    console.log(`Pool ${pool.symbol0} balance after: ${formatUnits(bal0After, pool.decimals0)}`);
-    console.log(`Pool ${pool.symbol1} balance after: ${formatUnits(bal1After, pool.decimals1)}`);
+    console.log(
+      `Pool ${pool.poolAddress} ${pool.symbol0} balance after: ${formatUnits(bal0After, pool.decimals0)}`,
+    );
+    console.log(
+      `Pool ${pool.poolAddress} ${pool.symbol1} balance after: ${formatUnits(bal1After, pool.decimals1)}`,
+    );
   }
 
-  console.log("\nDone.\n");
+  console.log(
+    `\nCollected protocol fees from ${valid.length} pool(s) in a single transaction.\n`,
+  );
 }
 
 main().catch((error) => {
