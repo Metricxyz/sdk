@@ -7,6 +7,7 @@ import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
 import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
+import { hyperEvm } from "viem/chains";
 
 const baseLocalForkBlockNumber = process.env.BASE_LOCAL_FORK_BLOCK_NUMBER
   ? Number(process.env.BASE_LOCAL_FORK_BLOCK_NUMBER)
@@ -144,6 +145,12 @@ const config: HardhatUserConfig = {
       url: configVariable("MEGAETH_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
+    hyperEvm: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("HYPE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    }
   },
   ignition: {
     strategyConfig: {

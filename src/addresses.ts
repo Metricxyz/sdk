@@ -17,6 +17,7 @@ export const ChainId = {
   BNB: 56,
   POLYGON: 137,
   MEGAETH: 4326,
+  HYPEREVM: 999,
 } as const;
 
 export type ChainId = (typeof ChainId)[keyof typeof ChainId];
@@ -93,6 +94,14 @@ export const ADDRESSES: Record<ChainId, ChainAddresses> = {
     router: "0xA6A16C00B7E9DBE1D54acEd7d6FE264fc4732eaF",
     stateView: "0xe6b102a2aea65b9b59e4F8B86B38E221886675A8",
     wrappedNative: "0x4200000000000000000000000000000000000006", // WETH
+  },
+
+  [ChainId.HYPEREVM]: {
+    factory: "0xe22F9fc0f04486dE25ed6CF1800a4a47aFD82e0C",
+    poolDeployer: "0x0f732971a3503afee276782173170D1F1154d4c1",
+    router: "0x080b37C6F65cBC231f66016460782158090Fe0F7",
+    stateView: "0xe6b102a2aea65b9b59e4F8B86B38E221886675A8",
+    wrappedNative: "0x5555555555555555555555555555555555555555", // WHYPE
   },
 } as const;
 
