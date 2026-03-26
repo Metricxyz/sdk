@@ -1,15 +1,19 @@
 /**
- * Collect protocol fees from a MetricOmmPool.
+ * Collect protocol fees from one or more MetricOmmPools.
  *
- * Usage:
- *   npx hardhat run exec/pool/collect-protocol-fees.ts --network base
+ * Usage (single pool):
+ *   POOL_ADDRESS=0x... npx hardhat run exec/pool/collect-protocol-fees.ts --network ethereum
  *
- * Environment variables (optional, will prompt if not set):
- *   POOL_ADDRESS - Pool contract address
+ * Usage (multiple pools):
+ *   POOL_ADDRESSES=0x...,0x...,0x... npx hardhat run exec/pool/collect-protocol-fees.ts --network ethereum
+ *
+ * Environment variables:
+ *   POOL_ADDRESS  - Single pool address (will prompt if neither var is set)
+ *   POOL_ADDRESSES - Comma-separated list of pool addresses
  */
 
 import { network } from "hardhat";
-import { erc20Abi, formatUnits, getContract } from "viem";
+import { erc20Abi, formatUnits } from "viem";
 import * as readline from "readline";
 import * as sdk from "../../index.js";
 import { logErrorDetails } from "../../scripts/utils/decodeError.js";
@@ -30,23 +34,104 @@ function prompt(question: string): Promise<string> {
   });
 }
 
-async function getAddressFromEnvOrPrompt(
-  envVar: string,
-  promptText: string,
-): Promise<`0x${string}`> {
-  const envValue = process.env[envVar];
-  if (envValue) {
-    console.log(`Using ${envVar} from environment: ${envValue}`);
-    return envValue as `0x${string}`;
+async function getPoolAddresses(): Promise<`0x${string}`[]> {
+  if (process.env.POOL_ADDRESSES) {
+    const addresses = process.env.POOL_ADDRESSES.split(",")
+      .map((a) => a.trim())
+      .filter(Boolean) as `0x${string}`[];
+    console.log(`Using POOL_ADDRESSES from environment (${addresses.length} pools)`);
+    return addresses;
   }
 
-  const value = await prompt(promptText);
+  if (process.env.POOL_ADDRESS) {
+    console.log(`Using POOL_ADDRESS from environment: ${process.env.POOL_ADDRESS}`);
+    return [process.env.POOL_ADDRESS as `0x${string}`];
+  }
+
+  const value = await prompt("Enter pool address (or comma-separated list): ");
   if (!value) {
-    console.error(`\nERROR: ${promptText.replace(": ", "")} is required`);
+    console.error("\nERROR: Pool address is required");
     process.exit(1);
   }
 
-  return value as `0x${string}`;
+  return value
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean) as `0x${string}`[];
+}
+
+async function collectFromPool(
+  publicClient: Awaited<ReturnType<typeof viem.getPublicClient>>,
+  poolAddress: `0x${string}`,
+  addresses: ReturnType<typeof sdk.getAddressesOrThrow>,
+  account: `0x${string}`,
+  index: number,
+  total: number,
+) {
+  console.log(`\n[${index + 1}/${total}] Pool: ${poolAddress}`);
+  console.log("-".repeat(60));
+
+  const [immutables, feeConfig, slot1] = await Promise.all([
+    sdk.getPoolImmutables(publicClient, poolAddress),
+    sdk.getFeeConfig(publicClient, addresses.stateView, poolAddress),
+    sdk.getSlot1(publicClient, addresses.stateView, poolAddress),
+  ]);
+
+  const readToken = (address: `0x${string}`, fn: string, args?: readonly [`0x${string}`]) =>
+    publicClient.readContract({ address, abi: erc20Abi, functionName: fn as any, args });
+
+  const [symbol0, symbol1, decimals0, decimals1, bal0, bal1] = await Promise.all([
+    readToken(immutables.token0, "symbol") as Promise<string>,
+    readToken(immutables.token1, "symbol") as Promise<string>,
+    readToken(immutables.token0, "decimals") as Promise<number>,
+    readToken(immutables.token1, "decimals") as Promise<number>,
+    readToken(immutables.token0, "balanceOf", [poolAddress]) as Promise<bigint>,
+    readToken(immutables.token1, "balanceOf", [poolAddress]) as Promise<bigint>,
+  ]);
+
+  const ceilDiv = (a: bigint, b: bigint) => (a + b - 1n) / b;
+  const total0InBins = ceilDiv(slot1.totalScaledToken0InBins, immutables.token0ScaleMultiplier);
+  const total1InBins = ceilDiv(slot1.totalScaledToken1InBins, immutables.token1ScaleMultiplier);
+  const fees0 = bal0 - total0InBins;
+  const fees1 = bal1 - total1InBins;
+  const totalFee = feeConfig.protocolFee + feeConfig.adminFee;
+
+  console.log(`Token0:                 ${symbol0} (${immutables.token0})`);
+  console.log(`Token1:                 ${symbol1} (${immutables.token1})`);
+  console.log(`Factory:                ${immutables.factory}`);
+  console.log(`Admin Fee Destination:  ${feeConfig.adminFeeDest}`);
+  console.log(`Total Fee (E6):         ${totalFee}`);
+  console.log(`  Protocol Fee (E6):    ${feeConfig.protocolFee}`);
+  console.log(`  Admin Fee (E6):       ${feeConfig.adminFee}`);
+  console.log(`Accrued ${symbol0} fees: ${formatUnits(fees0, decimals0)} (${fees0} raw)`);
+  console.log(`Accrued ${symbol1} fees: ${formatUnits(fees1, decimals1)} (${fees1} raw)`);
+
+  let request;
+  try {
+    const simulated = await publicClient.simulateContract({
+      address: poolAddress,
+      abi: sdk.MetricOmmPoolAbi,
+      functionName: "collectProtocolFees",
+      account,
+    });
+    request = simulated.request;
+    console.log("Simulation: OK");
+  } catch (error: any) {
+    console.error(`Simulation FAILED for pool ${poolAddress}:`);
+    logErrorDetails(error, sdk.MetricOmmPoolAbi);
+    return false;
+  }
+
+  return {
+    request,
+    symbol0,
+    symbol1,
+    decimals0,
+    decimals1,
+    token0Addr: immutables.token0,
+    token1Addr: immutables.token1,
+    poolAddress,
+  };
 }
 
 async function main() {
@@ -59,112 +144,76 @@ async function main() {
   const chainId = await publicClient.getChainId();
   const addresses = sdk.getAddressesOrThrow(chainId);
 
-  const poolAddress = await getAddressFromEnvOrPrompt(
-    "POOL_ADDRESS",
-    "Enter pool address: ",
+  console.log(`Chain ID: ${chainId}`);
+  console.log(`Caller:   ${account}\n`);
+
+  const poolAddresses = await getPoolAddresses();
+
+  console.log("\nReading pool data...");
+
+  const results = await Promise.all(
+    poolAddresses.map((poolAddress, i) =>
+      collectFromPool(publicClient, poolAddress, addresses, account, i, poolAddresses.length),
+    ),
   );
 
-  console.log("\nReading pool data...\n");
+  const valid = results.filter(Boolean).filter((r) => r !== false) as Exclude<
+    Awaited<ReturnType<typeof collectFromPool>>,
+    boolean
+  >[];
 
-  const [immutables, feeConfig] = await Promise.all([
-    sdk.getPoolImmutables(publicClient, poolAddress),
-    sdk.getFeeConfig(publicClient, addresses.stateView, poolAddress),
-  ]);
+  const failed = results.filter((r) => r === false).length;
+  if (failed > 0) {
+    console.log(`\nWARNING: ${failed} pool(s) failed simulation and will be skipped.`);
+  }
 
-  const token0 = getContract({
-    address: immutables.token0,
-    abi: erc20Abi,
-    client: publicClient,
-  });
-
-  const token1 = getContract({
-    address: immutables.token1,
-    abi: erc20Abi,
-    client: publicClient,
-  });
-
-  const [symbol0, symbol1, decimals0, decimals1] = await Promise.all([
-    token0.read.symbol(),
-    token1.read.symbol(),
-    token0.read.decimals(),
-    token1.read.decimals(),
-  ]);
-
-  const [poolBal0Before, poolBal1Before] = await Promise.all([
-    token0.read.balanceOf([poolAddress]),
-    token1.read.balanceOf([poolAddress]),
-  ]);
-
-  console.log("Pool Information:");
-  console.log("-".repeat(60));
-  console.log(`Chain ID:               ${chainId}`);
-  console.log(`Pool:                   ${poolAddress}`);
-  console.log(`Token0:                 ${symbol0} (${immutables.token0})`);
-  console.log(`Token1:                 ${symbol1} (${immutables.token1})`);
-  console.log(`Admin:                  ${feeConfig.adminAddr}`);
-  console.log(`Admin Fee Destination:  ${feeConfig.adminFeeDest}`);
-  console.log(`Protocol Fee (E6):      ${feeConfig.protocolFee}`);
-  console.log(
-    `Pool ${symbol0} balance: ${formatUnits(poolBal0Before, decimals0)}`,
-  );
-  console.log(
-    `Pool ${symbol1} balance: ${formatUnits(poolBal1Before, decimals1)}`,
-  );
-  console.log(`Caller:                 ${account}`);
-  console.log();
-
-  console.log("Simulating collectProtocolFees()...");
-
-  let request;
-  try {
-    const simulated = await publicClient.simulateContract({
-      address: poolAddress,
-      abi: sdk.MetricOmmPoolAbi,
-      functionName: "collectProtocolFees",
-      account,
-    });
-    request = simulated.request;
-  } catch (error: any) {
-    logErrorDetails(error, sdk.MetricOmmPoolAbi);
+  if (valid.length === 0) {
+    console.error("\nNo pools to collect from. Exiting.\n");
     process.exit(1);
   }
 
-  console.log("Simulation successful.");
-
-  const confirm = await prompt("Proceed with transaction? (yes/no): ");
+  console.log(`\nReady to collect from ${valid.length} pool(s).`);
+  const confirm = await prompt("Proceed with all transactions? (yes/no): ");
   if (!["yes", "y"].includes(confirm.toLowerCase())) {
     console.log("\nCollection cancelled.\n");
     return;
   }
 
-  console.log("\nSending collectProtocolFees transaction...");
-  const hash = await walletClient.writeContract(request);
-  console.log(`Transaction hash: ${hash}`);
+  for (const pool of valid) {
+    console.log(`\nCollecting from ${pool.poolAddress}...`);
+    const hash = await walletClient.writeContract(pool.request);
+    console.log(`Transaction hash: ${hash}`);
 
-  console.log("Waiting for confirmation...");
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    console.log("Waiting for confirmation...");
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-  if (receipt.status !== "success") {
-    console.error("\nERROR: collectProtocolFees transaction failed\n");
-    process.exit(1);
+    if (receipt.status !== "success") {
+      console.error(`ERROR: collectProtocolFees failed for ${pool.poolAddress}`);
+      continue;
+    }
+
+    console.log(`Confirmed in block ${receipt.blockNumber}`);
+
+    const [bal0After, bal1After] = await Promise.all([
+      publicClient.readContract({
+        address: pool.token0Addr,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [pool.poolAddress],
+      }) as Promise<bigint>,
+      publicClient.readContract({
+        address: pool.token1Addr,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [pool.poolAddress],
+      }) as Promise<bigint>,
+    ]);
+
+    console.log(`Pool ${pool.symbol0} balance after: ${formatUnits(bal0After, pool.decimals0)}`);
+    console.log(`Pool ${pool.symbol1} balance after: ${formatUnits(bal1After, pool.decimals1)}`);
   }
 
-  console.log(`Confirmed in block ${receipt.blockNumber}`);
-
-  const [poolBal0After, poolBal1After] = await Promise.all([
-    token0.read.balanceOf([poolAddress]),
-    token1.read.balanceOf([poolAddress]),
-  ]);
-
-  console.log("\nPool Balances After:");
-  console.log("-".repeat(60));
-  console.log(
-    `Pool ${symbol0} balance: ${formatUnits(poolBal0After, decimals0)}`,
-  );
-  console.log(
-    `Pool ${symbol1} balance: ${formatUnits(poolBal1After, decimals1)}`,
-  );
-  console.log();
+  console.log("\nDone.\n");
 }
 
 main().catch((error) => {
