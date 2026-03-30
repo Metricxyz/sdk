@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-03-30
+
+### Added
+
+- **HyperEVM support**: added `ChainId.HYPEREVM` (chain ID 999) and contract addresses (factory, poolDeployer, router, stateView, wrappedNative/WHYPE).
+- **Monad support**: added `ChainId.MONAD` (chain ID 143) and contract addresses (factory, poolDeployer, router, stateView, wrappedNative/WMON).
+- `Multicall3` ABI (`src/abis/Multicall3.ts`).
+
+### Changed
+
+- `exec/pool/collect-protocol-fees.ts` now batches fee collection across multiple pools into a single transaction using `Multicall3::aggregate`.
+
 ## [0.0.12] - 2026-03-20
 
 ### Added
