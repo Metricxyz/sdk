@@ -45,6 +45,7 @@ Factory, PoolDeployer, and StateView share the same addresses across all chains 
 | Polygon   | `0x976c26402E1EC10454c5Fe6D2C9857DD57aE78f3` |
 | MegaETH   | `0xA6A16C00B7E9DBE1D54acEd7d6FE264fc4732eaF` |
 | HyperEVM  | `0x080b37C6F65cBC231f66016460782158090Fe0F7` |
+| Monad     | `0xaF9ADa6b6eC7993CE146f6c0bF98f7211CDfD3e5` |
 
 All addresses are available programmatically:
 

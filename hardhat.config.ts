@@ -150,6 +150,12 @@ const config: HardhatUserConfig = {
       chainType: "generic",
       url: configVariable("HYPE_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
+    },
+    monad: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("MONAD_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
     }
   },
   ignition: {
