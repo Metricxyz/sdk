@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-03-31
+
+### Changed
+
+- Pool creation params now use explicit **scaled** naming for initial per-share token densities:
+  - `initialToken0PerShare` -> `initialScaledToken0PerShareE18`
+  - `initialToken1PerShare` -> `initialScaledToken1PerShareE18`
+- `CreatePoolFactoryParams` docs and examples now clearly describe that initial per-share values are in internal scaled units (not native token decimals), with guidance for representing 1 token/share.
+- `prepareFactoryCreatePoolParams` now maps the renamed scaled fields to factory calldata, and create-pool executable inputs/tests were updated to the new naming.
+
 ## [0.0.13] - 2026-03-30
 
 ### Added
