@@ -12,16 +12,8 @@ describe("SDK Remove Liquidity", async () => {
   async function deployFixture() {
     const publicClient = await viem.getPublicClient();
 
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token 0",
-      "TKN0",
-      18,
-    ]);
-    const token1 = await viem.deployContract("MockERC20", [
-      "Token 1",
-      "TKN1",
-      6,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
+    const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 6]);
 
     const priceProvider = await viem.deployContract("MockOracle", []);
     const midPriceX64 = sdk.priceToQ64(1);
@@ -32,9 +24,7 @@ describe("SDK Remove Liquidity", async () => {
       deployer.account.address,
       defaultProtocolFee,
     ]);
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [
-      factory.address,
-    ]);
+    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
@@ -143,10 +133,7 @@ describe("SDK Remove Liquidity", async () => {
       );
 
       for (const { binIdx, shares } of positionShares) {
-        assert.ok(
-          bins.includes(binIdx),
-          `Bin ${binIdx} should be in original bins`,
-        );
+        assert.ok(bins.includes(binIdx), `Bin ${binIdx} should be in original bins`);
         assert.ok(shares > 0n, `Bin ${binIdx} should have positive shares`);
       }
 
@@ -178,11 +165,7 @@ describe("SDK Remove Liquidity", async () => {
         4,
       );
 
-      assert.equal(
-        positionShares.length,
-        0,
-        "Should have no shares in range [-5, 4]",
-      );
+      assert.equal(positionShares.length, 0, "Should have no shares in range [-5, 4]");
     });
   });
 
@@ -206,19 +189,12 @@ describe("SDK Remove Liquidity", async () => {
           percentageToRemove: 50,
         });
 
-      assert.equal(
-        deltas.length,
-        bins.length,
-        "Should have delta for each bin",
-      );
+      assert.equal(deltas.length, bins.length, "Should have delta for each bin");
       assert.equal(specAmount0, sdk.NO_SLIPPAGE_LIMIT);
       assert.equal(specAmount1, sdk.NO_SLIPPAGE_LIMIT);
 
       for (const delta of deltas) {
-        assert.ok(
-          delta.deltaShares < 0n,
-          "deltaShares should be negative for removal",
-        );
+        assert.ok(delta.deltaShares < 0n, "deltaShares should be negative for removal");
       }
 
       console.log(
@@ -258,20 +234,11 @@ describe("SDK Remove Liquidity", async () => {
         percentageToRemove: 100,
       });
 
-      assert.equal(
-        deltas.length,
-        bins.length,
-        "Should have delta for each bin",
-      );
+      assert.equal(deltas.length, bins.length, "Should have delta for each bin");
 
       for (const delta of deltas) {
-        const originalShares = sharesBefore.find(
-          (s) => s.binIdx === delta.bin,
-        )?.shares;
-        assert.ok(
-          originalShares,
-          `Should find original shares for bin ${delta.bin}`,
-        );
+        const originalShares = sharesBefore.find((s) => s.binIdx === delta.bin)?.shares;
+        assert.ok(originalShares, `Should find original shares for bin ${delta.bin}`);
         assert.equal(
           delta.deltaShares,
           -originalShares!,
@@ -448,17 +415,16 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
       // buildModifyLiquidityArgsForPercentageRemoval returns empty deltas when no liquidity is found
-      const modifyLiquidityArgs =
-        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
-          publicClient,
-          stateViewAddress: stateView.address,
-          poolAddress,
-          owner: deployer.account.address,
-          salt,
-          percentageToRemove: 100,
-          lowerBin: -5,
-          upperBin: 4,
-        });
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress,
+        owner: deployer.account.address,
+        salt,
+        percentageToRemove: 100,
+        lowerBin: -5,
+        upperBin: 4,
+      });
 
       assert.equal(
         modifyLiquidityArgs[1].length,
@@ -477,17 +443,16 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, bins, sharesPerBin, salt);
 
       // Use buildModifyLiquidityArgsForPercentageRemoval with custom bin range
-      const modifyLiquidityArgs =
-        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
-          publicClient,
-          stateViewAddress: stateView.address,
-          poolAddress,
-          owner: deployer.account.address,
-          salt,
-          percentageToRemove: 100,
-          lowerBin: -3,
-          upperBin: 3,
-        });
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress,
+        owner: deployer.account.address,
+        salt,
+        percentageToRemove: 100,
+        lowerBin: -3,
+        upperBin: 3,
+      });
 
       assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
@@ -510,25 +475,12 @@ describe("SDK Remove Liquidity", async () => {
         10,
       );
 
-      assert.equal(
-        sharesAfter.length,
-        4,
-        "Should have 4 bins remaining (outside custom range)",
-      );
+      assert.equal(sharesAfter.length, 4, "Should have 4 bins remaining (outside custom range)");
 
-      const remainingBins = sharesAfter
-        .map((s) => s.binIdx)
-        .sort((a, b) => a - b);
-      assert.deepEqual(
-        remainingBins,
-        [-5, -4, 4, 5],
-        "Should have bins outside [-3, 3] remaining",
-      );
+      const remainingBins = sharesAfter.map((s) => s.binIdx).sort((a, b) => a - b);
+      assert.deepEqual(remainingBins, [-5, -4, 4, 5], "Should have bins outside [-3, 3] remaining");
 
-      console.log(
-        "Removed liquidity from bins [-3, 3], remaining bins:",
-        remainingBins,
-      );
+      console.log("Removed liquidity from bins [-3, 3], remaining bins:", remainingBins);
     });
   });
 
@@ -573,16 +525,15 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
 
       // Remove 100% from only bins -3, 1, 2 (non-contiguous)
-      const modifyLiquidityArgs =
-        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
-          publicClient,
-          stateViewAddress: stateView.address,
-          poolAddress,
-          owner: deployer.account.address,
-          salt,
-          percentageToRemove: 100,
-          bins: [-3, 1, 2],
-        });
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress,
+        owner: deployer.account.address,
+        salt,
+        percentageToRemove: 100,
+        bins: [-3, 1, 2],
+      });
 
       assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
@@ -606,14 +557,8 @@ describe("SDK Remove Liquidity", async () => {
       );
 
       assert.equal(sharesAfter.length, 2, "Should have 2 bins remaining");
-      const remainingBins = sharesAfter
-        .map((s) => s.binIdx)
-        .sort((a, b) => a - b);
-      assert.deepEqual(
-        remainingBins,
-        [-1, 0],
-        "Only bins -1 and 0 should remain",
-      );
+      const remainingBins = sharesAfter.map((s) => s.binIdx).sort((a, b) => a - b);
+      assert.deepEqual(remainingBins, [-1, 0], "Only bins -1 and 0 should remain");
     });
 
     it("should remove 50% from specific non-contiguous bins", async () => {
@@ -626,16 +571,15 @@ describe("SDK Remove Liquidity", async () => {
       await addLiquidityToPosition(env, allBins, sharesPerBin, salt);
 
       // Remove 50% from bins -3 and 2 only
-      const modifyLiquidityArgs =
-        await sdk.buildModifyLiquidityArgsForPercentageRemoval({
-          publicClient,
-          stateViewAddress: stateView.address,
-          poolAddress,
-          owner: deployer.account.address,
-          salt,
-          percentageToRemove: 50,
-          bins: [-3, 2],
-        });
+      const modifyLiquidityArgs = await sdk.buildModifyLiquidityArgsForPercentageRemoval({
+        publicClient,
+        stateViewAddress: stateView.address,
+        poolAddress,
+        owner: deployer.account.address,
+        salt,
+        percentageToRemove: 50,
+        bins: [-3, 2],
+      });
 
       assert.ok(modifyLiquidityArgs[1].length > 0, "Should return deltas");
 
@@ -670,11 +614,7 @@ describe("SDK Remove Liquidity", async () => {
           );
         } else {
           // These should be unchanged
-          assert.equal(
-            shares,
-            sharesPerBin,
-            `Bin ${binIdx} should be unchanged`,
-          );
+          assert.equal(shares, sharesPerBin, `Bin ${binIdx} should be unchanged`);
         }
       }
     });
@@ -733,8 +673,7 @@ describe("SDK Remove Liquidity", async () => {
       const expected50 = sharesPerBin / 2n;
       const tolerance = sharesPerBin / 100n;
       assert.ok(
-        bin1!.shares >= expected50 - tolerance &&
-          bin1!.shares <= expected50 + tolerance,
+        bin1!.shares >= expected50 - tolerance && bin1!.shares <= expected50 + tolerance,
         `Bin 1: expected ~${expected50}, got ${bin1!.shares}`,
       );
 
@@ -742,11 +681,7 @@ describe("SDK Remove Liquidity", async () => {
       for (const b of [-1, 0, 2]) {
         const entry = sharesAfter.find((s) => s.binIdx === b);
         assert.ok(entry, `Bin ${b} should still exist`);
-        assert.equal(
-          entry!.shares,
-          sharesPerBin,
-          `Bin ${b} should be unchanged`,
-        );
+        assert.equal(entry!.shares, sharesPerBin, `Bin ${b} should be unchanged`);
       }
     });
 
@@ -805,11 +740,7 @@ describe("SDK Remove Liquidity", async () => {
         if (binIdx === 1) {
           assert.equal(shares, sharesPerBin, "Bin 1 should be unchanged");
         } else {
-          assert.equal(
-            shares,
-            expectedRemaining,
-            `Bin ${binIdx} should have ${expectedRemaining}`,
-          );
+          assert.equal(shares, expectedRemaining, `Bin ${binIdx} should have ${expectedRemaining}`);
         }
       }
     });

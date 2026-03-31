@@ -54,10 +54,26 @@ async function main() {
   ]);
 
   const [symbol0, decimals0, symbol1, decimals1] = await Promise.all([
-    publicClient.readContract({ address: immutables.token0, abi: erc20Abi, functionName: "symbol" }),
-    publicClient.readContract({ address: immutables.token0, abi: erc20Abi, functionName: "decimals" }),
-    publicClient.readContract({ address: immutables.token1, abi: erc20Abi, functionName: "symbol" }),
-    publicClient.readContract({ address: immutables.token1, abi: erc20Abi, functionName: "decimals" }),
+    publicClient.readContract({
+      address: immutables.token0,
+      abi: erc20Abi,
+      functionName: "symbol",
+    }),
+    publicClient.readContract({
+      address: immutables.token0,
+      abi: erc20Abi,
+      functionName: "decimals",
+    }),
+    publicClient.readContract({
+      address: immutables.token1,
+      abi: erc20Abi,
+      functionName: "symbol",
+    }),
+    publicClient.readContract({
+      address: immutables.token1,
+      abi: erc20Abi,
+      functionName: "decimals",
+    }),
   ]);
 
   // ── Immutables ──────────────────────────────────────────────────────────────

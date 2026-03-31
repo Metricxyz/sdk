@@ -74,8 +74,7 @@ const config: HardhatUserConfig = {
       chainType: "op",
       forking: {
         url: baseLocalForkRpcUrl,
-        ...(baseLocalForkBlockNumber != null &&
-        Number.isFinite(baseLocalForkBlockNumber)
+        ...(baseLocalForkBlockNumber != null && Number.isFinite(baseLocalForkBlockNumber)
           ? { blockNumber: baseLocalForkBlockNumber }
           : {}),
       },
@@ -85,8 +84,7 @@ const config: HardhatUserConfig = {
       chainType: "generic",
       forking: {
         url: arbitrumLocalForkRpcUrl,
-        ...(arbitrumLocalForkBlockNumber != null &&
-        Number.isFinite(arbitrumLocalForkBlockNumber)
+        ...(arbitrumLocalForkBlockNumber != null && Number.isFinite(arbitrumLocalForkBlockNumber)
           ? { blockNumber: arbitrumLocalForkBlockNumber }
           : {}),
       },
@@ -109,7 +107,7 @@ const config: HardhatUserConfig = {
       url: configVariable("ETHEREUM_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
-     ethereum_view: {
+    ethereum_view: {
       type: "http",
       chainType: "l1",
       url: configVariable("ETHEREUM_RPC_URL"),
@@ -156,7 +154,7 @@ const config: HardhatUserConfig = {
       chainType: "generic",
       url: configVariable("MONAD_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
-    }
+    },
   },
   ignition: {
     strategyConfig: {

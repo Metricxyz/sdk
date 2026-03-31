@@ -27,10 +27,7 @@ export function convertToken0ToToken1(
   token1ScaleMultiplier: bigint,
   priceE18: bigint,
 ): bigint {
-  return (
-    (amount0 * token0ScaleMultiplier * priceE18) /
-    (token1ScaleMultiplier * ONE_E18)
-  );
+  return (amount0 * token0ScaleMultiplier * priceE18) / (token1ScaleMultiplier * ONE_E18);
 }
 
 export function convertToken1ToToken0(
@@ -39,10 +36,7 @@ export function convertToken1ToToken0(
   token1ScaleMultiplier: bigint,
   priceX18: bigint,
 ): bigint {
-  return (
-    (amount1 * token1ScaleMultiplier * ONE_E18) /
-    (token0ScaleMultiplier * priceX18)
-  );
+  return (amount1 * token1ScaleMultiplier * ONE_E18) / (token0ScaleMultiplier * priceX18);
 }
 
 export function scaledPositiveDeltaToExternal(

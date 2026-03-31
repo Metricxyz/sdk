@@ -18,7 +18,6 @@ import MockERC20Artifact from "../artifacts/@metric/core/contracts/mocks/MockERC
 import MockOracleArtifact from "../artifacts/@metric/core/contracts/mocks/MockOracle.sol/MockOracle.json" with { type: "json" };
 import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json" with { type: "json" };
 import MetricOmmPoolStateViewArtifact from "../artifacts/@metric/core/contracts/MetricOmmPoolStateView.sol/MetricOmmPoolStateView.json" with { type: "json" };
-import MetricOmmSwapRouterArtifact from "../artifacts/@metric/periphery/contracts/MetricOmmSwapRouter.sol/MetricOmmSwapRouter.json" with { type: "json" };
 
 describe("SDK Integration Tests", async function () {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -77,30 +76,18 @@ describe("SDK Integration Tests", async function () {
     const publicClient = await viem.getPublicClient();
 
     // Deploy mock tokens - viem.deployContract returns a contract instance directly
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token0",
-      "TK0",
-      18,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token0", "TK0", 18]);
     const token1 = await viem.deployContract("MockERC20", ["Token1", "TK1", 6]);
 
     // Mint tokens
-    await token0.write.mint([
-      deployer.account.address,
-      parseUnits("1000000", 18),
-    ]);
-    await token1.write.mint([
-      deployer.account.address,
-      parseUnits("1000000", 6),
-    ]);
+    await token0.write.mint([deployer.account.address, parseUnits("1000000", 18)]);
+    await token1.write.mint([deployer.account.address, parseUnits("1000000", 6)]);
 
     // Deploy StateView
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
 
     // Deploy Router
-    const router = await viem.deployContract("MetricOmmSwapRouter", [
-      token0.address,
-    ]);
+    const router = await viem.deployContract("MetricOmmSwapRouter", [token0.address]);
 
     // Deploy price oracle
     const priceProvider = await viem.deployContract("MockOracle", []);
@@ -156,11 +143,7 @@ describe("SDK Integration Tests", async function () {
       const { pool, stateView, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
-      const slot0 = await sdk.getSlot0(
-        publicClient,
-        stateView.address,
-        pool.address,
-      );
+      const slot0 = await sdk.getSlot0(publicClient, stateView.address, pool.address);
 
       assert.equal(typeof slot0.curBinIdx, "number");
       assert.equal(typeof slot0.curPosInBin, "bigint");
@@ -172,11 +155,7 @@ describe("SDK Integration Tests", async function () {
       const { pool, stateView, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
-      const slot1 = await sdk.getSlot1(
-        publicClient,
-        stateView.address,
-        pool.address,
-      );
+      const slot1 = await sdk.getSlot1(publicClient, stateView.address, pool.address);
 
       assert.equal(typeof slot1.totalScaledToken0InBins, "bigint");
       assert.equal(typeof slot1.totalScaledToken1InBins, "bigint");
@@ -221,11 +200,7 @@ describe("SDK Integration Tests", async function () {
       const { pool, stateView, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
-      const feeConfig = await sdk.getFeeConfig(
-        publicClient,
-        stateView.address,
-        pool.address,
-      );
+      const feeConfig = await sdk.getFeeConfig(publicClient, stateView.address, pool.address);
 
       assert.ok(feeConfig.adminAddr);
       assert.equal(typeof feeConfig.protocolFee, "number");
@@ -278,11 +253,7 @@ describe("SDK Integration Tests", async function () {
           salt,
           delta.bin,
         );
-        assert.equal(
-          shares,
-          delta.deltaShares,
-          `Bin ${delta.bin} should have correct shares`,
-        );
+        assert.equal(shares, delta.deltaShares, `Bin ${delta.bin} should have correct shares`);
       }
     });
 
@@ -333,18 +304,10 @@ describe("SDK Integration Tests", async function () {
         { bin: 2, deltaShares: 50000n },
       ];
 
-      const userToken0Before = (await token0.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const userToken1Before = (await token1.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const poolToken0Before = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1Before = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const userToken0Before = (await token0.read.balanceOf([deployer.account.address])) as bigint;
+      const userToken1Before = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+      const poolToken0Before = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1Before = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const salt = 0n;
       // Use prepareModifyLiquidity
@@ -361,18 +324,10 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash });
 
-      const userToken0After = (await token0.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const userToken1After = (await token1.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const poolToken0After = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1After = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const userToken0After = (await token0.read.balanceOf([deployer.account.address])) as bigint;
+      const userToken1After = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+      const poolToken0After = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1After = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const userToken0Spent = userToken0Before - userToken0After;
       const userToken1Spent = userToken1Before - userToken1After;
@@ -390,18 +345,11 @@ describe("SDK Integration Tests", async function () {
         "Token1: user spent should equal pool received",
       );
 
-      assert.ok(
-        userToken0Spent > 0n || userToken1Spent > 0n,
-        "Should have spent some tokens",
-      );
+      assert.ok(userToken0Spent > 0n || userToken1Spent > 0n, "Should have spent some tokens");
 
       console.log("Add liquidity token flow:");
-      console.log(
-        `  User spent: ${userToken0Spent} token0, ${userToken1Spent} token1`,
-      );
-      console.log(
-        `  Pool received: ${poolToken0Received} token0, ${poolToken1Received} token1`,
-      );
+      console.log(`  User spent: ${userToken0Spent} token0, ${userToken1Spent} token1`);
+      console.log(`  Pool received: ${poolToken0Received} token0, ${poolToken1Received} token1`);
     });
 
     it("should update position shares correctly for each bin when adding", async () => {
@@ -457,14 +405,8 @@ describe("SDK Integration Tests", async function () {
 
       const [, user2] = await viem.getWalletClients();
 
-      await token0.write.mint([
-        user2.account.address,
-        parseUnits("1000000", 18),
-      ]);
-      await token1.write.mint([
-        user2.account.address,
-        parseUnits("1000000", 6),
-      ]);
+      await token0.write.mint([user2.account.address, parseUnits("1000000", 18)]);
+      await token1.write.mint([user2.account.address, parseUnits("1000000", 6)]);
 
       const token0User2 = getContract({
         address: token0.address,
@@ -477,10 +419,7 @@ describe("SDK Integration Tests", async function () {
         client: { public: publicClient, wallet: user2 },
       }) as any;
 
-      await token0User2.write.approve([
-        pool.address,
-        parseUnits("1000000", 18),
-      ]);
+      await token0User2.write.approve([pool.address, parseUnits("1000000", 18)]);
       await token1User2.write.approve([pool.address, parseUnits("1000000", 6)]);
 
       const deltas1: sdk.LiquidityDelta[] = [
@@ -579,18 +518,10 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
 
-      const userToken0Before = (await token0.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const userToken1Before = (await token1.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const poolToken0Before = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1Before = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const userToken0Before = (await token0.read.balanceOf([deployer.account.address])) as bigint;
+      const userToken1Before = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+      const poolToken0Before = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1Before = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const removeDeltas: sdk.LiquidityDelta[] = [
         { bin: -1, deltaShares: -50000n },
@@ -611,18 +542,10 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
 
-      const userToken0After = (await token0.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const userToken1After = (await token1.read.balanceOf([
-        deployer.account.address,
-      ])) as bigint;
-      const poolToken0After = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1After = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const userToken0After = (await token0.read.balanceOf([deployer.account.address])) as bigint;
+      const userToken1After = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+      const poolToken0After = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1After = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const userToken0Received = userToken0After - userToken0Before;
       const userToken1Received = userToken1After - userToken1Before;
@@ -646,12 +569,8 @@ describe("SDK Integration Tests", async function () {
       );
 
       console.log("Remove liquidity token flow:");
-      console.log(
-        `  Pool sent: ${poolToken0Sent} token0, ${poolToken1Sent} token1`,
-      );
-      console.log(
-        `  User received: ${userToken0Received} token0, ${userToken1Received} token1`,
-      );
+      console.log(`  Pool sent: ${poolToken0Sent} token0, ${poolToken1Sent} token1`);
+      console.log(`  User received: ${userToken0Received} token0, ${userToken1Received} token1`);
     });
 
     it("should update position shares correctly for each bin when removing", async () => {
@@ -687,11 +606,7 @@ describe("SDK Integration Tests", async function () {
           salt,
           delta.bin,
         );
-        assert.equal(
-          sharesBefore,
-          delta.deltaShares,
-          `Bin ${delta.bin} initial shares incorrect`,
-        );
+        assert.equal(sharesBefore, delta.deltaShares, `Bin ${delta.bin} initial shares incorrect`);
       }
 
       const removeDeltas: sdk.LiquidityDelta[] = [
@@ -761,12 +676,8 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
 
-      const poolToken0Before = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1Before = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const poolToken0Before = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1Before = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const removeDeltas: sdk.LiquidityDelta[] = [
         { bin: 0, deltaShares: -200000n },
@@ -802,16 +713,11 @@ describe("SDK Integration Tests", async function () {
         );
       }
 
-      const poolToken0After = (await token0.read.balanceOf([
-        pool.address,
-      ])) as bigint;
-      const poolToken1After = (await token1.read.balanceOf([
-        pool.address,
-      ])) as bigint;
+      const poolToken0After = (await token0.read.balanceOf([pool.address])) as bigint;
+      const poolToken1After = (await token1.read.balanceOf([pool.address])) as bigint;
 
       assert.ok(
-        poolToken0After < poolToken0Before ||
-          poolToken1After < poolToken1Before,
+        poolToken0After < poolToken0Before || poolToken1After < poolToken1Before,
         "Pool should have less tokens after full removal",
       );
 
@@ -826,14 +732,8 @@ describe("SDK Integration Tests", async function () {
 
       const [, user2] = await viem.getWalletClients();
 
-      await token0.write.mint([
-        user2.account.address,
-        parseUnits("1000000", 18),
-      ]);
-      await token1.write.mint([
-        user2.account.address,
-        parseUnits("1000000", 6),
-      ]);
+      await token0.write.mint([user2.account.address, parseUnits("1000000", 18)]);
+      await token1.write.mint([user2.account.address, parseUnits("1000000", 6)]);
 
       const token0User2 = getContract({
         address: token0.address,
@@ -846,10 +746,7 @@ describe("SDK Integration Tests", async function () {
         client: { public: publicClient, wallet: user2 },
       }) as any;
 
-      await token0User2.write.approve([
-        pool.address,
-        parseUnits("1000000", 18),
-      ]);
+      await token0User2.write.approve([pool.address, parseUnits("1000000", 18)]);
       await token1User2.write.approve([pool.address, parseUnits("1000000", 6)]);
 
       const salt1 = 0n;
@@ -912,11 +809,7 @@ describe("SDK Integration Tests", async function () {
         salt2,
         0,
       );
-      assert.equal(
-        user2SharesAfter,
-        200000n,
-        "User2 shares should be preserved",
-      );
+      assert.equal(user2SharesAfter, 200000n, "User2 shares should be preserved");
 
       console.log("Other user's position preserved after removal:");
       console.log(`  User1 shares: ${user1SharesAfter}`);
@@ -926,8 +819,7 @@ describe("SDK Integration Tests", async function () {
 
   describe.skip("Swaps", () => {
     it("should execute exact input swap", async () => {
-      const { pool, router, publicClient } =
-        await networkHelpers.loadFixture(setupTestEnvironment);
+      const { pool, router, publicClient } = await networkHelpers.loadFixture(setupTestEnvironment);
 
       // Add liquidity first - need consecutive bins with sufficient liquidity
       const deltas: sdk.LiquidityDelta[] = [];
@@ -991,11 +883,7 @@ describe("SDK Integration Tests", async function () {
       await publicClient.waitForTransactionReceipt({ hash: addHash });
 
       // Read state before
-      const slot0Before = await sdk.getSlot0(
-        publicClient,
-        stateView.address,
-        pool.address,
-      );
+      const slot0Before = await sdk.getSlot0(publicClient, stateView.address, pool.address);
 
       // Execute swap - use much larger amount to ensure position moves
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
@@ -1010,11 +898,7 @@ describe("SDK Integration Tests", async function () {
       ]);
 
       // Read state after
-      const slot0After = await sdk.getSlot0(
-        publicClient,
-        stateView.address,
-        pool.address,
-      );
+      const slot0After = await sdk.getSlot0(publicClient, stateView.address, pool.address);
 
       // Position should have changed - either bin index or position within bin
       const positionChanged =
@@ -1090,10 +974,8 @@ describe("SDK Integration Tests", async function () {
       console.log(`  specAmount0: ${result.specAmount0}`);
       console.log(`  specAmount1: ${result.specAmount1}`);
 
-      for (let res in result.deltas) {
-        console.log(
-          `  Bin ${result.deltas[res].bin}: ${result.deltas[res].deltaShares} shares`,
-        );
+      for (const delta of result.deltas) {
+        console.log(`  Bin ${delta.bin}: ${delta.deltaShares} shares`);
       }
 
       // Verify we got deltas for the expected bins
@@ -1154,21 +1036,14 @@ describe("SDK Integration Tests", async function () {
       );
 
       // Verify we actually spent some tokens
-      assert.ok(
-        token0Spent > 0n || token1Spent > 0n,
-        "Should have spent some tokens",
-      );
+      assert.ok(token0Spent > 0n || token1Spent > 0n, "Should have spent some tokens");
 
       console.log(`Uniform distribution test results:`);
       console.log(
         `  Bins: ${params.lowerBin} to ${params.upperBin} (${result.deltas.length} deltas)`,
       );
-      console.log(
-        `  Spec amounts: ${result.specAmount0} token0, ${result.specAmount1} token1`,
-      );
-      console.log(
-        `  Actual spent: ${token0Spent} token0, ${token1Spent} token1`,
-      );
+      console.log(`  Spec amounts: ${result.specAmount0} token0, ${result.specAmount1} token1`);
+      console.log(`  Actual spent: ${token0Spent} token0, ${token1Spent} token1`);
     });
 
     it("should handle distribution when one token is limiting", async () => {
@@ -1182,9 +1057,7 @@ describe("SDK Integration Tests", async function () {
       };
 
       // First add some liquidity to move the current bin position
-      const initialDeltas: sdk.LiquidityDelta[] = [
-        { bin: 0, deltaShares: 1000000n },
-      ];
+      const initialDeltas: sdk.LiquidityDelta[] = [{ bin: 0, deltaShares: 1000000n }];
       const salt1 = 0n;
       // Use prepareModifyLiquidity
       const preparedInit = prepareModifyLiquidity(
@@ -1247,9 +1120,7 @@ describe("SDK Integration Tests", async function () {
       await logPoolBalances("After limiting-token mint");
 
       console.log(`Limiting token test results:`);
-      console.log(
-        `  Spec amounts: ${result.specAmount0} token0, ${result.specAmount1} token1`,
-      );
+      console.log(`  Spec amounts: ${result.specAmount0} token0, ${result.specAmount1} token1`);
       console.log(`  Token0 should be close to max, token1 should be lower`);
     });
   });
@@ -1258,16 +1129,8 @@ describe("SDK Integration Tests", async function () {
     it("should create pool with many different bins and verify allocation", async () => {
       const publicClient = await viem.getPublicClient();
 
-      const token0Deployment = await viem.deployContract("MockERC20", [
-        "Token0",
-        "TK0",
-        18,
-      ]);
-      const token1Deployment = await viem.deployContract("MockERC20", [
-        "Token1",
-        "TK1",
-        6,
-      ]);
+      const token0Deployment = await viem.deployContract("MockERC20", ["Token0", "TK0", 18]);
+      const token1Deployment = await viem.deployContract("MockERC20", ["Token1", "TK1", 6]);
 
       const token0 = getContract({
         address: token0Deployment.address,
@@ -1282,29 +1145,17 @@ describe("SDK Integration Tests", async function () {
       }) as any;
 
       // Mint tokens
-      await token0.write.mint([
-        deployer.account.address,
-        parseUnits("1000000", 18),
-      ]);
-      await token1.write.mint([
-        deployer.account.address,
-        parseUnits("1000000", 6),
-      ]);
+      await token0.write.mint([deployer.account.address, parseUnits("1000000", 18)]);
+      await token1.write.mint([deployer.account.address, parseUnits("1000000", 6)]);
 
-      const stateViewDeployment = await viem.deployContract(
-        "MetricOmmPoolStateView",
-        [],
-      );
+      const stateViewDeployment = await viem.deployContract("MetricOmmPoolStateView", []);
       const stateView = getContract({
         address: stateViewDeployment.address,
         abi: MetricOmmPoolStateViewArtifact.abi,
         client: { public: publicClient, wallet: deployer },
       });
 
-      const priceProviderDeployment = await viem.deployContract(
-        "MockOracle",
-        [],
-      );
+      const priceProviderDeployment = await viem.deployContract("MockOracle", []);
       const priceProvider = getContract({
         address: priceProviderDeployment.address,
         abi: MockOracleArtifact.abi,
@@ -1377,11 +1228,7 @@ describe("SDK Integration Tests", async function () {
           i,
         );
 
-        assert.equal(
-          binState.lengthE6,
-          expectedBin.lengthE6,
-          `Bin ${i}: lengthE6 mismatch`,
-        );
+        assert.equal(binState.lengthE6, expectedBin.lengthE6, `Bin ${i}: lengthE6 mismatch`);
         assert.equal(
           binState.addFeeBuyE6,
           expectedBin.addFeeBuyE6,
@@ -1403,11 +1250,7 @@ describe("SDK Integration Tests", async function () {
           binIndex,
         );
 
-        assert.equal(
-          binState.lengthE6,
-          expectedBin.lengthE6,
-          `Bin ${binIndex}: lengthE6 mismatch`,
-        );
+        assert.equal(binState.lengthE6, expectedBin.lengthE6, `Bin ${binIndex}: lengthE6 mismatch`);
         assert.equal(
           binState.addFeeBuyE6,
           expectedBin.addFeeBuyE6,

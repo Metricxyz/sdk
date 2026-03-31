@@ -252,9 +252,7 @@ async function main() {
     );
   }
 
-  console.log(
-    `\nCollected protocol fees from ${valid.length} pool(s) in a single transaction.\n`,
-  );
+  console.log(`\nCollected protocol fees from ${valid.length} pool(s) in a single transaction.\n`);
 }
 
 main().catch((error) => {

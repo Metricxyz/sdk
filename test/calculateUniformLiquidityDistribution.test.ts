@@ -17,16 +17,8 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     const decimals1 = config?.decimals1 ?? 6;
     const publicClient = await viem.getPublicClient();
 
-    const token0Deployment = await viem.deployContract("MockERC20", [
-      "Token0",
-      "TK0",
-      decimals0,
-    ]);
-    const token1Deployment = await viem.deployContract("MockERC20", [
-      "Token1",
-      "TK1",
-      decimals1,
-    ]);
+    const token0Deployment = await viem.deployContract("MockERC20", ["Token0", "TK0", decimals0]);
+    const token1Deployment = await viem.deployContract("MockERC20", ["Token1", "TK1", decimals1]);
 
     const token0 = getContract({
       address: token0Deployment.address,
@@ -40,19 +32,10 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     });
 
     // Mint ample balances to avoid allowance/supply issues in edge cases
-    await token0.write.mint([
-      deployer.account.address,
-      parseUnits("1000000000000", decimals0),
-    ]);
-    await token1.write.mint([
-      deployer.account.address,
-      parseUnits("1000000000000", decimals1),
-    ]);
+    await token0.write.mint([deployer.account.address, parseUnits("1000000000000", decimals0)]);
+    await token1.write.mint([deployer.account.address, parseUnits("1000000000000", decimals1)]);
 
-    const stateViewDeployment = await viem.deployContract(
-      "MetricOmmPoolStateView",
-      [],
-    );
+    const stateViewDeployment = await viem.deployContract("MetricOmmPoolStateView", []);
     const stateView = getContract({
       address: stateViewDeployment.address,
       abi: MetricOmmPoolStateViewArtifact.abi,
@@ -114,11 +97,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     };
   }
 
-  const toToken1Value = (
-    amount0: bigint,
-    immutables: sdk.PoolImmutables,
-    priceX18: bigint,
-  ) =>
+  const toToken1Value = (amount0: bigint, immutables: sdk.PoolImmutables, priceX18: bigint) =>
     (amount0 * immutables.token0ScaleMultiplier * priceX18) /
     (immutables.token1ScaleMultiplier * 1_000_000_000_000_000_000n);
 
@@ -208,8 +187,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
       const priceInt = Math.floor(params.currentPrice);
       const priceFrac = params.currentPrice - priceInt;
       priceX18 =
-        BigInt(priceInt) * 1_000_000_000_000_000_000n +
-        BigInt(Math.round(priceFrac * 1e18));
+        BigInt(priceInt) * 1_000_000_000_000_000_000n + BigInt(Math.round(priceFrac * 1e18));
     } else {
       priceX18 = BigInt(Math.round(params.currentPrice * 1e18));
     }
@@ -218,9 +196,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     const targetPerBinToken1 = params.amountIsInToken0
       ? toToken1Value(params.amountInTokensPerBin, immutables, priceX18)
       : params.amountInTokensPerBin;
-    const activeBins = BigInt(
-      deltas.filter((d) => d.deltaShares !== 0n).length,
-    );
+    const activeBins = BigInt(deltas.filter((d) => d.deltaShares !== 0n).length);
     const target1 = targetPerBinToken1 * activeBins;
 
     if (target1 > 0n) {
@@ -301,23 +277,12 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
           for (const state of poolStates) {
             for (const binCase of binCases) {
               it(`${state} pool, price=${price}, bin=${binCase.label}`, async () => {
-                const {
-                  publicClient,
-                  pool,
-                  stateView,
-                  token0,
-                  token1,
-                  priceProvider,
-                } = (await networkHelpers.loadFixture(
-                  fixtureMap[decimals.label],
-                )) as any;
+                const { publicClient, pool, stateView, token0, token1, priceProvider } =
+                  (await networkHelpers.loadFixture(fixtureMap[decimals.label])) as any;
 
                 // Set the oracle price for this test
                 const q64Price = sdk.priceToQ64(price);
-                await priceProvider.write.setBidAndAskPrice([
-                  q64Price,
-                  q64Price,
-                ]);
+                await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
 
                 // Optionally seed the pool at current bin with a tiny mint
                 if (state === "seeded") {
@@ -329,10 +294,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
                     } else {
                       seedAmount = parseUnits("100000", decimals.decimals0);
                     }
-                  } else if (
-                    decimals.decimals0 <= 6 &&
-                    (price <= 1e-5 || price >= 1e5)
-                  ) {
+                  } else if (decimals.decimals0 <= 6 && (price <= 1e-5 || price >= 1e5)) {
                     seedAmount = parseUnits("100000", decimals.decimals0);
                   } else {
                     seedAmount = parseUnits("100", decimals.decimals0);

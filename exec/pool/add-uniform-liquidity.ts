@@ -65,20 +65,13 @@ async function main() {
   console.log(`Factory: ${addresses.factory}\n`);
 
   // Get pool address from env or prompt
-  const poolAddress = await getAddressFromEnvOrPrompt(
-    "POOL_ADDRESS",
-    "Enter pool address: ",
-  );
+  const poolAddress = await getAddressFromEnvOrPrompt("POOL_ADDRESS", "Enter pool address: ");
 
   // Read pool info using SDK
   console.log("\n📊 Reading pool information...\n");
 
   const immutables = await sdk.getPoolImmutables(publicClient, poolAddress);
-  const slot0 = await sdk.getSlot0(
-    publicClient,
-    addresses.stateView,
-    poolAddress,
-  );
+  const slot0 = await sdk.getSlot0(publicClient, addresses.stateView, poolAddress);
 
   // Get token info
   const token0 = getContract({
@@ -106,9 +99,7 @@ async function main() {
   console.log(`Token0:          ${symbol0} (${immutables.token0})`);
   console.log(`Token1:          ${symbol1} (${immutables.token1})`);
   console.log(`Current Bin:     ${slot0.curBinIdx}`);
-  console.log(
-    `Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`,
-  );
+  console.log(`Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`);
   console.log();
 
   // Get salt for position
@@ -134,9 +125,7 @@ async function main() {
   }
 
   const numBins = upperBin - lowerBin + 1;
-  console.log(
-    `\nDistributing across ${numBins} bins (${lowerBin} to ${upperBin})`,
-  );
+  console.log(`\nDistributing across ${numBins} bins (${lowerBin} to ${upperBin})`);
 
   const amountTokenStr = await prompt(
     `Which token to specify amount in? (0 for ${symbol0}, 1 for ${symbol1}): `,
@@ -210,14 +199,10 @@ async function main() {
   if (balance0 < specAmount0 || balance1 < specAmount1) {
     console.error("\n❌ Insufficient balance!");
     if (balance0 < specAmount0) {
-      console.error(
-        `  Need ${formatUnits(specAmount0 - balance0, decimals0)} more ${symbol0}`,
-      );
+      console.error(`  Need ${formatUnits(specAmount0 - balance0, decimals0)} more ${symbol0}`);
     }
     if (balance1 < specAmount1) {
-      console.error(
-        `  Need ${formatUnits(specAmount1 - balance1, decimals1)} more ${symbol1}`,
-      );
+      console.error(`  Need ${formatUnits(specAmount1 - balance1, decimals1)} more ${symbol1}`);
     }
     process.exit(1);
   }
@@ -231,9 +216,7 @@ async function main() {
 
   if (allowance0 < (specAmount0 * 11n) / 10n) {
     const approveDisplay =
-      approveAmount0 === sdk.MAX_UINT128
-        ? "max"
-        : formatUnits(approveAmount0, decimals0);
+      approveAmount0 === sdk.MAX_UINT128 ? "max" : formatUnits(approveAmount0, decimals0);
     console.log(`⚠️  Approving ${symbol0} (${approveDisplay}) for pool...`);
     const hash = await token0.write.approve([poolAddress, approveAmount0]);
     await publicClient.waitForTransactionReceipt({ hash });
@@ -242,9 +225,7 @@ async function main() {
 
   if (allowance1 < (specAmount1 * 11n) / 10n) {
     const approveDisplay =
-      approveAmount1 === sdk.MAX_UINT128
-        ? "max"
-        : formatUnits(approveAmount1, decimals1);
+      approveAmount1 === sdk.MAX_UINT128 ? "max" : formatUnits(approveAmount1, decimals1);
     console.log(`⚠️  Approving ${symbol1} (${approveDisplay}) for pool...`);
     const hash = await token1.write.approve([poolAddress, approveAmount1]);
     await publicClient.waitForTransactionReceipt({ hash });
@@ -297,12 +278,8 @@ async function main() {
       console.log(`Position owner: ${account}`);
 
       console.log("\nTokens Used:");
-      console.log(
-        `  ${symbol0}: ${formatUnits(balance0 - newBalance0, decimals0)}`,
-      );
-      console.log(
-        `  ${symbol1}: ${formatUnits(balance1 - newBalance1, decimals1)}`,
-      );
+      console.log(`  ${symbol0}: ${formatUnits(balance0 - newBalance0, decimals0)}`);
+      console.log(`  ${symbol1}: ${formatUnits(balance1 - newBalance1, decimals1)}`);
 
       console.log("\nBalances After:");
       console.log(`  ${symbol0}: ${formatUnits(newBalance0, decimals0)}`);

@@ -65,20 +65,13 @@ async function main() {
   console.log(`Factory: ${addresses.factory}\n`);
 
   // Get pool address from env or prompt
-  const poolAddress = await getAddressFromEnvOrPrompt(
-    "POOL_ADDRESS",
-    "Enter pool address: ",
-  );
+  const poolAddress = await getAddressFromEnvOrPrompt("POOL_ADDRESS", "Enter pool address: ");
 
   // Read pool info using SDK
   console.log("📊 Reading pool information...\n");
 
   const immutables = await sdk.getPoolImmutables(publicClient, poolAddress);
-  const slot0 = await sdk.getSlot0(
-    publicClient,
-    addresses.stateView,
-    poolAddress,
-  );
+  const slot0 = await sdk.getSlot0(publicClient, addresses.stateView, poolAddress);
 
   // Get token info
   const token0 = getContract({
@@ -106,9 +99,7 @@ async function main() {
   console.log(`Token0:          ${symbol0} (${immutables.token0})`);
   console.log(`Token1:          ${symbol1} (${immutables.token1})`);
   console.log(`Current Bin:     ${slot0.curBinIdx}`);
-  console.log(
-    `Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`,
-  );
+  console.log(`Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`);
   console.log();
 
   // Get salt from user
@@ -119,9 +110,7 @@ async function main() {
   const scanLower = immutables.lowestBin;
   const scanUpper = immutables.highestBin;
 
-  console.log(
-    `\n🔍 Scanning position shares for bins ${scanLower} to ${scanUpper}...\n`,
-  );
+  console.log(`\n🔍 Scanning position shares for bins ${scanLower} to ${scanUpper}...\n`);
 
   // Query position shares using SDK
   const positionShares = await sdk.getPositionShares(
@@ -144,16 +133,12 @@ async function main() {
   console.log("Bin".padStart(6) + " | " + "Shares".padStart(25));
   console.log("-".repeat(35));
   for (const { binIdx, shares } of positionShares) {
-    console.log(
-      binIdx.toString().padStart(6) + " | " + shares.toString().padStart(25),
-    );
+    console.log(binIdx.toString().padStart(6) + " | " + shares.toString().padStart(25));
   }
   console.log();
 
   // Get percentage to redeem
-  const percentToRedeemStr = await prompt(
-    "Enter percentage to redeem (100 = 100%, 50 = 50%): ",
-  );
+  const percentToRedeemStr = await prompt("Enter percentage to redeem (100 = 100%, 50 = 50%): ");
   if (!percentToRedeemStr) {
     console.error("\n❌ Percentage is required");
     process.exit(1);
@@ -165,16 +150,13 @@ async function main() {
   }
 
   // Calculate shares to redeem
-  console.log(
-    `\n📝 Calculating ${percentToRedeem}% of position to redeem...\n`,
-  );
+  console.log(`\n📝 Calculating ${percentToRedeem}% of position to redeem...\n`);
 
   const deltas: sdk.LiquidityDelta[] = [];
 
   for (const { binIdx, shares } of positionShares) {
     // Calculate shares to remove (negative delta)
-    const sharesToRemove =
-      (shares * BigInt(Math.floor(percentToRedeem * 100))) / 10000n;
+    const sharesToRemove = (shares * BigInt(Math.floor(percentToRedeem * 100))) / 10000n;
     if (sharesToRemove > 0n) {
       deltas.push({
         bin: binIdx,
@@ -245,12 +227,8 @@ async function main() {
       console.log(`Removed ${percentToRedeem}% of position (salt: ${salt})`);
 
       console.log("\nTokens Received:");
-      console.log(
-        `  ${symbol0}: ${formatUnits(balance0After - balance0Before, decimals0)}`,
-      );
-      console.log(
-        `  ${symbol1}: ${formatUnits(balance1After - balance1Before, decimals1)}`,
-      );
+      console.log(`  ${symbol0}: ${formatUnits(balance0After - balance0Before, decimals0)}`);
+      console.log(`  ${symbol1}: ${formatUnits(balance1After - balance1Before, decimals1)}`);
 
       console.log("\nBalances After:");
       console.log(`  ${symbol0}: ${formatUnits(balance0After, decimals0)}`);

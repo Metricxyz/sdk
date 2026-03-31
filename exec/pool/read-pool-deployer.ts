@@ -23,9 +23,7 @@ const factoryAddress = "0xe22F9fc0f04486dE25ed6CF1800a4a47aFD82e0C";
 //   process.env.FACTORY_ADDRESS ?? sdk.getAddresses(chainId)?.factory;
 
 if (!factoryAddress) {
-  console.error(
-    `No factory address found for chain ${chainId}. Set FACTORY_ADDRESS env var.`,
-  );
+  console.error(`No factory address found for chain ${chainId}. Set FACTORY_ADDRESS env var.`);
   process.exit(1);
 }
 

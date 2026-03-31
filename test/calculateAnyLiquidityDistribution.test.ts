@@ -49,20 +49,11 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     const decimals0 = config?.decimals0 ?? 18;
     const decimals1 = config?.decimals1 ?? 6;
     const maxDriftE8 = config?.maxDriftE8 ?? 50000n;
-    const curBinDistFromProvidedPriceE6 =
-      config?.curBinDistFromProvidedPriceE6 ?? 0;
+    const curBinDistFromProvidedPriceE6 = config?.curBinDistFromProvidedPriceE6 ?? 0;
     const publicClient = await viem.getPublicClient();
 
-    const token0Deployment = await viem.deployContract("MockERC20", [
-      "Token0",
-      "TK0",
-      decimals0,
-    ]);
-    const token1Deployment = await viem.deployContract("MockERC20", [
-      "Token1",
-      "TK1",
-      decimals1,
-    ]);
+    const token0Deployment = await viem.deployContract("MockERC20", ["Token0", "TK0", decimals0]);
+    const token1Deployment = await viem.deployContract("MockERC20", ["Token1", "TK1", decimals1]);
 
     const token0 = getContract({
       address: token0Deployment.address,
@@ -75,19 +66,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       client: { public: publicClient, wallet: deployer },
     });
 
-    await token0.write.mint([
-      deployer.account.address,
-      parseUnits("1000000000000", decimals0),
-    ]);
-    await token1.write.mint([
-      deployer.account.address,
-      parseUnits("1000000000000", decimals1),
-    ]);
+    await token0.write.mint([deployer.account.address, parseUnits("1000000000000", decimals0)]);
+    await token1.write.mint([deployer.account.address, parseUnits("1000000000000", decimals1)]);
 
-    const stateViewDeployment = await viem.deployContract(
-      "MetricOmmPoolStateView",
-      [],
-    );
+    const stateViewDeployment = await viem.deployContract("MetricOmmPoolStateView", []);
     const stateView = getContract({
       address: stateViewDeployment.address,
       abi: MetricOmmPoolStateViewArtifact.abi,
@@ -133,14 +115,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       client: { public: publicClient, wallet: deployer },
     });
 
-    await token0.write.approve([
-      pool.address,
-      parseUnits("1000000000000", decimals0),
-    ]);
-    await token1.write.approve([
-      pool.address,
-      parseUnits("1000000000000", decimals1),
-    ]);
+    await token0.write.approve([pool.address, parseUnits("1000000000000", decimals0)]);
+    await token1.write.approve([pool.address, parseUnits("1000000000000", decimals1)]);
 
     return {
       publicClient,
@@ -152,11 +128,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     };
   }
 
-  const toToken1Value = (
-    amount0: bigint,
-    immutables: sdk.PoolImmutables,
-    priceX18: bigint,
-  ) =>
+  const toToken1Value = (amount0: bigint, immutables: sdk.PoolImmutables, priceX18: bigint) =>
     (amount0 * immutables.token0ScaleMultiplier * priceX18) /
     (immutables.token1ScaleMultiplier * 1_000_000_000_000_000_000n);
 
@@ -252,15 +224,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         : entry.targetValueInToken;
     }
 
-    const actualTotalInToken1 =
-      spent1 + toToken1Value(spent0, immutables, priceX18);
+    const actualTotalInToken1 = spent1 + toToken1Value(spent0, immutables, priceX18);
     if (targetTotalInToken1 > 0n) {
       const diff =
         actualTotalInToken1 > targetTotalInToken1
           ? actualTotalInToken1 - targetTotalInToken1
           : targetTotalInToken1 - actualTotalInToken1;
-      const allowed =
-        (targetTotalInToken1 * valueTolerancePpm) / 1_000_000n + 1n;
+      const allowed = (targetTotalInToken1 * valueTolerancePpm) / 1_000_000n + 1n;
       assert.ok(
         diff <= allowed,
         `value mismatch: provided ${actualTotalInToken1}, target ${targetTotalInToken1}, tol ppm ${valueTolerancePpm}`,
@@ -303,10 +273,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     { label: "dec18/18", decimals0: 18, decimals1: 18 },
   ] as const;
   type DecimalLabel = (typeof decimalPairs)[number]["label"];
-  const fixtureMap: Record<
-    DecimalLabel,
-    () => Promise<Awaited<ReturnType<typeof setupEnv>>>
-  > = {
+  const fixtureMap: Record<DecimalLabel, () => Promise<Awaited<ReturnType<typeof setupEnv>>>> = {
     "dec6/6": setupEnv6_6,
     "dec18/6": setupEnv18_6,
     "dec18/18": setupEnv18_18,
@@ -332,20 +299,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
                   fixtureMap[decimals.label],
                 )) as Awaited<ReturnType<typeof setupEnv>>;
 
-                const {
-                  publicClient,
-                  pool,
-                  stateView,
-                  token0,
-                  token1,
-                  priceProvider,
-                } = fixture;
+                const { publicClient, pool, stateView, token0, token1, priceProvider } = fixture;
 
                 const q64Price = sdk.priceToQ64(price);
-                await priceProvider.write.setBidAndAskPrice([
-                  q64Price,
-                  q64Price,
-                ]);
+                await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
 
                 if (state === "seeded") {
                   const seedParams: sdk.CalculateAnyLiquidityParams = {
@@ -515,25 +472,13 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     });
     await publicClient.waitForTransactionReceipt({ hash: seedHash });
 
-    const beforeSlot0 = await sdk.getSlot0(
-      publicClient,
-      stateView.address,
-      pool.address,
-    );
     const immutables = await sdk.getPoolImmutables(publicClient, pool.address);
-    const router = await viem.deployContract("MetricOmmSwapRouter", [
-      token0.address,
-    ]);
+    const router = await viem.deployContract("MetricOmmSwapRouter", [token0.address]);
     await token0.write.approve([router.address, parseUnits("1000000", 18)]);
     await token1.write.approve([router.address, parseUnits("1000000", 6)]);
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
-    const maxUint128 = (1n << 128n) - 1n;
-    let selectedSlot0 = await sdk.getSlot0(
-      publicClient,
-      stateView.address,
-      pool.address,
-    );
+    let selectedSlot0 = await sdk.getSlot0(publicClient, stateView.address, pool.address);
 
     for (let i = 0; i < 20; i++) {
       if (selectedSlot0.curPosInBin >= minTargetPos) break;
@@ -569,11 +514,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
             0n,
             deadline,
           ]);
-          selectedSlot0 = await sdk.getSlot0(
-            publicClient,
-            stateView.address,
-            pool.address,
-          );
+          selectedSlot0 = await sdk.getSlot0(publicClient, stateView.address, pool.address);
           if (selectedSlot0.curPosInBin > posBefore) {
             swapApplied = true;
             break;
@@ -589,8 +530,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     }
 
     assert.ok(
-      (selectedSlot0.curPosInBin >= minTargetPos &&
-        selectedSlot0.curPosInBin < maxUint104) ||
+      (selectedSlot0.curPosInBin >= minTargetPos && selectedSlot0.curPosInBin < maxUint104) ||
         selectedSlot0.curPosInBin <= maxLowerEdgePos,
       `failed to move curPosInBin near an edge with specified-in setup; got ${selectedSlot0.curPosInBin}`,
     );
@@ -626,13 +566,9 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     const ceilDivLocal = (a: bigint, b: bigint) => (a + b - 1n) / b;
 
     const specDiff0 =
-      result.specAmount0 >= spent0
-        ? result.specAmount0 - spent0
-        : spent0 - result.specAmount0;
+      result.specAmount0 >= spent0 ? result.specAmount0 - spent0 : spent0 - result.specAmount0;
     const specDiff1 =
-      result.specAmount1 >= spent1
-        ? result.specAmount1 - spent1
-        : spent1 - result.specAmount1;
+      result.specAmount1 >= spent1 ? result.specAmount1 - spent1 : spent1 - result.specAmount1;
     const allowedSpecDiff0 = 1n;
     const allowedSpecDiff1 = 1n;
 
@@ -649,14 +585,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       result.deltas[0].deltaShares * beforeToken1Scaled,
       beforeTotalShares,
     );
-    const expectedSpent0 = ceilDivLocal(
-      expectedAmount0Scaled,
-      immutables.token0ScaleMultiplier,
-    );
-    const expectedSpent1 = ceilDivLocal(
-      expectedAmount1Scaled,
-      immutables.token1ScaleMultiplier,
-    );
+    const expectedSpent0 = ceilDivLocal(expectedAmount0Scaled, immutables.token0ScaleMultiplier);
+    const expectedSpent1 = ceilDivLocal(expectedAmount1Scaled, immutables.token1ScaleMultiplier);
 
     assert.equal(result.deltas.length, 1);
     assert.equal(result.deltas[0].bin, selectedSlot0.curBinIdx);
@@ -708,11 +638,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     });
     await publicClient.waitForTransactionReceipt({ hash: seedHash });
 
-    const slot0BeforeSwap = await sdk.getSlot0(
-      publicClient,
-      stateView.address,
-      pool.address,
-    );
+    const slot0BeforeSwap = await sdk.getSlot0(publicClient, stateView.address, pool.address);
     const immutables = await sdk.getPoolImmutables(publicClient, pool.address);
     const bin0StateBeforeSwap = await sdk.getBinStatesScaled(
       publicClient,
@@ -722,26 +648,19 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
 
     const token0AvailableExternal =
-      bin0StateBeforeSwap.token0BalancesScaled[0] /
-      immutables.token0ScaleMultiplier;
+      bin0StateBeforeSwap.token0BalancesScaled[0] / immutables.token0ScaleMultiplier;
     const token1AvailableExternal =
-      bin0StateBeforeSwap.token1BalancesScaled[0] /
-      immutables.token1ScaleMultiplier;
+      bin0StateBeforeSwap.token1BalancesScaled[0] / immutables.token1ScaleMultiplier;
 
     const swapOutToken0 = token0AvailableExternal >= token1AvailableExternal;
-    const availableOutExternal = swapOutToken0
-      ? token0AvailableExternal
-      : token1AvailableExternal;
-    const amountOutDesired =
-      availableOutExternal > 1n ? availableOutExternal / 2n : 1n;
+    const availableOutExternal = swapOutToken0 ? token0AvailableExternal : token1AvailableExternal;
+    const amountOutDesired = availableOutExternal > 1n ? availableOutExternal / 2n : 1n;
     assert.ok(
       availableOutExternal > 0n,
       "current bin has no available token balance for specified-out setup",
     );
 
-    const router = await viem.deployContract("MetricOmmSwapRouter", [
-      token0.address,
-    ]);
+    const router = await viem.deployContract("MetricOmmSwapRouter", [token0.address]);
     await token0.write.approve([router.address, parseUnits("1000000", 18)]);
     await token1.write.approve([router.address, parseUnits("1000000", 6)]);
 
@@ -757,11 +676,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       deadline,
     ]);
 
-    const slot0AfterSwap = await sdk.getSlot0(
-      publicClient,
-      stateView.address,
-      pool.address,
-    );
+    const slot0AfterSwap = await sdk.getSlot0(publicClient, stateView.address, pool.address);
     assert.ok(
       slot0AfterSwap.curBinIdx !== slot0BeforeSwap.curBinIdx ||
         slot0AfterSwap.curPosInBin !== slot0BeforeSwap.curPosInBin,
@@ -778,25 +693,20 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       pool.address,
       bins,
     );
-    const slot0BeforeAdd = await sdk.getSlot0(
-      publicClient,
-      stateView.address,
-      pool.address,
-    );
+    const slot0BeforeAdd = await sdk.getSlot0(publicClient, stateView.address, pool.address);
 
-    const args =
-      await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
-        publicClient,
-        stateViewAddress: stateView.address,
-        poolAddress: pool.address,
-        bins,
-        weights,
-        totalValueToAddInToken,
-        totalValueInToken0: false,
-        currentPriceX64: q64Price,
-        salt: 888n,
-        specAmountBufferPercent: 0,
-      });
+    const args = await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
+      publicClient,
+      stateViewAddress: stateView.address,
+      poolAddress: pool.address,
+      bins,
+      weights,
+      totalValueToAddInToken,
+      totalValueInToken0: false,
+      currentPriceX64: q64Price,
+      salt: 888n,
+      specAmountBufferPercent: 0,
+    });
 
     const [salt, deltas, specAmount0, specAmount1] = args;
     assert.equal(salt, 888n);
@@ -826,25 +736,17 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
       const isBelowBin =
         delta.bin < slot0BeforeAdd.curBinIdx ||
-        (delta.bin === slot0BeforeAdd.curBinIdx &&
-          slot0BeforeAdd.curPosInBin === maxUint104);
+        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === maxUint104);
       const isAboveBin =
         delta.bin > slot0BeforeAdd.curBinIdx ||
-        (delta.bin === slot0BeforeAdd.curBinIdx &&
-          slot0BeforeAdd.curPosInBin === 0n);
+        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === 0n);
 
       let amount0ScaledToAdd = 0n;
       let amount1ScaledToAdd = 0n;
 
       if (totalShares > 0n) {
-        amount0ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * token0BalScaled,
-          totalShares,
-        );
-        amount1ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * token1BalScaled,
-          totalShares,
-        );
+        amount0ScaledToAdd = ceilDivLocal(delta.deltaShares * token0BalScaled, totalShares);
+        amount1ScaledToAdd = ceilDivLocal(delta.deltaShares * token1BalScaled, totalShares);
       } else if (isBelowBin) {
         amount1ScaledToAdd = ceilDivLocal(
           delta.deltaShares * immutables.initialScaledToken1PerShareE18,
@@ -859,45 +761,26 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         const token0Portion = maxUint104 - slot0BeforeAdd.curPosInBin;
         const token1Portion = slot0BeforeAdd.curPosInBin;
         amount0ScaledToAdd = ceilDivLocal(
-          delta.deltaShares *
-            immutables.initialScaledToken0PerShareE18 *
-            token0Portion,
+          delta.deltaShares * immutables.initialScaledToken0PerShareE18 * token0Portion,
           1_000_000_000_000_000_000n * maxUint104,
         );
         amount1ScaledToAdd = ceilDivLocal(
-          delta.deltaShares *
-            immutables.initialScaledToken1PerShareE18 *
-            token1Portion,
+          delta.deltaShares * immutables.initialScaledToken1PerShareE18 * token1Portion,
           1_000_000_000_000_000_000n * maxUint104,
         );
       }
 
-      const amount0External = ceilDivLocal(
-        amount0ScaledToAdd,
-        immutables.token0ScaleMultiplier,
-      );
-      const amount1External = ceilDivLocal(
-        amount1ScaledToAdd,
-        immutables.token1ScaleMultiplier,
-      );
+      const amount0External = ceilDivLocal(amount0ScaledToAdd, immutables.token0ScaleMultiplier);
+      const amount1External = ceilDivLocal(amount1ScaledToAdd, immutables.token1ScaleMultiplier);
       const valueInToken1 =
-        amount1External +
-        toToken1Value(amount0External, immutables, 1_000_000_000_000_000_000n);
+        amount1External + toToken1Value(amount0External, immutables, 1_000_000_000_000_000_000n);
 
       valuesInToken1.push(valueInToken1);
     }
 
-    const unitValues = valuesInToken1.map(
-      (value, i) => (value * 1_000_000n) / BigInt(weights[i]),
-    );
-    const minUnitValue = unitValues.reduce(
-      (m, v) => (v < m ? v : m),
-      unitValues[0],
-    );
-    const maxUnitValue = unitValues.reduce(
-      (m, v) => (v > m ? v : m),
-      unitValues[0],
-    );
+    const unitValues = valuesInToken1.map((value, i) => (value * 1_000_000n) / BigInt(weights[i]));
+    const minUnitValue = unitValues.reduce((m, v) => (v < m ? v : m), unitValues[0]);
+    const maxUnitValue = unitValues.reduce((m, v) => (v > m ? v : m), unitValues[0]);
     const unitSpread = maxUnitValue - minUnitValue;
     const allowedSpread = maxUnitValue / 5n + 1n; // 20%
 
@@ -918,20 +801,18 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
   });
 
   it("buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount avoids int104 overflow in calibration for high-price token1 inputs", async () => {
-    const { publicClient, pool, stateView } =
-      await networkHelpers.loadFixture(setupEnv18_6);
+    const { publicClient, pool, stateView } = await networkHelpers.loadFixture(setupEnv18_6);
 
-    const args =
-      await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
-        publicClient,
-        stateViewAddress: stateView.address,
-        poolAddress: pool.address,
-        bins: [-2, -1, 0, 1],
-        totalValueToAddInToken: 1_000_000n,
-        totalValueInToken0: false,
-        currentPriceX64: 1309319182557697118630402n,
-        specAmountBufferPercent: 0.01,
-      });
+    const args = await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
+      publicClient,
+      stateViewAddress: stateView.address,
+      poolAddress: pool.address,
+      bins: [-2, -1, 0, 1],
+      totalValueToAddInToken: 1_000_000n,
+      totalValueInToken0: false,
+      currentPriceX64: 1309319182557697118630402n,
+      specAmountBufferPercent: 0.01,
+    });
 
     assert.equal(args[1].length, 4);
     for (const delta of args[1]) {
@@ -941,54 +822,42 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
   });
 
   it("throws when bins contain duplicates", async () => {
-    const { publicClient, pool, stateView } =
-      await networkHelpers.loadFixture(setupEnv18_6);
+    const { publicClient, pool, stateView } = await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
-      buildModifyLiquidityArgsForAdditionPlan(
-        publicClient,
-        stateView.address,
-        pool.address,
-        {
-          bins: [
-            {
-              bin: -1,
-              targetValueInToken: parseUnits("100", 6),
-              targetValueInToken0: false,
-            },
-            {
-              bin: -1,
-              targetValueInToken: parseUnits("200", 6),
-              targetValueInToken0: false,
-            },
-          ],
-          currentPrice: 1,
-        },
-      ),
+      buildModifyLiquidityArgsForAdditionPlan(publicClient, stateView.address, pool.address, {
+        bins: [
+          {
+            bin: -1,
+            targetValueInToken: parseUnits("100", 6),
+            targetValueInToken0: false,
+          },
+          {
+            bin: -1,
+            targetValueInToken: parseUnits("200", 6),
+            targetValueInToken0: false,
+          },
+        ],
+        currentPrice: 1,
+      }),
       /duplicate bin -1 is not supported/,
     );
   });
 
   it("rejects invalid currentPrice", async () => {
-    const { publicClient, pool, stateView } =
-      await networkHelpers.loadFixture(setupEnv18_6);
+    const { publicClient, pool, stateView } = await networkHelpers.loadFixture(setupEnv18_6);
 
     await assert.rejects(
-      buildModifyLiquidityArgsForAdditionPlan(
-        publicClient,
-        stateView.address,
-        pool.address,
-        {
-          bins: [
-            {
-              bin: 0,
-              targetValueInToken: parseUnits("1", 18),
-              targetValueInToken0: true,
-            },
-          ],
-          currentPrice: 0,
-        },
-      ),
+      buildModifyLiquidityArgsForAdditionPlan(publicClient, stateView.address, pool.address, {
+        bins: [
+          {
+            bin: 0,
+            targetValueInToken: parseUnits("1", 18),
+            targetValueInToken0: true,
+          },
+        ],
+        currentPrice: 0,
+      }),
       /currentPrice must be a positive finite number/,
     );
   });

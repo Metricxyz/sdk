@@ -177,20 +177,14 @@ export async function getPositionBinSharesFromStateView(
  * Create a position bin key (matches Solidity's toPositionBinKey)
  * Layout: [address(160)] | [salt(80)] | [bin(16)] = 256 bits
  */
-export function toPositionBinKey(
-  owner: Address,
-  salt: bigint,
-  bin: number,
-): `0x${string}` {
+export function toPositionBinKey(owner: Address, salt: bigint, bin: number): `0x${string}` {
   // Convert owner address to bigint (160 bits)
   const ownerBigInt = BigInt(owner);
   // Salt is 80 bits, bin is 16 bits (signed, convert to uint16)
   const binUint16 = bin < 0 ? BigInt(bin + 0x10000) : BigInt(bin);
   // Pack: owner << 96 | salt << 16 | bin
   const packed =
-    (ownerBigInt << 96n) |
-    ((salt & 0xffffffffffffffffffffn) << 16n) |
-    (binUint16 & 0xffffn);
+    (ownerBigInt << 96n) | ((salt & 0xffffffffffffffffffffn) << 16n) | (binUint16 & 0xffffn);
   return `0x${packed.toString(16).padStart(64, "0")}` as `0x${string}`;
 }
 

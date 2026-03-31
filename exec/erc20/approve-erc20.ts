@@ -60,13 +60,9 @@ const token = getContract({
   client: { public: publicClient, wallet: walletClient },
 });
 
-const [symbol, decimals] = await Promise.all([
-  token.read.symbol(),
-  token.read.decimals(),
-]);
+const [symbol, decimals] = await Promise.all([token.read.symbol(), token.read.decimals()]);
 
-const amount =
-  amountArg.toLowerCase() === "max" ? maxUint256 : BigInt(amountArg);
+const amount = amountArg.toLowerCase() === "max" ? maxUint256 : BigInt(amountArg);
 
 console.log(`Token:   ${symbol} (${tokenAddress})`);
 console.log(`Spender: ${spenderAddress}`);
@@ -80,14 +76,10 @@ const currentAllowance = await token.read.allowance([
   walletClient.account.address,
   spenderAddress as `0x${string}`,
 ]);
-console.log(
-  `Current allowance: ${formatUnits(currentAllowance, decimals)} ${symbol}`,
-);
+console.log(`Current allowance: ${formatUnits(currentAllowance, decimals)} ${symbol}`);
 
 if (currentAllowance >= amount) {
-  console.log(
-    "\n✅ Sufficient allowance already exists. No approval needed.\n",
-  );
+  console.log("\n✅ Sufficient allowance already exists. No approval needed.\n");
   process.exit(0);
 }
 
@@ -102,10 +94,7 @@ try {
 }
 
 console.log("📝 Sending approval transaction...");
-const hash = await token.write.approve([
-  spenderAddress as `0x${string}`,
-  amount,
-]);
+const hash = await token.write.approve([spenderAddress as `0x${string}`, amount]);
 console.log(`Transaction hash: ${hash}`);
 
 console.log("⏳ Waiting for confirmation...");

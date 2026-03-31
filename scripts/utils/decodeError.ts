@@ -1,9 +1,4 @@
-import {
-  decodeErrorResult,
-  BaseError,
-  ContractFunctionRevertedError,
-  Abi,
-} from "viem";
+import { decodeErrorResult, BaseError, ContractFunctionRevertedError, Abi } from "viem";
 
 /**
  * Try to decode a contract error from a viem error object.
@@ -17,9 +12,7 @@ export function tryDecodeError(error: any, abi: readonly unknown[]): string {
   try {
     // Try to extract revert data from the error
     if (error instanceof BaseError) {
-      const revertError = error.walk(
-        (err) => err instanceof ContractFunctionRevertedError,
-      );
+      const revertError = error.walk((err) => err instanceof ContractFunctionRevertedError);
       if (revertError instanceof ContractFunctionRevertedError) {
         const errorName = revertError.data?.errorName ?? "Unknown error";
         const args = revertError.data?.args;
@@ -124,11 +117,7 @@ export function logErrorDetails(error: any, abi: readonly unknown[]): void {
  */
 function extractRawErrorData(error: any): `0x${string}` | undefined {
   // Direct data property
-  if (
-    error?.data &&
-    typeof error.data === "string" &&
-    error.data.startsWith("0x")
-  ) {
+  if (error?.data && typeof error.data === "string" && error.data.startsWith("0x")) {
     return error.data as `0x${string}`;
   }
 

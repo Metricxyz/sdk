@@ -49,12 +49,7 @@ type ModifyLiquidityParams = {
   specAmount1: bigint;
 };
 
-export type ModifyLiquidityArgs = readonly [
-  bigint,
-  LiquidityDelta[],
-  bigint,
-  bigint,
-];
+export type ModifyLiquidityArgs = readonly [bigint, LiquidityDelta[], bigint, bigint];
 
 export interface BuildModifyLiquidityArgsBase {
   publicClient: PublicClient;
@@ -182,17 +177,14 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("currentPriceX64 must be > 0");
   }
 
-  const currentPrice =
-    Number(currentPriceX64.toString()) / Number(Q64.toString());
+  const currentPrice = Number(currentPriceX64.toString()) / Number(Q64.toString());
   if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
     throw new Error("currentPriceX64 is out of supported numeric range");
   }
 
   const calibrationValue = totalValueToAddInToken / BigInt(bins.length) + 1n;
   const calibrationTargets: bigint[] = weights
-    ? weights.map(
-        (w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n,
-      )
+    ? weights.map((w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n)
     : Array(bins.length).fill(calibrationValue);
 
   const calibrationBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
@@ -217,15 +209,12 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     : calibrationSpecAmount1;
 
   if (calibrationSpecAmount <= 0n) {
-    throw new Error(
-      "failed to calibrate uniform total amount scaling: specAmount is zero",
-    );
+    throw new Error("failed to calibrate uniform total amount scaling: specAmount is zero");
   }
 
   const scaledBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
     bin,
-    targetValueInToken:
-      (calibrationTargets[i] * totalValueToAddInToken) / calibrationSpecAmount,
+    targetValueInToken: (calibrationTargets[i] * totalValueToAddInToken) / calibrationSpecAmount,
     targetValueInToken0: totalValueInToken0,
   }));
 
@@ -363,25 +352,19 @@ export async function buildModifyLiquidityArgsForAddition({
       throw new Error(`internal error: missing target for bin ${binIdx}`);
     }
 
-    const targetAmount0Scaled =
-      target.targetAmount0 * immutables.token0ScaleMultiplier;
-    const targetAmount1Scaled =
-      target.targetAmount1 * immutables.token1ScaleMultiplier;
+    const targetAmount0Scaled = target.targetAmount0 * immutables.token0ScaleMultiplier;
+    const targetAmount1Scaled = target.targetAmount1 * immutables.token1ScaleMultiplier;
 
-    const targetValueInToken1Scaled =
-      target.targetValueInToken1 * immutables.token1ScaleMultiplier;
+    const targetValueInToken1Scaled = target.targetValueInToken1 * immutables.token1ScaleMultiplier;
 
     const token0BalanceScaled = binStates.token0BalancesScaled[i];
     const token1BalanceScaled = binStates.token1BalancesScaled[i];
     const totalShares = binStates.totalShares[i];
 
-    const isBelowBin =
-      binIdx < curBinIdx ||
-      (binIdx === curBinIdx && curPosInBin === MAX_UINT104);
-    const isAboveBin =
-      binIdx > curBinIdx || (binIdx === curBinIdx && curPosInBin === 0n);
+    const isBelowBin = binIdx < curBinIdx || (binIdx === curBinIdx && curPosInBin === MAX_UINT104);
+    const isAboveBin = binIdx > curBinIdx || (binIdx === curBinIdx && curPosInBin === 0n);
 
-    let sharesToAdd = 0n;
+    let sharesToAdd: bigint;
 
     if (isBelowBin) {
       if (targetAmount1Scaled <= 0n) {
@@ -391,14 +374,9 @@ export async function buildModifyLiquidityArgsForAddition({
       }
       if (totalShares > 0n) {
         if (token1BalanceScaled <= 0n) {
-          throw new Error(
-            `bin ${binIdx} has zero token1 balance with non-zero shares`,
-          );
+          throw new Error(`bin ${binIdx} has zero token1 balance with non-zero shares`);
         }
-        sharesToAdd = ceilDiv(
-          targetAmount1Scaled * totalShares,
-          token1BalanceScaled,
-        );
+        sharesToAdd = ceilDiv(targetAmount1Scaled * totalShares, token1BalanceScaled);
       } else {
         sharesToAdd = ceilDiv(
           targetAmount1Scaled * ONE_E18,
@@ -413,14 +391,9 @@ export async function buildModifyLiquidityArgsForAddition({
       }
       if (totalShares > 0n) {
         if (token0BalanceScaled <= 0n) {
-          throw new Error(
-            `bin ${binIdx} has zero token0 balance with non-zero shares`,
-          );
+          throw new Error(`bin ${binIdx} has zero token0 balance with non-zero shares`);
         }
-        sharesToAdd = ceilDiv(
-          targetAmount0Scaled * totalShares,
-          token0BalanceScaled,
-        );
+        sharesToAdd = ceilDiv(targetAmount0Scaled * totalShares, token0BalanceScaled);
       } else {
         sharesToAdd = ceilDiv(
           targetAmount0Scaled * ONE_E18,
@@ -430,11 +403,9 @@ export async function buildModifyLiquidityArgsForAddition({
     } else {
       if (totalShares > 0n) {
         const totalValueInToken1Scaled =
-          token1BalanceScaled +
-          convertToken0ToToken1(token0BalanceScaled, 1n, 1n, priceE18);
+          token1BalanceScaled + convertToken0ToToken1(token0BalanceScaled, 1n, 1n, priceE18);
 
-        sharesToAdd =
-          (targetValueInToken1Scaled * totalShares) / totalValueInToken1Scaled;
+        sharesToAdd = (targetValueInToken1Scaled * totalShares) / totalValueInToken1Scaled;
       } else {
         const token0Portion = MAX_UINT104 - curPosInBin;
         const token1Portion = curPosInBin;
@@ -442,10 +413,7 @@ export async function buildModifyLiquidityArgsForAddition({
         sharesToAdd =
           (targetValueInToken1Scaled * ONE_E18) /
           ((immutables.initialScaledToken1PerShareE18 * token1Portion +
-            (immutables.initialScaledToken0PerShareE18 *
-              token0Portion *
-              priceE18) /
-              ONE_E18) /
+            (immutables.initialScaledToken0PerShareE18 * token0Portion * priceE18) / ONE_E18) /
             MAX_UINT104);
       }
     }
@@ -454,48 +422,34 @@ export async function buildModifyLiquidityArgsForAddition({
       sharesToAdd = 1n;
     }
 
-    let amount0ScaledToAdd = 0n;
-    let amount1ScaledToAdd = 0n;
     if (sharesToAdd > MAX_INT104) {
-      throw new Error(
-        `sharesToAdd (${sharesToAdd}) for bin ${binIdx} exceeds int104 max`,
-      );
+      throw new Error(`sharesToAdd (${sharesToAdd}) for bin ${binIdx} exceeds int104 max`);
     }
 
-    if (totalShares > 0n) {
-      amount0ScaledToAdd = ceilDiv(
-        sharesToAdd * token0BalanceScaled,
-        totalShares,
-      );
-      amount1ScaledToAdd = ceilDiv(
-        sharesToAdd * token1BalanceScaled,
-        totalShares,
-      );
-    } else if (isBelowBin) {
-      amount0ScaledToAdd = 0n;
-      amount1ScaledToAdd = ceilDiv(
-        sharesToAdd * immutables.initialScaledToken1PerShareE18,
-        ONE_E18,
-      );
-    } else if (isAboveBin) {
-      amount0ScaledToAdd = ceilDiv(
-        sharesToAdd * immutables.initialScaledToken0PerShareE18,
-        ONE_E18,
-      );
-      amount1ScaledToAdd = 0n;
-    } else {
-      const token0Portion = MAX_UINT104 - curPosInBin;
-      const token1Portion = curPosInBin;
-
-      amount0ScaledToAdd = ceilDiv(
-        sharesToAdd * immutables.initialScaledToken0PerShareE18 * token0Portion,
-        ONE_E18 * MAX_UINT104,
-      );
-      amount1ScaledToAdd = ceilDiv(
-        sharesToAdd * immutables.initialScaledToken1PerShareE18 * token1Portion,
-        ONE_E18 * MAX_UINT104,
-      );
-    }
+    const [amount0ScaledToAdd, amount1ScaledToAdd] =
+      totalShares > 0n
+        ? [
+            ceilDiv(sharesToAdd * token0BalanceScaled, totalShares),
+            ceilDiv(sharesToAdd * token1BalanceScaled, totalShares),
+          ]
+        : isBelowBin
+          ? [0n, ceilDiv(sharesToAdd * immutables.initialScaledToken1PerShareE18, ONE_E18)]
+          : isAboveBin
+            ? [ceilDiv(sharesToAdd * immutables.initialScaledToken0PerShareE18, ONE_E18), 0n]
+            : (() => {
+                const token0Portion = MAX_UINT104 - curPosInBin;
+                const token1Portion = curPosInBin;
+                return [
+                  ceilDiv(
+                    sharesToAdd * immutables.initialScaledToken0PerShareE18 * token0Portion,
+                    ONE_E18 * MAX_UINT104,
+                  ),
+                  ceilDiv(
+                    sharesToAdd * immutables.initialScaledToken1PerShareE18 * token1Portion,
+                    ONE_E18 * MAX_UINT104,
+                  ),
+                ] as const;
+              })();
 
     const amount0External = scaledPositiveDeltaToExternal(
       amount0ScaledToAdd,
@@ -551,17 +505,13 @@ export async function buildModifyLiquidityArgsForRemoval({
       );
     }
     if (spec.percentageToRemove == null && spec.sharesToRemove == null) {
-      throw new Error(
-        `Bin ${spec.bin}: must specify either percentageToRemove or sharesToRemove`,
-      );
+      throw new Error(`Bin ${spec.bin}: must specify either percentageToRemove or sharesToRemove`);
     }
     if (
       spec.percentageToRemove != null &&
       (spec.percentageToRemove <= 0 || spec.percentageToRemove > 100)
     ) {
-      throw new Error(
-        `Bin ${spec.bin}: percentageToRemove must be between 0 and 100`,
-      );
+      throw new Error(`Bin ${spec.bin}: percentageToRemove must be between 0 and 100`);
     }
   }
 
@@ -585,17 +535,12 @@ export async function buildModifyLiquidityArgsForRemoval({
     let sharesToRemove: bigint;
 
     if (spec.sharesToRemove != null) {
-      sharesToRemove =
-        spec.sharesToRemove > currentShares
-          ? currentShares
-          : spec.sharesToRemove;
+      sharesToRemove = spec.sharesToRemove > currentShares ? currentShares : spec.sharesToRemove;
     } else {
       sharesToRemove =
         spec.percentageToRemove === 100
           ? currentShares
-          : (currentShares *
-              BigInt(Math.floor(spec.percentageToRemove! * 100))) /
-            10000n;
+          : (currentShares * BigInt(Math.floor(spec.percentageToRemove! * 100))) / 10000n;
     }
 
     if (sharesToRemove > 0n) {
@@ -609,14 +554,8 @@ export async function buildModifyLiquidityArgsForRemoval({
   const computed: ModifyLiquidityParams = {
     salt,
     deltas,
-    specAmount0: applySpecAmountBuffer(
-      NO_SLIPPAGE_LIMIT,
-      specAmountBufferPercent,
-    ),
-    specAmount1: applySpecAmountBuffer(
-      NO_SLIPPAGE_LIMIT,
-      specAmountBufferPercent,
-    ),
+    specAmount0: applySpecAmountBuffer(NO_SLIPPAGE_LIMIT, specAmountBufferPercent),
+    specAmount1: applySpecAmountBuffer(NO_SLIPPAGE_LIMIT, specAmountBufferPercent),
   };
 
   return toModifyLiquidityArgs(computed);
@@ -685,23 +624,13 @@ export function encodeModifyLiquidityCalldata(
   });
 }
 
-function validateSpecAmountBufferPercent(
-  specAmountBufferPercent: number,
-): void {
-  if (
-    !Number.isFinite(specAmountBufferPercent) ||
-    specAmountBufferPercent < 0
-  ) {
-    throw new Error(
-      "specAmountBufferPercent must be a non-negative percent number",
-    );
+function validateSpecAmountBufferPercent(specAmountBufferPercent: number): void {
+  if (!Number.isFinite(specAmountBufferPercent) || specAmountBufferPercent < 0) {
+    throw new Error("specAmountBufferPercent must be a non-negative percent number");
   }
 }
 
-function applySpecAmountBuffer(
-  specAmount: bigint,
-  specAmountBufferPercent: number,
-): bigint {
+function applySpecAmountBuffer(specAmount: bigint, specAmountBufferPercent: number): bigint {
   if (specAmountBufferPercent === 0 || specAmount === NO_SLIPPAGE_LIMIT) {
     return specAmount;
   }

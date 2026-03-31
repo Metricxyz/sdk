@@ -29,9 +29,7 @@ for (const chain of CHAINS) {
     const chainId = await publicClient.getChainId();
 
     if (chainId === chain.expectedChainId) {
-      console.log(
-        `✅ ${chain.name.padEnd(12)} — chain ID ${chainId} (correct)`,
-      );
+      console.log(`✅ ${chain.name.padEnd(12)} — chain ID ${chainId} (correct)`);
     } else {
       console.log(
         `❌ ${chain.name.padEnd(12)} — expected ${chain.expectedChainId}, got ${chainId}`,

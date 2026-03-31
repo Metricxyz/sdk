@@ -13,13 +13,7 @@
 // @ts-nocheck - viem version mismatch between hardhat and sdk
 
 import { network } from "hardhat";
-import {
-  erc20Abi,
-  formatEther,
-  formatUnits,
-  getContract,
-  zeroAddress,
-} from "viem";
+import { erc20Abi, formatEther, formatUnits, getContract, zeroAddress } from "viem";
 import * as readline from "readline";
 import * as sdk from "../../index.js";
 import { logErrorDetails } from "../../scripts/utils/decodeError.js";
@@ -85,10 +79,7 @@ async function describeAssetBalance(
       client: publicClient,
     });
 
-    const [symbol, decimals] = await Promise.all([
-      token.read.symbol(),
-      token.read.decimals(),
-    ]);
+    const [symbol, decimals] = await Promise.all([token.read.symbol(), token.read.decimals()]);
 
     return `${formatUnits(amount, decimals)} ${symbol}`;
   } catch {
@@ -119,9 +110,7 @@ async function main() {
 
   const assetsInput =
     process.env.ASSETS ??
-    (await prompt(
-      `Enter comma-separated asset addresses (use ${zeroAddress} for native ETH): `,
-    ));
+    (await prompt(`Enter comma-separated asset addresses (use ${zeroAddress} for native ETH): `));
 
   if (!assetsInput) {
     console.error("\nERROR: ASSETS list is required");
@@ -142,18 +131,10 @@ async function main() {
 
   console.log("\nReading factory balances...\n");
 
-  const balances = await sdk.getFactoryAssetBalances(
-    publicClient,
-    factoryAddress,
-    assets,
-  );
+  const balances = await sdk.getFactoryAssetBalances(publicClient, factoryAddress, assets);
 
   for (const item of balances) {
-    const label = await describeAssetBalance(
-      publicClient,
-      item.asset,
-      item.amount,
-    );
+    const label = await describeAssetBalance(publicClient, item.asset, item.amount);
     console.log(`${item.asset} -> ${label}`);
   }
 
@@ -189,14 +170,10 @@ async function main() {
   }
 
   for (const tx of result.collected) {
-    console.log(
-      `Collected ${tx.amount.toString()} from ${tx.asset} | tx: ${tx.hash}`,
-    );
+    console.log(`Collected ${tx.amount.toString()} from ${tx.asset} | tx: ${tx.hash}`);
 
     if (tx.receipt) {
-      console.log(
-        `  status: ${tx.receipt.status} | block: ${tx.receipt.blockNumber}`,
-      );
+      console.log(`  status: ${tx.receipt.status} | block: ${tx.receipt.blockNumber}`);
     }
   }
 

@@ -26,9 +26,14 @@ async function main() {
     process.exit(1);
   }
 
-  const pools = raw.split(",").map((a) => a.trim()).filter(Boolean) as `0x${string}`[];
+  const pools = raw
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean) as `0x${string}`[];
 
-  console.log(`Collecting from ${pools.length} pool(s) on chain ${await publicClient.getChainId()}`);
+  console.log(
+    `Collecting from ${pools.length} pool(s) on chain ${await publicClient.getChainId()}`,
+  );
 
   for (const pool of pools) {
     console.log(`\nPool: ${pool}`);

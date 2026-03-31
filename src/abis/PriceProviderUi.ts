@@ -159,9 +159,7 @@ export const PriceProviderUiAbi = [
     type: "function",
     name: "offchainOracle",
     inputs: [],
-    outputs: [
-      { name: "", type: "address", internalType: "contract IOffchainOracle" },
-    ],
+    outputs: [{ name: "", type: "address", internalType: "contract IOffchainOracle" }],
     stateMutability: "view",
   },
   {
@@ -206,9 +204,7 @@ export const PriceProviderUiAbi = [
   {
     type: "function",
     name: "setMaxClDeviation",
-    inputs: [
-      { name: "newMaxDeviation", type: "uint16", internalType: "uint16" },
-    ],
+    inputs: [{ name: "newMaxDeviation", type: "uint16", internalType: "uint16" }],
     outputs: [],
     stateMutability: "nonpayable",
   },

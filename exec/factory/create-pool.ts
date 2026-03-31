@@ -47,9 +47,7 @@ function loadConfig(): PoolConfig {
 
   if (!fs.existsSync(configPath)) {
     console.error(`\n❌ Config file not found: ${configPath}`);
-    console.error(
-      `\nCreate a config file based on scripts/pool-config.example.json`,
-    );
+    console.error(`\nCreate a config file based on scripts/pool-config.example.json`);
     process.exit(1);
   }
 
@@ -58,9 +56,7 @@ function loadConfig(): PoolConfig {
 
   // Remove comment fields
   const cleanConfig = JSON.parse(
-    JSON.stringify(config, (key, value) =>
-      key === "comment" ? undefined : value,
-    ),
+    JSON.stringify(config, (key, value) => (key === "comment" ? undefined : value)),
   );
 
   return cleanConfig;
@@ -68,13 +64,7 @@ function loadConfig(): PoolConfig {
 
 function validateConfig(config: PoolConfig): void {
   // Validate addresses
-  const addressFields = [
-    "factory",
-    "token0",
-    "token1",
-    "priceProvider",
-    "admin",
-  ];
+  const addressFields = ["factory", "token0", "token1", "priceProvider", "admin"];
   for (const field of addressFields) {
     const value = config[field as keyof PoolConfig] as string;
     if (!value || !value.startsWith("0x") || value.length !== 42) {
@@ -163,19 +153,13 @@ async function main() {
       : 1000000000000000000n, // 1e18 default (= 1 token per share for 18-decimal tokens)
 
     // Drift (support both E8 and percent formats)
-    maxDriftPercent:
-      config.maxDriftPercent ??
-      (config.maxDriftE8 ? config.maxDriftE8 / 1e6 : 5.0),
+    maxDriftPercent: config.maxDriftPercent ?? (config.maxDriftE8 ? config.maxDriftE8 / 1e6 : 5.0),
     driftDecayPerSecondPercent:
       config.driftDecayPerSecondPercent ??
-      (config.driftDecayPerSecondE8
-        ? config.driftDecayPerSecondE8 / 1e6
-        : 0.01),
+      (config.driftDecayPerSecondE8 ? config.driftDecayPerSecondE8 / 1e6 : 0.01),
 
     // Fees (support both E6 and percent formats)
-    adminFeePercent:
-      config.adminFeePercent ??
-      (config.adminFeeE6 ? config.adminFeeE6 / 10000 : 0),
+    adminFeePercent: config.adminFeePercent ?? (config.adminFeeE6 ? config.adminFeeE6 / 10000 : 0),
     adminFeeDestination: config.admin as `0x${string}`,
 
     // Current bin distance from provided price (default 0)
@@ -189,18 +173,12 @@ async function main() {
   };
 
   // Calculate total bin coverage
-  const nonNegTotalE6 = config.nonNegativeBins.reduce(
-    (sum, [len]) => sum + len,
-    0,
-  );
+  const nonNegTotalE6 = config.nonNegativeBins.reduce((sum, [len]) => sum + len, 0);
   const negTotalE6 = config.negativeBins.reduce((sum, [len]) => sum + len, 0);
 
   // Resolve the percent values for display
-  const maxDrift =
-    config.maxDriftPercent ?? (config.maxDriftE8 ? config.maxDriftE8 / 1e6 : 5);
-  const adminFee =
-    config.adminFeePercent ??
-    (config.adminFeeE6 ? config.adminFeeE6 / 10000 : 0);
+  const maxDrift = config.maxDriftPercent ?? (config.maxDriftE8 ? config.maxDriftE8 / 1e6 : 5);
+  const adminFee = config.adminFeePercent ?? (config.adminFeeE6 ? config.adminFeeE6 / 10000 : 0);
 
   // Display config summary
   console.log("\n📊 Pool Configuration:");
@@ -213,9 +191,7 @@ async function main() {
   );
   console.log(`   Max drift: ${maxDrift}%`);
   console.log(`   Admin fee: ${adminFee}%`);
-  console.log(
-    `   Report swap to price provider: ${config.reportSwapToPriceProvider}`,
-  );
+  console.log(`   Report swap to price provider: ${config.reportSwapToPriceProvider}`);
 
   // Confirm before deploying
   console.log("\n⚠️  About to deploy pool on mainnet!");
@@ -245,11 +221,8 @@ async function main() {
       console.log(`   Gas used: ${receipt.gasUsed}`);
 
       // Parse PoolCreated event
-      const poolCreatedTopic =
-        "0xe1c304acd9cda85cdced26da15edf3fd1a07d96caf4f9cedb068823618b93d4d";
-      const poolCreatedLog = receipt.logs.find(
-        (log) => log.topics[0] === poolCreatedTopic,
-      );
+      const poolCreatedTopic = "0xe1c304acd9cda85cdced26da15edf3fd1a07d96caf4f9cedb068823618b93d4d";
+      const poolCreatedLog = receipt.logs.find((log) => log.topics[0] === poolCreatedTopic);
       if (poolCreatedLog && poolCreatedLog.data) {
         // Pool address is in the data field (first 32 bytes after removing 0x)
         const poolAddr = "0x" + poolCreatedLog.data.slice(26, 66);

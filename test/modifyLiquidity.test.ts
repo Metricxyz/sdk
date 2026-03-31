@@ -12,16 +12,8 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
   it("should add liquidity to a position using prepared payload", async () => {
     const publicClient = await viem.getPublicClient();
 
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token 0",
-      "TKN0",
-      18,
-    ]);
-    const token1 = await viem.deployContract("MockERC20", [
-      "Token 1",
-      "TKN1",
-      6,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
+    const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 6]);
 
     const priceProvider = await viem.deployContract("MockOracle", []);
     const midPriceX64 = sdk.priceToQ64(1);
@@ -32,10 +24,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       deployer.account.address,
       defaultProtocolFee,
     ]);
-    const deployer_contract = await viem.deployContract(
-      "MetricOmmPoolDeployer",
-      [factory.address],
-    );
+    const deployer_contract = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
     await factory.write.setPoolDeployer([deployer_contract.address]);
 
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
@@ -67,11 +56,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     const createReceipt = await publicClient.waitForTransactionReceipt({
       hash: createHash,
     });
-    assert.equal(
-      createReceipt.status,
-      "success",
-      "Pool creation should succeed",
-    );
+    assert.equal(createReceipt.status, "success", "Pool creation should succeed");
 
     const poolAddress = getPoolAddressFromCreateReceipt(createReceipt.logs);
 
@@ -171,11 +156,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     const receipt2 = await publicClient.waitForTransactionReceipt({
       hash: hash2,
     });
-    assert.equal(
-      receipt2.status,
-      "success",
-      "Second transaction should succeed",
-    );
+    assert.equal(receipt2.status, "success", "Second transaction should succeed");
 
     // Verify shares doubled
     const positionSharesAfter = await sdk.getPositionShares(
@@ -189,9 +170,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     );
 
     for (const shareAfter of positionSharesAfter) {
-      const shareBefore = positionShares.find(
-        (s) => s.binIdx === shareAfter.binIdx,
-      );
+      const shareBefore = positionShares.find((s) => s.binIdx === shareAfter.binIdx);
       assert.ok(shareBefore, `Should find shares for bin ${shareAfter.binIdx}`);
       assert.equal(
         shareAfter.shares,
@@ -213,16 +192,8 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
   it("should create separate positions with different salts using prepared payload", async () => {
     const publicClient = await viem.getPublicClient();
 
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token 0",
-      "TKN0",
-      18,
-    ]);
-    const token1 = await viem.deployContract("MockERC20", [
-      "Token 1",
-      "TKN1",
-      6,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
+    const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 6]);
 
     const priceProvider = await viem.deployContract("MockOracle", []);
     const midPriceX64 = sdk.priceToQ64(1);
@@ -233,10 +204,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       deployer.account.address,
       defaultProtocolFee,
     ]);
-    const deployer_contract = await viem.deployContract(
-      "MetricOmmPoolDeployer",
-      [factory.address],
-    );
+    const deployer_contract = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
     await factory.write.setPoolDeployer([deployer_contract.address]);
 
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
@@ -278,9 +246,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     await token1.write.approve([poolAddress, mintAmount1]);
 
     // Create position with salt=1 using prepared payload
-    const deltas1: sdk.LiquidityDelta[] = [
-      { bin: 0, deltaShares: parseUnits("100", 18) },
-    ];
+    const deltas1: sdk.LiquidityDelta[] = [{ bin: 0, deltaShares: parseUnits("100", 18) }];
 
     const modifyLiquidityArgs1: sdk.ModifyLiquidityArgs = [
       1n, // salt = 1
@@ -297,16 +263,10 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     const receipt1 = await publicClient.waitForTransactionReceipt({
       hash: hash1,
     });
-    assert.equal(
-      receipt1.status,
-      "success",
-      "First position creation should succeed",
-    );
+    assert.equal(receipt1.status, "success", "First position creation should succeed");
 
     // Create position with salt=2 using prepared payload
-    const deltas2: sdk.LiquidityDelta[] = [
-      { bin: 1, deltaShares: parseUnits("200", 18) },
-    ];
+    const deltas2: sdk.LiquidityDelta[] = [{ bin: 1, deltaShares: parseUnits("200", 18) }];
 
     const modifyLiquidityArgs2: sdk.ModifyLiquidityArgs = [
       2n, // salt = 2
@@ -323,11 +283,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     const receipt2 = await publicClient.waitForTransactionReceipt({
       hash: hash2,
     });
-    assert.equal(
-      receipt2.status,
-      "success",
-      "Second position creation should succeed",
-    );
+    assert.equal(receipt2.status, "success", "Second position creation should succeed");
 
     // Verify position 1 (salt=1)
     const position1Shares = await sdk.getPositionShares(

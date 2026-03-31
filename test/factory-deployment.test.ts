@@ -14,23 +14,14 @@ import * as sdk from "../index.js";
 
 describe("Factory Deployment Flow", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
-  const [owner] = await viem.getWalletClients();
 
   async function deployFactoryInfrastructure() {
     const publicClient = await viem.getPublicClient();
     const [ownerClient, adminClient] = await viem.getWalletClients();
 
     // Deploy mock tokens
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token 0",
-      "TKN0",
-      18,
-    ]);
-    const token1 = await viem.deployContract("MockERC20", [
-      "Token 1",
-      "TKN1",
-      18,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
+    const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 18]);
 
     // Deploy mock price provider (Q64.64 format: 1 << 64 = 1:1 price)
     const oneToOnePrice = 1n << 64n;
@@ -45,9 +36,7 @@ describe("Factory Deployment Flow", async () => {
     ]);
 
     // Deploy pool deployer with factory address
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [
-      factory.address,
-    ]);
+    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
 
     // Link deployer to factory (owner calls setPoolDeployer)
     await factory.write.setPoolDeployer([poolDeployer.address]);
@@ -147,8 +136,9 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should encode pool creation calldata correctly", async () => {
-    const { token0, token1, priceProvider, admin } =
-      await networkHelpers.loadFixture(deployFactoryInfrastructure);
+    const { token0, token1, priceProvider, admin } = await networkHelpers.loadFixture(
+      deployFactoryInfrastructure,
+    );
 
     const poolConfig: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
@@ -175,9 +165,7 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should prevent pool deployer from being set twice on factory", async () => {
-    const { factory, poolDeployer } = await networkHelpers.loadFixture(
-      deployFactoryInfrastructure,
-    );
+    const { factory, poolDeployer } = await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
     // Try to set pool deployer again (should fail - already set)
     await assert.rejects(
@@ -190,8 +178,9 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should only allow factory to deploy pools via deployer", async () => {
-    const { poolDeployer, token0, token1, priceProvider, admin } =
-      await networkHelpers.loadFixture(deployFactoryInfrastructure);
+    const { poolDeployer, token0, token1, priceProvider, admin } = await networkHelpers.loadFixture(
+      deployFactoryInfrastructure,
+    );
 
     // Try to call deploy directly on deployer (not from factory)
     await assert.rejects(

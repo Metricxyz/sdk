@@ -66,8 +66,7 @@ describe("Swap args builders", () => {
       deadline: 123n,
     };
 
-    const prepared =
-      sdk.prepareSwapExactInputNativeForTokensCalldata(nativeParams);
+    const prepared = sdk.prepareSwapExactInputNativeForTokensCalldata(nativeParams);
     assert.ok(prepared.data.startsWith("0x"));
     assert.equal(prepared.value, nativeParams.amountIn);
   });

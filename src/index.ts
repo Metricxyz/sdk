@@ -32,13 +32,7 @@ export type {
 } from "./types.js";
 
 // ============ Constants ============
-export {
-  Q64,
-  MAX_UINT128,
-  MAX_INT128,
-  MAX_UINT104,
-  MAX_INT104,
-} from "./constants.js";
+export { Q64, MAX_UINT128, MAX_INT128, MAX_UINT104, MAX_INT104 } from "./constants.js";
 
 // ============ Addresses ============
 export {

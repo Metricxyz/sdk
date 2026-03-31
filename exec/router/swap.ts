@@ -65,20 +65,13 @@ async function main() {
   console.log(`StateView: ${addresses.stateView}\n`);
 
   // Get pool address from env or prompt
-  const poolAddress = await getAddressFromEnvOrPrompt(
-    "POOL_ADDRESS",
-    "Enter pool address: ",
-  );
+  const poolAddress = await getAddressFromEnvOrPrompt("POOL_ADDRESS", "Enter pool address: ");
 
   // Read pool info using SDK
   console.log("\n📊 Reading pool information...\n");
 
   const immutables = await sdk.getPoolImmutables(publicClient, poolAddress);
-  const slot0 = await sdk.getSlot0(
-    publicClient,
-    addresses.stateView,
-    poolAddress,
-  );
+  const slot0 = await sdk.getSlot0(publicClient, addresses.stateView, poolAddress);
 
   // Get token info
   const token0 = getContract({
@@ -106,17 +99,14 @@ async function main() {
   console.log(`Token0:          ${symbol0} (${immutables.token0})`);
   console.log(`Token1:          ${symbol1} (${immutables.token1})`);
   console.log(`Current Bin:     ${slot0.curBinIdx}`);
-  console.log(
-    `Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`,
-  );
+  console.log(`Bin Range:       ${immutables.lowestBin} to ${immutables.highestBin}`);
   console.log();
 
   // Get swap parameters
   const directionStr = await prompt(
     `Swap direction? (0 for ${symbol0}->${symbol1}, 1 for ${symbol1}->${symbol0}): `,
   );
-  const zeroForOne =
-    directionStr === "0" || directionStr.toLowerCase().includes("zero");
+  const zeroForOne = directionStr === "0" || directionStr.toLowerCase().includes("zero");
 
   const inputToken = zeroForOne ? symbol0 : symbol1;
   const outputToken = zeroForOne ? symbol1 : symbol0;
@@ -124,9 +114,7 @@ async function main() {
   const outputDecimals = zeroForOne ? decimals1 : decimals0;
   const inputTokenAddress = zeroForOne ? immutables.token0 : immutables.token1;
 
-  const typeStr = await prompt(
-    "Swap type? (0 for exact-in, 1 for exact-out, default: exact-in): ",
-  );
+  const typeStr = await prompt("Swap type? (0 for exact-in, 1 for exact-out, default: exact-in): ");
   const isExactInput = typeStr !== "1";
 
   const amountStr = await prompt(
@@ -136,10 +124,7 @@ async function main() {
     console.error("\n❌ Amount is required");
     process.exit(1);
   }
-  const amount = parseUnits(
-    amountStr,
-    isExactInput ? inputDecimals : outputDecimals,
-  );
+  const amount = parseUnits(amountStr, isExactInput ? inputDecimals : outputDecimals);
 
   const slippageStr = await prompt("Slippage tolerance % (default: 0.5): ");
   const slippagePercent = slippageStr ? parseFloat(slippageStr) : 0.5;
@@ -193,19 +178,13 @@ async function main() {
   console.log("\n📝 Swap Parameters:");
   console.log("-".repeat(60));
   console.log(`Direction:       ${inputToken} -> ${outputToken}`);
-  console.log(
-    `Type:            ${isExactInput ? "Exact Input" : "Exact Output"}`,
-  );
+  console.log(`Type:            ${isExactInput ? "Exact Input" : "Exact Output"}`);
   console.log(
     `Amount:          ${formatUnits(amount, isExactInput ? inputDecimals : outputDecimals)} ${isExactInput ? inputToken : outputToken}`,
   );
   console.log(`Slippage:        ${slippagePercent}%`);
-  console.log(
-    `Expected Input:  ${formatUnits(expectedInput, inputDecimals)} ${inputToken}`,
-  );
-  console.log(
-    `Expected Output: ${formatUnits(expectedOutput, outputDecimals)} ${outputToken}`,
-  );
+  console.log(`Expected Input:  ${formatUnits(expectedInput, inputDecimals)} ${inputToken}`);
+  console.log(`Expected Output: ${formatUnits(expectedOutput, outputDecimals)} ${outputToken}`);
   console.log();
 
   // Check balances
@@ -238,19 +217,11 @@ async function main() {
     client: { public: publicClient, wallet: walletClient },
   });
 
-  const allowance = await inputTokenContract.read.allowance([
-    account,
-    addresses.router,
-  ]);
+  const allowance = await inputTokenContract.read.allowance([account, addresses.router]);
 
   if (allowance < requiredAllowance) {
-    console.log(
-      `⚠️  Insufficient allowance. Approving ${inputToken} for router...`,
-    );
-    const approveHash = await inputTokenContract.write.approve([
-      addresses.router,
-      sdk.MAX_UINT128,
-    ]);
+    console.log(`⚠️  Insufficient allowance. Approving ${inputToken} for router...`);
+    const approveHash = await inputTokenContract.write.approve([addresses.router, sdk.MAX_UINT128]);
     await publicClient.waitForTransactionReceipt({ hash: approveHash });
     console.log(`✅ ${inputToken} approved\n`);
   }
@@ -293,23 +264,15 @@ async function main() {
       const delta1 = newBalance1 - balance1;
 
       console.log("Token Changes:");
-      console.log(
-        `  ${symbol0}: ${delta0 >= 0n ? "+" : ""}${formatUnits(delta0, decimals0)}`,
-      );
-      console.log(
-        `  ${symbol1}: ${delta1 >= 0n ? "+" : ""}${formatUnits(delta1, decimals1)}`,
-      );
+      console.log(`  ${symbol0}: ${delta0 >= 0n ? "+" : ""}${formatUnits(delta0, decimals0)}`);
+      console.log(`  ${symbol1}: ${delta1 >= 0n ? "+" : ""}${formatUnits(delta1, decimals1)}`);
 
       console.log("\nBalances After:");
       console.log(`  ${symbol0}: ${formatUnits(newBalance0, decimals0)}`);
       console.log(`  ${symbol1}: ${formatUnits(newBalance1, decimals1)}`);
 
       // Show updated pool state
-      const newSlot0 = await sdk.getSlot0(
-        publicClient,
-        addresses.stateView,
-        poolAddress,
-      );
+      const newSlot0 = await sdk.getSlot0(publicClient, addresses.stateView, poolAddress);
       console.log("\nPool State After:");
       console.log(`  Current Bin: ${newSlot0.curBinIdx}`);
       console.log();

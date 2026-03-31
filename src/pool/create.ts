@@ -122,9 +122,7 @@ export interface CreatePoolParams {
  * Prepare factory parameters from user-friendly CreatePoolFactoryParams.
  * Returns the properly formatted parameters for the factory's createPool function.
  */
-export function prepareFactoryCreatePoolParams(
-  params: CreatePoolFactoryParams,
-): {
+export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams): {
   token0: Address;
   token1: Address;
   priceProvider: Address;
@@ -143,9 +141,7 @@ export function prepareFactoryCreatePoolParams(
   salt: Hex;
 } {
   const maxDriftE8 = BigInt(Math.round(params.maxDriftPercent * 1_000_000));
-  const driftDecayPerSecondE8 = BigInt(
-    Math.round(params.driftDecayPerSecondPercent * 1_000_000),
-  );
+  const driftDecayPerSecondE8 = BigInt(Math.round(params.driftDecayPerSecondPercent * 1_000_000));
 
   const adminFee = Math.round(params.adminFeePercent * 10_000);
 

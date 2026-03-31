@@ -50,16 +50,34 @@ async function main() {
   const immutables = await sdk.getPoolImmutables(publicClient, poolAddress);
 
   const [symbol0, decimals0, symbol1, decimals1] = await Promise.all([
-    publicClient.readContract({ address: immutables.token0, abi: erc20Abi, functionName: "symbol" }),
-    publicClient.readContract({ address: immutables.token0, abi: erc20Abi, functionName: "decimals" }),
-    publicClient.readContract({ address: immutables.token1, abi: erc20Abi, functionName: "symbol" }),
-    publicClient.readContract({ address: immutables.token1, abi: erc20Abi, functionName: "decimals" }),
+    publicClient.readContract({
+      address: immutables.token0,
+      abi: erc20Abi,
+      functionName: "symbol",
+    }),
+    publicClient.readContract({
+      address: immutables.token0,
+      abi: erc20Abi,
+      functionName: "decimals",
+    }),
+    publicClient.readContract({
+      address: immutables.token1,
+      abi: erc20Abi,
+      functionName: "symbol",
+    }),
+    publicClient.readContract({
+      address: immutables.token1,
+      abi: erc20Abi,
+      functionName: "decimals",
+    }),
   ]);
 
   console.log(`Token0: ${symbol0} (${immutables.token0})`);
   console.log(`Token1: ${symbol1} (${immutables.token1})\n`);
 
-  const directionStr = await prompt(`Direction? (0 = ${symbol0}->${symbol1}, 1 = ${symbol1}->${symbol0}): `);
+  const directionStr = await prompt(
+    `Direction? (0 = ${symbol0}->${symbol1}, 1 = ${symbol1}->${symbol0}): `,
+  );
   const zeroForOne = directionStr === "0" || directionStr.toLowerCase().startsWith("0");
 
   const inputToken = zeroForOne ? symbol0 : symbol1;

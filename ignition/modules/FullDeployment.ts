@@ -22,12 +22,9 @@ const FullDeploymentModule = buildModule("FullDeployment", (m) => {
     after: [factory],
   });
 
-  const setPoolDeployerCall = m.call(
-    factory,
-    "setPoolDeployer",
-    [poolDeployer],
-    { after: [poolDeployer] },
-  );
+  const setPoolDeployerCall = m.call(factory, "setPoolDeployer", [poolDeployer], {
+    after: [poolDeployer],
+  });
 
   const router = m.contract("MetricOmmSwapRouter", [weth], {
     after: [setPoolDeployerCall],

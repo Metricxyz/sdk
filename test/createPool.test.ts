@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { network } from "hardhat";
-import { parseUnits, getContract, type Address } from "viem";
 import * as sdk from "../index.js";
 
 describe("SDK createPool", async () => {
@@ -12,16 +11,8 @@ describe("SDK createPool", async () => {
     const publicClient = await viem.getPublicClient();
 
     // Deploy tokens
-    const token0 = await viem.deployContract("MockERC20", [
-      "Token 0",
-      "TKN0",
-      18,
-    ]);
-    const token1 = await viem.deployContract("MockERC20", [
-      "Token 1",
-      "TKN1",
-      6,
-    ]);
+    const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
+    const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 6]);
 
     // Deploy price oracle
     const priceProvider = await viem.deployContract("MockOracle", []);
@@ -35,9 +26,7 @@ describe("SDK createPool", async () => {
     ]);
 
     // Deploy pool deployer with factory address
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [
-      factory.address,
-    ]);
+    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
 
     // Link deployer to factory
     await factory.write.setPoolDeployer([poolDeployer.address]);
@@ -91,8 +80,7 @@ describe("SDK createPool", async () => {
 
   describe("encodeCreatePoolCalldata", () => {
     it("should encode calldata from direct CreatePoolParams", async () => {
-      const { token0, token1, priceProvider } =
-        await networkHelpers.loadFixture(setupEnvironment);
+      const { token0, token1, priceProvider } = await networkHelpers.loadFixture(setupEnvironment);
 
       const params: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
@@ -256,16 +244,13 @@ describe("SDK createPool", async () => {
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       assert.equal(receipt.status, "success", "Transaction should succeed");
 
-      console.log(
-        `Pool with createBins created via calldata, tx hash: ${hash}`,
-      );
+      console.log(`Pool with createBins created via calldata, tx hash: ${hash}`);
     });
   });
 
   describe("encodeCreatePoolCalldata (external)", () => {
     it("should encode calldata for external use", async () => {
-      const { token0, token1, priceProvider } =
-        await networkHelpers.loadFixture(setupEnvironment);
+      const { token0, token1, priceProvider } = await networkHelpers.loadFixture(setupEnvironment);
 
       const params: sdk.CreatePoolFactoryParams = {
         token0: token0.address,

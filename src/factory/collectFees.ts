@@ -55,9 +55,7 @@ export async function getFactoryAssetBalances(
   const uniqueAssets = dedupeAssets(assets);
   const nativeAsset = zeroAddress.toLowerCase();
 
-  const erc20Assets = uniqueAssets.filter(
-    (asset) => asset.toLowerCase() !== nativeAsset,
-  );
+  const erc20Assets = uniqueAssets.filter((asset) => asset.toLowerCase() !== nativeAsset);
 
   const erc20Balances = new Map<string, bigint>();
 
@@ -84,15 +82,11 @@ export async function getFactoryAssetBalances(
     });
 
     if (failedAssets.length > 0) {
-      throw new Error(
-        `Failed to read ERC20 balances for: ${failedAssets.join(", ")}`,
-      );
+      throw new Error(`Failed to read ERC20 balances for: ${failedAssets.join(", ")}`);
     }
   }
 
-  const nativeIncluded = uniqueAssets.some(
-    (asset) => asset.toLowerCase() === nativeAsset,
-  );
+  const nativeIncluded = uniqueAssets.some((asset) => asset.toLowerCase() === nativeAsset);
 
   const nativeBalance = nativeIncluded
     ? await publicClient.getBalance({ address: factoryAddress })
@@ -104,9 +98,7 @@ export async function getFactoryAssetBalances(
     return {
       asset,
       isNative,
-      amount: isNative
-        ? (nativeBalance ?? 0n)
-        : (erc20Balances.get(asset.toLowerCase()) ?? 0n),
+      amount: isNative ? (nativeBalance ?? 0n) : (erc20Balances.get(asset.toLowerCase()) ?? 0n),
     };
   });
 }
@@ -128,11 +120,7 @@ export async function collectFactoryFees(
     awaitReceipts = true,
   } = params;
 
-  const balances = await getFactoryAssetBalances(
-    publicClient,
-    factoryAddress,
-    assets,
-  );
+  const balances = await getFactoryAssetBalances(publicClient, factoryAddress, assets);
 
   const toCollect = balances.filter((item) => item.amount > 0n);
   const collected: CollectedFactoryFeeTx[] = [];

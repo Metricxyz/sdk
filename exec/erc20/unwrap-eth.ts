@@ -256,9 +256,7 @@ console.log("⏳ Waiting for confirmation...");
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
 if (receipt.status === "success") {
-  console.log(
-    `\n✅ WETH unwrapped successfully! Block: ${receipt.blockNumber}`,
-  );
+  console.log(`\n✅ WETH unwrapped successfully! Block: ${receipt.blockNumber}`);
 
   // Get new balances
   const [newEthBalance, newWethBalance] = await Promise.all([
@@ -268,9 +266,7 @@ if (receipt.status === "success") {
 
   console.log("\nBalances After:");
   console.log("-".repeat(50));
-  console.log(
-    `ETH:  ${formatEther(newEthBalance)} (+${formatEther(newEthBalance - ethBalance)})`,
-  );
+  console.log(`ETH:  ${formatEther(newEthBalance)} (+${formatEther(newEthBalance - ethBalance)})`);
   console.log(
     `WETH: ${formatEther(newWethBalance)} (${formatEther(newWethBalance - wethBalance)})`,
   );

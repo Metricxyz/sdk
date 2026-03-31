@@ -75,10 +75,7 @@ console.log("-".repeat(50));
 console.log(`Wallet Address:        ${walletClient.account.address}`);
 console.log();
 
-if (
-  walletClient.account.address.toLowerCase() !==
-  feeConfig.adminAddr.toLowerCase()
-) {
+if (walletClient.account.address.toLowerCase() !== feeConfig.adminAddr.toLowerCase()) {
   console.error("❌ Error: Wallet is not the admin of this pool!");
   console.error(`   Expected admin: ${feeConfig.adminAddr}`);
   console.error(`   Current wallet: ${walletClient.account.address}`);
@@ -120,9 +117,7 @@ console.log("⏳ Waiting for confirmation...");
 const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
 if (receipt.status === "success") {
-  console.log(
-    `\n✅ Price provider updated successfully! Block: ${receipt.blockNumber}`,
-  );
+  console.log(`\n✅ Price provider updated successfully! Block: ${receipt.blockNumber}`);
 
   // Verify the change
   const updatedPriceProvider = await sdk.getPriceProvider(
