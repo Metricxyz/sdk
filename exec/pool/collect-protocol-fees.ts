@@ -21,7 +21,7 @@ import { logErrorDetails } from "../../scripts/utils/decodeError.js";
 
 const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
-const { viem } = await network.connect();
+const { viem } = (await network.connect()) as unknown as { viem: any };
 
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({
@@ -164,7 +164,7 @@ async function main() {
   );
 
   const valid = results.filter(Boolean).filter((r) => r !== false) as Exclude<
-    Awaited<ReturnType<typeof collectFromPool>>,
+    Awaited<ReturnType<typeof inspectPool>>,
     boolean
   >[];
 
