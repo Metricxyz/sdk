@@ -24,8 +24,8 @@ interface PoolConfig {
   admin: string;
   nonNegativeBins: BinTuple[];
   negativeBins: BinTuple[];
-  initialToken0PerShare?: string;
-  initialToken1PerShare?: string;
+  initialScaledToken0PerShareE18?: string;
+  initialScaledToken1PerShareE18?: string;
   // Support both E8/E6 and percent formats
   maxDriftE8?: number;
   maxDriftPercent?: number;
@@ -140,7 +140,7 @@ async function main() {
   const negativeBinData = binTuplesToBinData(config.negativeBins);
 
   // Build pool params
-  const poolParams: sdk.CreatePoolParams = {
+  const poolParams: sdk.CreatePoolFactoryParams = {
     token0: config.token0 as `0x${string}`,
     token1: config.token1 as `0x${string}`,
     priceProvider: config.priceProvider as `0x${string}`,
@@ -153,13 +153,14 @@ async function main() {
     nonNegativeBins: sdk.createBins(nonNegativeBinData),
     negativeBins: sdk.createBins(negativeBinData),
 
-    // Initial densities (direct E18 values)
-    initialToken0PerShare: config.initialToken0PerShare
-      ? BigInt(config.initialToken0PerShare)
-      : 1000000000000000000n, // 1e18 default
-    initialToken1PerShare: config.initialToken1PerShare
-      ? BigInt(config.initialToken1PerShare)
-      : 1000000000000000000n, // 1e18 default
+    // Initial scaled densities (in internal scaled units, NOT native token decimals)
+    // For 1 real token per share: use 10^max(18, token0.decimals(), token1.decimals())
+    initialScaledToken0PerShareE18: config.initialScaledToken0PerShareE18
+      ? BigInt(config.initialScaledToken0PerShareE18)
+      : 1000000000000000000n, // 1e18 default (= 1 token per share for 18-decimal tokens)
+    initialScaledToken1PerShareE18: config.initialScaledToken1PerShareE18
+      ? BigInt(config.initialScaledToken1PerShareE18)
+      : 1000000000000000000n, // 1e18 default (= 1 token per share for 18-decimal tokens)
 
     // Drift (support both E8 and percent formats)
     maxDriftPercent:

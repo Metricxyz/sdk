@@ -94,7 +94,7 @@ describe("SDK createPool", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const params: sdk.CreatePoolParams = {
+      const params: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -106,8 +106,8 @@ describe("SDK createPool", async () => {
         adminFeePercent: 5.0,
         maxDriftPercent: 5.0,
         driftDecayPerSecondPercent: 0.001,
-        initialToken0PerShare: 1000000000000000000n,
-        initialToken1PerShare: 1000000000000000000n,
+        initialScaledToken0PerShareE18: 1000000000000000000n,
+        initialScaledToken1PerShareE18: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };
@@ -123,7 +123,7 @@ describe("SDK createPool", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const poolConfig: sdk.CreatePoolParams = {
+      const poolConfig: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -135,8 +135,8 @@ describe("SDK createPool", async () => {
         maxDriftPercent: 5.0,
         driftDecayPerSecondPercent: 0.001,
         adminFeePercent: 5.0,
-        initialToken0PerShare: 1000000000000000000n,
-        initialToken1PerShare: 1000000000000000000n,
+        initialScaledToken0PerShareE18: 1000000000000000000n,
+        initialScaledToken1PerShareE18: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };
@@ -182,7 +182,7 @@ describe("SDK createPool", async () => {
         { lengthE6: 4000, addFeeBuyE6: 7, addFeeSellE6: 3 },
       ]);
 
-      const poolConfig: sdk.CreatePoolParams = {
+      const poolConfig: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -194,8 +194,8 @@ describe("SDK createPool", async () => {
         adminFeeDestination: deployer.account.address,
         maxDriftPercent: 3.0,
         driftDecayPerSecondPercent: 0.01,
-        initialToken0PerShare: 1000000000000000000n,
-        initialToken1PerShare: 1000000000000000000n,
+        initialScaledToken0PerShareE18: 1000000000000000000n,
+        initialScaledToken1PerShareE18: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };
@@ -219,7 +219,7 @@ describe("SDK createPool", async () => {
       const { publicClient, token0, token1, priceProvider, factory } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const poolConfig: sdk.CreatePoolParams = {
+      const poolConfig: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -238,8 +238,8 @@ describe("SDK createPool", async () => {
         maxDriftPercent: 5.0,
         driftDecayPerSecondPercent: 0.001,
         adminFeePercent: 5.0,
-        initialToken0PerShare: 1000000000000000000n,
-        initialToken1PerShare: 1000000000000000000n,
+        initialScaledToken0PerShareE18: 1000000000000000000n,
+        initialScaledToken1PerShareE18: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };
@@ -267,7 +267,7 @@ describe("SDK createPool", async () => {
       const { token0, token1, priceProvider } =
         await networkHelpers.loadFixture(setupEnvironment);
 
-      const params: sdk.CreatePoolParams = {
+      const params: sdk.CreatePoolFactoryParams = {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
@@ -279,8 +279,8 @@ describe("SDK createPool", async () => {
         maxDriftPercent: 5.0,
         driftDecayPerSecondPercent: 0.001,
         adminFeePercent: 5.0,
-        initialToken0PerShare: 1000000000000000000n,
-        initialToken1PerShare: 1000000000000000000n,
+        initialScaledToken0PerShareE18: 1000000000000000000n,
+        initialScaledToken1PerShareE18: 1000000000000000000n,
         minimalMintableLiquidity: 1000n,
         curBinDistFromProvidedPricePercent: 0,
       };

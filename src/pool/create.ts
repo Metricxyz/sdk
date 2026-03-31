@@ -23,6 +23,9 @@ import { createUniformBins } from "../utils/binData.js";
  *   token0, token1, priceProvider, admin,
  *   reportSwapToPriceProvider: false,
  *   adminFeeDestination: admin,
+ *   // Scaled amounts: 10^internalDecimals per share (see field docs)
+ *   initialScaledToken0PerShareE18: 10n ** 18n,
+ *   initialScaledToken1PerShareE18: 10n ** 18n,
  *   nonNegativeBins: createBins([
  *     { length: 10000, addFeeBuy: 500 },  // 1% bin with +0.05% buy fee
  *     { length: 10000 },                   // 1% bin, no extra fees
@@ -58,10 +61,22 @@ export interface CreatePoolFactoryParams {
    */
   negativeBins: bigint[];
 
-  /** Initial token0 amount per share (in token0's decimal units, typically 1.0 = 1e18 for 18 decimals) */
-  initialToken0PerShare: bigint;
-  /** Initial token1 amount per share (in token1's decimal units, typically 1.0 = 1e18 for 18 decimals) */
-  initialToken1PerShare: bigint;
+  /**
+   * Initial scaled token0 density per share unit.
+   *
+   * This is in **scaled** (internal) units, NOT native token decimals.
+   * The pool internally scales token(0|1) amounts by TOKEN_(0|1)_SCALE_MULTIPLIER = 10^(internalDecimals - tokenDecimals),
+   * where internalDecimals = max(18, token0.decimals(), token1.decimals()).
+   *
+   * To represent 1 real token per share:
+   *   value = 10^(tokenDecimals + SCALE_MULTIPLIER_EXPONENT) = 10^internalDecimals
+   */
+  initialScaledToken0PerShareE18: bigint;
+  /**
+   * Initial scaled token1 density per share unit.
+   * See initialScaledToken0PerShareE18 for scaling explanation.
+   */
+  initialScaledToken1PerShareE18: bigint;
   /** Minimum liquidity that can be minted */
   minimalMintableLiquidity: bigint;
 
@@ -147,8 +162,8 @@ export function prepareFactoryCreatePoolParams(
     token1: params.token1,
     priceProvider: params.priceProvider,
     admin: params.admin,
-    initialToken0DensityPerLiquidityE18: params.initialToken0PerShare,
-    initialToken1DensityPerLiquidityE18: params.initialToken1PerShare,
+    initialToken0DensityPerLiquidityE18: params.initialScaledToken0PerShareE18,
+    initialToken1DensityPerLiquidityE18: params.initialScaledToken1PerShareE18,
     minimalMintableLiquidity: params.minimalMintableLiquidity,
     reportSwapToPriceProvider: params.reportSwapToPriceProvider,
     maxDriftE8,
@@ -183,8 +198,10 @@ export function prepareFactoryCreatePoolParams(
  *     nonNegativeBins: createUniformBins(10, 10000),
  *     negativeBins: createUniformBins(10, 10000),
  *     // Config
- *     initialToken0PerShare: parseUnits("1", 18),
- *     initialToken1PerShare: parseUnits("1", 18),
+ *     // Scaled values: 10^(internalDecimals) for 1 real token per share
+ *     // For 18-decimal tokens: 10^18. For 6-decimal tokens (USDC): also 10^18.
+ *     initialScaledToken0PerShareE18: 10n ** 18n,
+ *     initialScaledToken1PerShareE18: 10n ** 18n,
  *     minimalMintableLiquidity: 1000n,
  *     maxDriftPercent: 5.0,       // 5% max drift
  *     driftDecayPerSecondPercent: 0.001,

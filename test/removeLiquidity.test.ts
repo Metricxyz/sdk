@@ -39,7 +39,7 @@ describe("SDK Remove Liquidity", async () => {
 
     const stateView = await viem.deployContract("MetricOmmPoolStateView", []);
 
-    const params: sdk.CreatePoolParams = {
+    const params: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -50,8 +50,8 @@ describe("SDK Remove Liquidity", async () => {
       maxDriftPercent: 5,
       driftDecayPerSecondPercent: 0.1,
       curBinDistFromProvidedPricePercent: 0,
-      initialToken0PerShare: parseUnits("1", 18),
-      initialToken1PerShare: parseUnits("1", 18),
+      initialScaledToken0PerShareE18: parseUnits("1", 18),
+      initialScaledToken1PerShareE18: parseUnits("1", 18),
       minimalMintableLiquidity: 1000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),

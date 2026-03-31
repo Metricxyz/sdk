@@ -101,7 +101,7 @@ describe("Factory Deployment Flow", async () => {
     const [walletClient] = await viem.getWalletClients();
 
     // Create pool config using SDK
-    const poolConfig: sdk.CreatePoolParams = {
+    const poolConfig: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -117,8 +117,8 @@ describe("Factory Deployment Flow", async () => {
       driftDecayPerSecondPercent: 0.001,
       adminFeePercent: 5.0,
       adminFeeDestination: admin.account.address,
-      initialToken0PerShare: 1000000000000000000n,
-      initialToken1PerShare: 1000000000000000000n,
+      initialScaledToken0PerShareE18: 1000000000000000000n,
+      initialScaledToken1PerShareE18: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
     };
@@ -150,7 +150,7 @@ describe("Factory Deployment Flow", async () => {
     const { token0, token1, priceProvider, admin } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
-    const poolConfig: sdk.CreatePoolParams = {
+    const poolConfig: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
@@ -162,8 +162,8 @@ describe("Factory Deployment Flow", async () => {
       maxDriftPercent: 5.0,
       driftDecayPerSecondPercent: 0.001,
       adminFeePercent: 5.0,
-      initialToken0PerShare: 1000000000000000000n,
-      initialToken1PerShare: 1000000000000000000n,
+      initialScaledToken0PerShareE18: 1000000000000000000n,
+      initialScaledToken1PerShareE18: 1000000000000000000n,
       minimalMintableLiquidity: 1000n,
       curBinDistFromProvidedPricePercent: 0,
     };
