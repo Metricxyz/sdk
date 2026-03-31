@@ -54,6 +54,9 @@
   "bugs": {
     "url": "https://github.com/Metric-OMM/metric-sdk/issues"
   },
+  "overrides": {
+    "axios": "1.13.3"
+  },
   "dependencies": {
     "viem": "^2.x"
   },
