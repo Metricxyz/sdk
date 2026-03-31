@@ -51,9 +51,9 @@
     [1000, 0, 0]
   ],
 
-  "_comment_densities": "Initial token amounts per share of liquidity (in wei)",
-  "initialToken0PerShare": "300000000000000",
-  "initialToken1PerShare": "1000000000000000000",
+  "_comment_densities": "Initial scaled token amounts per share of liquidity (E18). For 1 real token per share with 18-decimal tokens, use 10^18",
+  "initialScaledToken0PerShareE18": "300000000000000",
+  "initialScaledToken1PerShareE18": "1000000000000000000",
 
   "_comment_drift": "Max drift and decay as percentages (5 = 5%, 0.01 = 0.01%/s)",
   "maxDriftPercent": 5,
