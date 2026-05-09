@@ -195,7 +195,8 @@ This repo uses a native Git hook (no Husky) for pre-commit checks. If needed, yo
 npm run setup:hooks
 ```
 
-After install, `postinstall` runs automatically and compiles contracts and extracts ABIs.
+During local setup and before packing, `prepare` initializes contract dependencies, compiles contracts, and extracts ABIs.
+Consumers installing the published npm package do not run these development-only steps.
 
 To regenerate ABIs manually:
 
@@ -215,6 +216,52 @@ Commits are blocked unless `bunx hardhat test` succeeds.
 
 ```bash
 npm run build
+```
+
+### Publishing
+
+Use this flow for a clean release:
+
+1) Make sure you are on the release branch and up to date.
+
+```bash
+git pull
+```
+
+2) Install dependencies and run quality checks.
+
+```bash
+npm install
+npm run lint
+npm run typecheck
+npm test
+```
+
+3) Bump the package version (choose one).
+
+```bash
+npm version patch
+# or: npm version minor
+# or: npm version major
+```
+
+4) Build and verify publish contents locally.
+
+```bash
+npm run build
+npm pack
+```
+
+5) Publish to npm.
+
+```bash
+npm publish --access public
+```
+
+6) Push commit and tag created by `npm version`.
+
+```bash
+git push && git push --tags
 ```
 
 ## API Reference

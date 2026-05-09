@@ -33,9 +33,8 @@
     "lint": "npx eslint \"{src,exec,scripts,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "init:submodules": "git -C node_modules/@metric/core submodule update --init --recursive && git -C node_modules/@metric/periphery submodule update --init --recursive",
-    "postinstall": "npm run init:submodules && npm run sync:abis",
     "prepublishOnly": "npm run clean && npm run build",
-    "prepare": "npm run setup:hooks"
+    "prepare": "npm run setup:hooks && npm run init:submodules && npm run sync:abis"
   },
   "keywords": [
     "metric",
@@ -64,8 +63,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@metric/core": "git+ssh://git@github.com/Metric-OMM/metric-core.git#f4dc50a",
-    "@metric/periphery": "git+ssh://git@github.com/Metric-OMM/metric-periphery.git#e975ac1",
+    "@metric/core": "github:Metric-OMM/metric-core#af10188",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#e3154ea",
     "@msgpack/msgpack": "^3.1.3",
     "@nomicfoundation/hardhat-ignition": "^3.0.7",
     "@nomicfoundation/hardhat-keystore": "^3.0.4",
