@@ -1,5 +1,11 @@
+// Extracts selected Hardhat artifact ABIs into typed SDK exports.
+// Usage: node scripts/sync-abis.mjs
+
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import prettier from "prettier";
+import prettierPluginEstree from "prettier/plugins/estree";
+import prettierPluginTypescript from "prettier/plugins/typescript";
 
 const contracts = [
   {
@@ -65,8 +71,14 @@ const contracts = [
   },
 ];
 
-function renderAbiFile(artifactPath, exportName, abi) {
-  return `export const ${exportName} = ${JSON.stringify(abi, null, 2)} as const;\n`;
+async function renderAbiFile(outputPath, exportName, abi) {
+  const fileContent = `export const ${exportName} = ${JSON.stringify(abi, null, 2)} as const;\n`;
+
+  return prettier.format(fileContent, {
+    filepath: outputPath,
+    parser: "typescript",
+    plugins: [prettierPluginEstree, prettierPluginTypescript],
+  });
 }
 
 async function main() {
@@ -81,11 +93,7 @@ async function main() {
       throw new Error(`Missing abi array in artifact: ${contract.artifactPath}`);
     }
 
-    const fileContent = renderAbiFile(
-      contract.artifactPath,
-      contract.exportName,
-      artifact.abi,
-    );
+    const fileContent = await renderAbiFile(contract.outputPath, contract.exportName, artifact.abi);
 
     await fs.mkdir(path.dirname(outputAbsolutePath), { recursive: true });
     await fs.writeFile(outputAbsolutePath, fileContent, "utf8");

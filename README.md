@@ -204,6 +204,16 @@ To regenerate ABIs manually:
 npm run sync:abis
 ```
 
+### Formatting
+
+Prettier formats TypeScript sources and Node scripts:
+
+```bash
+npm run format
+```
+
+Generated ABI exports are also formatted by `scripts/sync-abis.mjs` when they are written.
+
 ### Running Tests
 
 ```bash

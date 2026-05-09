@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "TypeScript SDK for interacting with Metric AMM contracts",
   "type": "module",
   "main": "dist/index.js",
@@ -24,8 +24,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist artifacts cache",
-    "format": "prettier --write \"**/*.{ts,tsx,cts,mts}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,cts,mts}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,cts,mts,mjs}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,cts,mts,mjs}\"",
     "setup:hooks": "git config core.hooksPath .githooks",
     "sync:contracts": "npx hardhat build --force",
     "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
