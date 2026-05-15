@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-npm run format:check && npm run lint && npm run typecheck && npx hardhat test
+npm run format:check && npm run lint && npm run typecheck && npm test

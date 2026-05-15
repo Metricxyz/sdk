@@ -1,0 +1,74 @@
+{
+  "name": "@nradko/metric-omm-sdk-v1",
+  "version": "0.0.16",
+  "description": "Metric AMM SDK — v1 contracts (dev branch: Swapper, LiquidityAdder, add/removeLiquidity)",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./abis": {
+      "import": "./dist/abis/index.js",
+      "types": "./dist/abis/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist artifacts cache",
+    "format": "prettier --write \"src/**/*.{ts,mjs}\" \"scripts/**/*.{ts,mjs}\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,mjs}\" \"scripts/**/*.{ts,mjs}\" \"test/**/*.ts\"",
+    "init:submodules": "node ./scripts/init-submodules.mjs",
+    "sync:contracts": "npx hardhat build --force",
+    "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
+    "setup:contracts": "npm run init:submodules && npm run sync:abis",
+    "prepare": "npm run setup:contracts && npm run build",
+    "test": "hardhat test",
+    "lint": "npx eslint \"{src,scripts,test}/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run prepare"
+  },
+  "keywords": [
+    "metric",
+    "omm",
+    "dex",
+    "ethereum",
+    "viem",
+    "sdk",
+    "defi"
+  ],
+  "author": "Nradko",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metric-OMM/metric-sdk.git"
+  },
+  "dependencies": {
+    "viem": "^2.x"
+  },
+  "peerDependencies": {
+    "viem": "^2.x"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@metric/core": "github:Metric-OMM/metric-core#e25587ac70ce51318010fb90e51a9559840989d1",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#1ebb852e823c60eaf03e4bdfc376ad6b7906637a",
+    "@types/node": "^22.18.8",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "hardhat": "^3.0.17",
+    "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
+    "@nomicfoundation/hardhat-viem": "^3.0.1",
+    "prettier": "^3.8.1",
+    "typescript": "~5.8.0",
+    "typescript-eslint": "^8.58.0"
+  }
+}

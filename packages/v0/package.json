@@ -1,0 +1,82 @@
+{
+  "name": "@nradko/metric-omm-sdk-v0",
+  "version": "0.0.15",
+  "description": "Metric AMM SDK — v0 contracts (main branch: Router, modifyLiquidity)",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./abis": {
+      "import": "./dist/abis/index.js",
+      "types": "./dist/abis/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist artifacts cache",
+    "format": "prettier --write \"src/**/*.{ts,mjs}\" \"scripts/**/*.{ts,mjs}\" \"test/**/*.ts\" \"exec/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,mjs}\" \"scripts/**/*.{ts,mjs}\" \"test/**/*.ts\" \"exec/**/*.ts\"",
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "init:submodules": "node ./scripts/init-submodules.mjs",
+    "sync:contracts": "npx hardhat build --force",
+    "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
+    "setup:contracts": "npm run init:submodules && npm run sync:abis",
+    "prepare": "npm run build",
+    "test": "hardhat test",
+    "lint": "npx eslint \"{src,exec,scripts,test}/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run setup:contracts && npm run build"
+  },
+  "keywords": [
+    "metric",
+    "omm",
+    "dex",
+    "ethereum",
+    "viem",
+    "sdk",
+    "defi"
+  ],
+  "author": "Nradko",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metric-OMM/metric-sdk.git"
+  },
+  "dependencies": {
+    "viem": "^2.x"
+  },
+  "peerDependencies": {
+    "viem": "^2.x"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@metric/core": "github:Metric-OMM/metric-core#af10188",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#e3154ea",
+    "@msgpack/msgpack": "^3.1.3",
+    "@nomicfoundation/hardhat-ignition": "^3.0.7",
+    "@nomicfoundation/hardhat-keystore": "^3.0.4",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
+    "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.1",
+    "@nomicfoundation/hardhat-viem-assertions": "^3.0.4",
+    "@types/node": "^22.18.8",
+    "dotenv": "^17.3.1",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "hardhat": "^3.0.17",
+    "prettier": "^3.8.1",
+    "typescript": "~5.8.0",
+    "typescript-eslint": "^8.58.0"
+  }
+}

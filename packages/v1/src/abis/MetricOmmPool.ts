@@ -1,0 +1,1007 @@
+export const MetricOmmPoolAbi = [
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "factory",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "token0",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "token1",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "priceProvider_",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "depositAllowlistProvider",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "swapAllowlistProvider",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "immutablePriceProvider",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "token0ScaleMultiplier",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "token1ScaleMultiplier",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "initialScaledAmount0PerShareE18",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "initialScaledAmount1PerShareE18",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "minimalMintableLiquidity",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "reportSwapToPriceProvider",
+        type: "bool",
+      },
+      {
+        internalType: "uint24",
+        name: "protocolSpreadFeeE6",
+        type: "uint24",
+      },
+      {
+        internalType: "uint24",
+        name: "adminSpreadFeeE6",
+        type: "uint24",
+      },
+      {
+        internalType: "int24",
+        name: "initialCurBinDistFromProvidedPriceE6",
+        type: "int24",
+      },
+      {
+        components: [
+          {
+            internalType: "uint104",
+            name: "token0BalanceScaled",
+            type: "uint104",
+          },
+          {
+            internalType: "uint104",
+            name: "token1BalanceScaled",
+            type: "uint104",
+          },
+          {
+            internalType: "uint16",
+            name: "lengthE6",
+            type: "uint16",
+          },
+          {
+            internalType: "uint16",
+            name: "addFeeBuyE6",
+            type: "uint16",
+          },
+          {
+            internalType: "uint16",
+            name: "addFeeSellE6",
+            type: "uint16",
+          },
+        ],
+        internalType: "struct BinState[]",
+        name: "nonNegativeBinStates",
+        type: "tuple[]",
+      },
+      {
+        components: [
+          {
+            internalType: "uint104",
+            name: "token0BalanceScaled",
+            type: "uint104",
+          },
+          {
+            internalType: "uint104",
+            name: "token1BalanceScaled",
+            type: "uint104",
+          },
+          {
+            internalType: "uint16",
+            name: "lengthE6",
+            type: "uint16",
+          },
+          {
+            internalType: "uint16",
+            name: "addFeeBuyE6",
+            type: "uint16",
+          },
+          {
+            internalType: "uint16",
+            name: "addFeeSellE6",
+            type: "uint16",
+          },
+        ],
+        internalType: "struct BinState[]",
+        name: "negativeBinStates",
+        type: "tuple[]",
+      },
+      {
+        internalType: "uint24",
+        name: "protocolNotionalFeeE8",
+        type: "uint24",
+      },
+      {
+        internalType: "uint24",
+        name: "adminNotionalFeeE8",
+        type: "uint24",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    inputs: [],
+    name: "AmountScaledExceedsMax",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BidGreaterThanAsk",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BidIsZero",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "IncorrectDelta",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "requested",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "available",
+        type: "uint256",
+      },
+    ],
+    name: "InsufficientLiquidity",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InsufficientTokenBalance",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidAmount",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int256",
+        name: "binIdx",
+        type: "int256",
+      },
+    ],
+    name: "InvalidBinIndex",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidPauseLevel",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "LiquidityDeltaLengthMismatch",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "afterOperation",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "minimalRequired",
+        type: "uint256",
+      },
+    ],
+    name: "MinimalLiquidity",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotAllowedToDeposit",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotAllowedToSwap",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotPositionOwner",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OnlyFactory",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "PoolPaused",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "reason",
+        type: "bytes",
+      },
+    ],
+    name: "PriceProviderFailed",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ReentrancyGuardReentrantCall",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "bits",
+        type: "uint8",
+      },
+      {
+        internalType: "int256",
+        name: "value",
+        type: "int256",
+      },
+    ],
+    name: "SafeCastOverflowedIntDowncast",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "bits",
+        type: "uint8",
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256",
+      },
+    ],
+    name: "SafeCastOverflowedUintDowncast",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256",
+      },
+    ],
+    name: "SafeCastOverflowedUintToInt",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+    ],
+    name: "SafeERC20FailedOperation",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int256",
+        name: "amount0Delta",
+        type: "int256",
+      },
+      {
+        internalType: "int256",
+        name: "amount1Delta",
+        type: "int256",
+      },
+    ],
+    name: "SimulateSwap",
+    type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "int8",
+        name: "bin",
+        type: "int8",
+      },
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "addFeeBuyE6",
+        type: "uint16",
+      },
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "addFeeSellE6",
+        type: "uint16",
+      },
+    ],
+    name: "BinAdditionalFeesUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "int256",
+        name: "binIdx",
+        type: "int256",
+      },
+      {
+        components: [
+          {
+            internalType: "int256",
+            name: "delta0Scaled",
+            type: "int256",
+          },
+          {
+            internalType: "int256",
+            name: "delta1Scaled",
+            type: "int256",
+          },
+        ],
+        indexed: false,
+        internalType: "struct BinBalanceDelta",
+        name: "delta",
+        type: "tuple",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "lpFeeAmount",
+        type: "uint256",
+      },
+    ],
+    name: "BinSwapped",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "provider",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        indexed: false,
+        internalType: "int256[]",
+        name: "binIdxs",
+        type: "int256[]",
+      },
+      {
+        components: [
+          {
+            internalType: "int256",
+            name: "delta0Scaled",
+            type: "int256",
+          },
+          {
+            internalType: "int256",
+            name: "delta1Scaled",
+            type: "int256",
+          },
+        ],
+        indexed: false,
+        internalType: "struct BinBalanceDelta[]",
+        name: "binBalanceDeltas",
+        type: "tuple[]",
+      },
+      {
+        indexed: false,
+        internalType: "uint256[]",
+        name: "shares",
+        type: "uint256[]",
+      },
+    ],
+    name: "LiquidityAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "provider",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        indexed: false,
+        internalType: "int256[]",
+        name: "binIdxs",
+        type: "int256[]",
+      },
+      {
+        components: [
+          {
+            internalType: "int256",
+            name: "delta0Scaled",
+            type: "int256",
+          },
+          {
+            internalType: "int256",
+            name: "delta1Scaled",
+            type: "int256",
+          },
+        ],
+        indexed: false,
+        internalType: "struct BinBalanceDelta[]",
+        name: "binBalanceDeltas",
+        type: "tuple[]",
+      },
+      {
+        indexed: false,
+        internalType: "uint256[]",
+        name: "shares",
+        type: "uint256[]",
+      },
+    ],
+    name: "LiquidityRemoved",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint24",
+        name: "notionalFeeE8",
+        type: "uint24",
+      },
+    ],
+    name: "NotionalFeeUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "previousLevel",
+        type: "uint8",
+      },
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "newLevel",
+        type: "uint8",
+      },
+    ],
+    name: "PauseLevelUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newPriceProvider",
+        type: "address",
+      },
+    ],
+    name: "PriceProviderUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0ToProtocol",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1ToProtocol",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount0ToAdmin",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount1ToAdmin",
+        type: "uint256",
+      },
+    ],
+    name: "ProtocolFeesCollected",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint24",
+        name: "spreadFeeE6",
+        type: "uint24",
+      },
+    ],
+    name: "SpreadFeeUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bool",
+        name: "exactInput",
+        type: "bool",
+      },
+      {
+        indexed: false,
+        internalType: "int256",
+        name: "amount0Delta",
+        type: "int256",
+      },
+      {
+        indexed: false,
+        internalType: "int256",
+        name: "amount1Delta",
+        type: "int256",
+      },
+      {
+        indexed: false,
+        internalType: "int8",
+        name: "newTick",
+        type: "int8",
+      },
+      {
+        indexed: false,
+        internalType: "uint104",
+        name: "newPositionInBin",
+        type: "uint104",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "protocolFeeAmount",
+        type: "uint256",
+      },
+    ],
+    name: "Swap",
+    type: "event",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        components: [
+          {
+            internalType: "int256[]",
+            name: "binIdxs",
+            type: "int256[]",
+          },
+          {
+            internalType: "uint256[]",
+            name: "shares",
+            type: "uint256[]",
+          },
+        ],
+        internalType: "struct LiquidityDelta",
+        name: "deltas",
+        type: "tuple",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "addLiquidity",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amount0Added",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amount1Added",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "protocolSpreadFeeE6_",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "adminSpreadFeeE6_",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "protocolNotionalFeeE8_",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "adminNotionalFeeE8_",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "adminFeeDestination_",
+        type: "address",
+      },
+    ],
+    name: "collectFees",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "slot",
+        type: "bytes32",
+      },
+    ],
+    name: "extsload",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "startSlot",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256",
+        name: "nSlots",
+        type: "uint256",
+      },
+    ],
+    name: "extsload",
+    outputs: [
+      {
+        internalType: "bytes32[]",
+        name: "",
+        type: "bytes32[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32[]",
+        name: "slots",
+        type: "bytes32[]",
+      },
+    ],
+    name: "extsload",
+    outputs: [
+      {
+        internalType: "bytes32[]",
+        name: "",
+        type: "bytes32[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        components: [
+          {
+            internalType: "int256[]",
+            name: "binIdxs",
+            type: "int256[]",
+          },
+          {
+            internalType: "uint256[]",
+            name: "shares",
+            type: "uint256[]",
+          },
+        ],
+        internalType: "struct LiquidityDelta",
+        name: "deltas",
+        type: "tuple",
+      },
+    ],
+    name: "removeLiquidity",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amount0Removed",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amount1Removed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int8",
+        name: "bin",
+        type: "int8",
+      },
+      {
+        internalType: "uint16",
+        name: "addFeeBuyE6",
+        type: "uint16",
+      },
+      {
+        internalType: "uint16",
+        name: "addFeeSellE6",
+        type: "uint16",
+      },
+    ],
+    name: "setBinAdditionalFees",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "newLevel",
+        type: "uint8",
+      },
+    ],
+    name: "setPause",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint24",
+        name: "newSpreadFeeE6",
+        type: "uint24",
+      },
+      {
+        internalType: "uint24",
+        name: "newNotionalFeeE8",
+        type: "uint24",
+      },
+    ],
+    name: "setPoolFees",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newPriceProvider",
+        type: "address",
+      },
+    ],
+    name: "setPriceProvider",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+    ],
+    name: "simulateSwapAndRevert",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "swap",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
