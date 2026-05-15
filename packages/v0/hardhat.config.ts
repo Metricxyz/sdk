@@ -7,8 +7,6 @@ import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
 import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
-import { hyperEvm } from "viem/chains";
-
 const baseLocalForkBlockNumber = process.env.BASE_LOCAL_FORK_BLOCK_NUMBER
   ? Number(process.env.BASE_LOCAL_FORK_BLOCK_NUMBER)
   : undefined;
@@ -19,6 +17,14 @@ const arbitrumLocalForkBlockNumber = process.env.ARBITRUM_LOCAL_FORK_BLOCK_NUMBE
   : undefined;
 
 const arbitrumLocalForkRpcUrl = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc";
+
+/** Ethereum mainnet fork (same pattern as v1 SDK). Omit blockNumber → fork at the RPC’s current latest block. */
+const ethereumForkRpcUrl =
+  process.env.ETHEREUM_RPC_URL ?? process.env.MAINNET_RPC_URL ?? "https://eth.merkle.io";
+
+const ethereumForkBlockNumber = process.env.ETHEREUM_FORK_BLOCK_NUMBER
+  ? Number(process.env.ETHEREUM_FORK_BLOCK_NUMBER)
+  : undefined;
 
 const config: HardhatUserConfig = {
   plugins: [
@@ -49,7 +55,7 @@ const config: HardhatUserConfig = {
       },
     },
     npmFilesToBuild: [
-      // @metric/core contracts
+      // @metric/core @ af10188 layout (v0 pins; use npm install --no-workspaces in packages/v0 for tests)
       "@metric/core/contracts/MetricOmmPool.sol",
       "@metric/core/contracts/MetricOmmPoolFactory.sol",
       "@metric/core/contracts/MetricOmmPoolDeployer.sol",
@@ -59,7 +65,7 @@ const config: HardhatUserConfig = {
       "@metric/core/contracts/mocks/MockOracle.sol",
       "@metric/core/contracts/mocks/TestCaller.sol",
       "@metric/core/contracts/interfaces/IPriceProvider.sol",
-      // @metric/periphery contracts
+      // @metric/periphery @ e3154ea (Router)
       "@metric/periphery/contracts/MetricOmmSwapRouter.sol",
       "@metric/periphery/contracts/MetricOmmPoolQuoter.sol",
       "@metric/periphery/contracts/mocks/MockWETH9.sol",
@@ -86,6 +92,16 @@ const config: HardhatUserConfig = {
         url: arbitrumLocalForkRpcUrl,
         ...(arbitrumLocalForkBlockNumber != null && Number.isFinite(arbitrumLocalForkBlockNumber)
           ? { blockNumber: arbitrumLocalForkBlockNumber }
+          : {}),
+      },
+    },
+    "ethereum-mainnet-fork": {
+      type: "edr-simulated",
+      chainType: "l1",
+      forking: {
+        url: ethereumForkRpcUrl,
+        ...(ethereumForkBlockNumber != null && Number.isFinite(ethereumForkBlockNumber)
+          ? { blockNumber: ethereumForkBlockNumber }
           : {}),
       },
     },

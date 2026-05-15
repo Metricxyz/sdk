@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 on:
   push:
@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    working-directory: .
+
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,61 +22,25 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-
-      # Clone and link metric-core
-      - name: Clone metric-core
-        uses: actions/checkout@v4
-        with:
-          repository: Metric-OMM/metric-core
-          path: metric-core
-          ssh-key: ${{ secrets.METRIC_CORE_DEPLOY_KEY }}
-
-      - name: Setup metric-core
-        run: |
-          cd metric-core
-          npm ci
-          npm link
-
-      # Clone and link metric-periphery
-      - name: Clone metric-periphery
-        uses: actions/checkout@v4
-        with:
-          repository: Metric-OMM/metric-periphery
-          path: metric-periphery
-          ssh-key: ${{ secrets.METRIC_PERIPHERY_DEPLOY_KEY }}
-
-      - name: Setup metric-periphery
-        run: |
-          cd metric-periphery
-          npm ci
-          npm link
-
-      # Setup SDK
-      - name: Install SDK dependencies
-        run: |
-          npm link @metric/core @metric/periphery
-          npm ci
-
-      - name: Run typecheck
-        run: npm run typecheck
-
-      - name: Run tests
-        run: npm test
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test
+        env:
+          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
+          MAINNET_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}

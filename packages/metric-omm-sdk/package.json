@@ -1,0 +1,40 @@
+{
+  "name": "@nradko/metric-omm-sdk",
+  "version": "0.0.16",
+  "description": "Metric AMM SDK — combined v0 and v1 namespaces",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@nradko/metric-omm-sdk-v0": "file:../v0",
+    "@nradko/metric-omm-sdk-v1": "file:../v1"
+  },
+  "peerDependencies": {
+    "viem": "^2.x"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metric-OMM/metric-sdk.git"
+  }
+}
