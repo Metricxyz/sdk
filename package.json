@@ -1,88 +1,24 @@
 {
-  "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.15",
-  "description": "TypeScript SDK for interacting with Metric AMM contracts",
-  "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./abis": {
-      "import": "./dist/abis/index.js",
-      "types": "./dist/abis/index.d.ts"
-    }
+  "name": "metric-omm-dev-sdk",
+  "private": true,
+  "engines": {
+    "node": ">=22"
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist artifacts cache",
-    "format": "prettier --write \"**/*.{ts,tsx,cts,mts,mjs}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,cts,mts,mjs}\"",
-    "setup:hooks": "git config core.hooksPath .githooks",
-    "sync:contracts": "npx hardhat build --force",
-    "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
-    "test": "hardhat test",
-    "lint": "npx eslint \"{src,exec,scripts,test}/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
-    "init:submodules": "git -C node_modules/@metric/core submodule update --init --recursive && git -C node_modules/@metric/periphery submodule update --init --recursive",
-    "prepublishOnly": "npm run clean && npm run build",
-    "prepare": "npm run setup:hooks && npm run init:submodules && npm run sync:abis"
-  },
-  "keywords": [
-    "metric",
-    "omm",
-    "dex",
-    "ethereum",
-    "viem",
-    "sdk",
-    "defi"
-  ],
-  "author": "Nradko",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Metric-OMM/metric-sdk.git"
-  },
-  "homepage": "https://github.com/Metric-OMM/metric-sdk#readme",
-  "bugs": {
-    "url": "https://github.com/Metric-OMM/metric-sdk/issues"
-  },
-  "overrides": {
-    "axios": "1.13.3"
-  },
-  "dependencies": {
-    "viem": "^2.x"
-  },
-  "peerDependencies": {
-    "viem": "^2.x"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@metric/core": "github:Metric-OMM/metric-core#af10188",
-    "@metric/periphery": "github:Metric-OMM/metric-periphery#e3154ea",
-    "@msgpack/msgpack": "^3.1.3",
-    "@nomicfoundation/hardhat-ignition": "^3.0.7",
-    "@nomicfoundation/hardhat-keystore": "^3.0.4",
-    "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
-    "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
-    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
-    "@nomicfoundation/hardhat-viem": "^3.0.1",
-    "@nomicfoundation/hardhat-viem-assertions": "^3.0.4",
-    "@types/node": "^22.18.8",
-    "dotenv": "^17.3.1",
-    "eslint": "^10.1.0",
-    "globals": "^17.4.0",
-    "hardhat": "^3.0.17",
-    "prettier": "^3.8.1",
-    "typescript": "~5.8.0",
-    "typescript-eslint": "^8.58.0"
+    "prepare": "npm run prepare -w @nradko/metric-omm-sdk-v0 && npm run prepare -w @nradko/metric-omm-sdk-v1 && npm run prepare -w @nradko/metric-omm-sdk",
+    "build": "npm run build -w @nradko/metric-omm-sdk-v0 && npm run build -w @nradko/metric-omm-sdk-v1 && npm run build -w @nradko/metric-omm-sdk",
+    "typecheck": "npm run typecheck -w @nradko/metric-omm-sdk-v0 && npm run typecheck -w @nradko/metric-omm-sdk-v1 && npm run typecheck -w @nradko/metric-omm-sdk",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test -w @nradko/metric-omm-sdk-v1 && npm run test:v0",
+    "test:v0": "npm install --no-workspaces --ignore-scripts --prefix packages/v0 && npm test --prefix packages/v0",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
+    "sync:abis:v0": "npm run sync:abis -w @nradko/metric-omm-sdk-v0",
+    "sync:abis:v1": "npm run sync:abis -w @nradko/metric-omm-sdk-v1",
+    "sync:versions:v1": "node scripts/sync-versions-env.mjs",
+    "sync:versions:v1:check": "node scripts/sync-versions-env.mjs --check"
   }
 }

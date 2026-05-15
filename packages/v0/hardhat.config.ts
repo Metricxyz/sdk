@@ -1,0 +1,187 @@
+import type { HardhatUserConfig } from "hardhat/config";
+import { configVariable } from "hardhat/config";
+
+import hardhatViem from "@nomicfoundation/hardhat-viem";
+import hardhatViemAssertions from "@nomicfoundation/hardhat-viem-assertions";
+import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
+import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
+import hardhatIgnitionViem from "@nomicfoundation/hardhat-ignition-viem";
+import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
+const baseLocalForkBlockNumber = process.env.BASE_LOCAL_FORK_BLOCK_NUMBER
+  ? Number(process.env.BASE_LOCAL_FORK_BLOCK_NUMBER)
+  : undefined;
+
+const baseLocalForkRpcUrl = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+const arbitrumLocalForkBlockNumber = process.env.ARBITRUM_LOCAL_FORK_BLOCK_NUMBER
+  ? Number(process.env.ARBITRUM_LOCAL_FORK_BLOCK_NUMBER)
+  : undefined;
+
+const arbitrumLocalForkRpcUrl = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc";
+
+/** Ethereum mainnet fork (same pattern as v1 SDK). Omit blockNumber → fork at the RPC’s current latest block. */
+const ethereumForkRpcUrl =
+  process.env.ETHEREUM_RPC_URL ?? process.env.MAINNET_RPC_URL ?? "https://eth.merkle.io";
+
+const ethereumForkBlockNumber = process.env.ETHEREUM_FORK_BLOCK_NUMBER
+  ? Number(process.env.ETHEREUM_FORK_BLOCK_NUMBER)
+  : undefined;
+
+const config: HardhatUserConfig = {
+  plugins: [
+    hardhatViem,
+    hardhatViemAssertions,
+    hardhatNodeTestRunner,
+    hardhatNetworkHelpers,
+    hardhatIgnitionViem,
+    hardhatKeystore,
+  ],
+  solidity: {
+    profiles: {
+      default: {
+        version: "0.8.33",
+        settings: {
+          viaIR: true,
+          evmVersion: "cancun",
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+      production: {
+        version: "0.8.33",
+        settings: {
+          viaIR: true,
+          evmVersion: "cancun",
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+    },
+    npmFilesToBuild: [
+      // @metric/core @ af10188 layout (v0 pins; use npm install --no-workspaces in packages/v0 for tests)
+      "@metric/core/contracts/MetricOmmPool.sol",
+      "@metric/core/contracts/MetricOmmPoolFactory.sol",
+      "@metric/core/contracts/MetricOmmPoolDeployer.sol",
+      "@metric/core/contracts/MetricOmmPoolStateView.sol",
+      "@metric/core/contracts/Extsload.sol",
+      "@metric/core/contracts/mocks/MockERC20.sol",
+      "@metric/core/contracts/mocks/MockOracle.sol",
+      "@metric/core/contracts/mocks/TestCaller.sol",
+      "@metric/core/contracts/interfaces/IPriceProvider.sol",
+      // @metric/periphery @ e3154ea (Router)
+      "@metric/periphery/contracts/MetricOmmSwapRouter.sol",
+      "@metric/periphery/contracts/MetricOmmPoolQuoter.sol",
+      "@metric/periphery/contracts/mocks/MockWETH9.sol",
+    ],
+  },
+  networks: {
+    hardhat: {
+      type: "edr-simulated",
+    },
+    "base-local-fork": {
+      type: "edr-simulated",
+      chainType: "op",
+      forking: {
+        url: baseLocalForkRpcUrl,
+        ...(baseLocalForkBlockNumber != null && Number.isFinite(baseLocalForkBlockNumber)
+          ? { blockNumber: baseLocalForkBlockNumber }
+          : {}),
+      },
+    },
+    "arbitrum-local-fork": {
+      type: "edr-simulated",
+      chainType: "generic",
+      forking: {
+        url: arbitrumLocalForkRpcUrl,
+        ...(arbitrumLocalForkBlockNumber != null && Number.isFinite(arbitrumLocalForkBlockNumber)
+          ? { blockNumber: arbitrumLocalForkBlockNumber }
+          : {}),
+      },
+    },
+    "ethereum-mainnet-fork": {
+      type: "edr-simulated",
+      chainType: "l1",
+      forking: {
+        url: ethereumForkRpcUrl,
+        ...(ethereumForkBlockNumber != null && Number.isFinite(ethereumForkBlockNumber)
+          ? { blockNumber: ethereumForkBlockNumber }
+          : {}),
+      },
+    },
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    base: {
+      type: "http",
+      chainType: "op",
+      url: configVariable("BASE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    ethereum: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ETHEREUM_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    ethereum_view: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ETHEREUM_RPC_URL"),
+      accounts: [],
+    },
+    arbitrum: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("ARBITRUM_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    avalanche: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("AVALANCHE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    bnb: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("BNB_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    polygon: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("POLYGON_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    megaeth: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("MEGAETH_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    hyperEvm: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("HYPE_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    monad: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("MONAD_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+  },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        salt: "0x000000000000000000000000000000000000000000000000000000000000002a",
+      },
+    },
+  },
+  paths: {
+    tests: "./test",
+  },
+};
+
+export default config;

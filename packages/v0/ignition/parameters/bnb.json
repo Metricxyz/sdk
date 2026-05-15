@@ -1,0 +1,14 @@
+{
+  "FactoryAndDeployer": {
+    "owner": "0xA9E4513754C3a86E752009d273f0c9EAEE6a12a3",
+    "protocolFee": 100000
+  },
+  "Router": {
+    "weth": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+  },
+  "FullDeployment": {
+    "owner": "0xA9E4513754C3a86E752009d273f0c9EAEE6a12a3",
+    "protocolFee": 100000,
+    "weth": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+  }
+}
