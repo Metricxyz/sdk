@@ -36,6 +36,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Check v1 contract pins match versions.env
+        run: npm run sync:versions:v1:check
+
       - name: Build
         run: npm run build
 

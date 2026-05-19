@@ -2,7 +2,21 @@
  * MetricAMM SDK - Liquidity Math Utilities
  */
 
+import { Q64 } from "../constants.js";
+
 export const ONE_E18 = 1_000_000_000_000_000_000n;
+
+/** Convert on-chain Q64 price to 1e18 fixed-point without floating point. */
+export function priceX64ToPriceE18(priceX64: bigint): bigint {
+  if (priceX64 <= 0n) {
+    throw new Error("currentPriceX64 must be > 0");
+  }
+  const priceE18 = (priceX64 * ONE_E18) / Q64;
+  if (priceE18 <= 0n) {
+    throw new Error("currentPriceX64 is too small after conversion");
+  }
+  return priceE18;
+}
 
 export function ceilDiv(numerator: bigint, denominator: bigint): bigint {
   if (denominator <= 0n) throw new Error("denominator must be > 0");

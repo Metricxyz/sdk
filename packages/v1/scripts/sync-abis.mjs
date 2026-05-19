@@ -1,4 +1,4 @@
-// Extracts selected Hardhat artifact ABIs into typed SDK exports (v1 / dev contracts).
+// Extracts ABIs from Hardhat artifacts and Foundry periphery output into typed SDK exports.
 // Usage: node scripts/sync-abis.mjs
 
 import { promises as fs } from "node:fs";
@@ -6,6 +6,17 @@ import path from "node:path";
 import prettier from "prettier";
 import prettierPluginEstree from "prettier/plugins/estree";
 import prettierPluginTypescript from "prettier/plugins/typescript";
+
+const packageRoot = process.cwd();
+const peripheryOut = path.join(
+  packageRoot,
+  "node_modules",
+  "@metric",
+  "periphery",
+  "out",
+  "MetricOmmPoolDataProvider.sol",
+  "MetricOmmPoolDataProvider.json",
+);
 
 const contracts = [
   {
@@ -33,16 +44,10 @@ const contracts = [
     exportName: "MetricOmmPoolFactoryAbi",
   },
   {
-    artifactPath: path.join(
-      "artifacts",
-      "@metric",
-      "core",
-      "test",
-      "MetricOmmPoolStateView.sol",
-      "MetricOmmPoolStateView.json",
-    ),
-    outputPath: path.join("src", "abis", "MetricOmmPoolStateView.ts"),
-    exportName: "MetricOmmPoolStateViewAbi",
+    artifactPath: peripheryOut,
+    outputPath: path.join("src", "abis", "MetricOmmPoolDataProvider.ts"),
+    exportName: "MetricOmmPoolDataProviderAbi",
+    fromForge: true,
   },
   {
     artifactPath: path.join(
@@ -96,8 +101,10 @@ async function renderAbiFile(outputPath, exportName, abi) {
 
 async function main() {
   for (const contract of contracts) {
-    const artifactAbsolutePath = path.resolve(process.cwd(), contract.artifactPath);
-    const outputAbsolutePath = path.resolve(process.cwd(), contract.outputPath);
+    const artifactAbsolutePath = path.isAbsolute(contract.artifactPath)
+      ? contract.artifactPath
+      : path.resolve(packageRoot, contract.artifactPath);
+    const outputAbsolutePath = path.resolve(packageRoot, contract.outputPath);
 
     const artifactRaw = await fs.readFile(artifactAbsolutePath, "utf8");
     const artifact = JSON.parse(artifactRaw);
@@ -111,7 +118,8 @@ async function main() {
     await fs.mkdir(path.dirname(outputAbsolutePath), { recursive: true });
     await fs.writeFile(outputAbsolutePath, fileContent, "utf8");
 
-    console.log(`Updated ${contract.outputPath}`);
+    const source = contract.fromForge ? "forge" : "hardhat";
+    console.log(`Updated ${contract.outputPath} (${source})`);
   }
 
   console.log("ABI sync completed.");

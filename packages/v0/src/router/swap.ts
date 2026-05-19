@@ -96,8 +96,8 @@ export type QuoteExpectedAmountsForSwapExactOutputParams = Omit<
 >;
 
 function toSlippageBps(slippagePercent: number): bigint {
-  if (!Number.isFinite(slippagePercent) || slippagePercent < 0) {
-    throw new Error("slippagePercent must be a non-negative finite number");
+  if (!Number.isFinite(slippagePercent) || slippagePercent < 0 || slippagePercent > 100) {
+    throw new Error("slippagePercent must be a finite number between 0 and 100");
   }
   return BigInt(Math.round(slippagePercent * 100));
 }

@@ -26,7 +26,8 @@ describe("Swap args builders", () => {
 
     const calldataFromParams = sdk.prepareSwapExactInputCalldata(inputParams);
     const calldataFromArgs = sdk.prepareSwapExactInputCalldata(args);
-    assert.equal(calldataFromParams.data, calldataFromArgs.data);
+    assert.equal(calldataFromParams, calldataFromArgs);
+    assert.ok(calldataFromParams.startsWith("0x"));
   });
 
   it("encodes exact-output calldata from tx params and args", () => {
@@ -52,7 +53,8 @@ describe("Swap args builders", () => {
 
     const calldataFromParams = sdk.prepareSwapExactOutputCalldata(outputParams);
     const calldataFromArgs = sdk.prepareSwapExactOutputCalldata(args);
-    assert.equal(calldataFromParams.data, calldataFromArgs.data);
+    assert.equal(calldataFromParams, calldataFromArgs);
+    assert.ok(calldataFromParams.startsWith("0x"));
   });
 
   it("encodes native exact-input calldata from params", () => {

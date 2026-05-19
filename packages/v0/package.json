@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk-v0",
-  "version": "0.0.15",
+  "version": "0.1.0",
   "description": "Metric AMM SDK — v0 contracts (main branch: Router, modifyLiquidity)",
   "type": "module",
   "main": "dist/index.js",
@@ -35,7 +35,7 @@
     "test": "hardhat test",
     "lint": "npx eslint \"{src,exec,scripts,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run clean && npm run setup:contracts && npm run build"
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "metric",
