@@ -66,7 +66,6 @@ export {
   // Price utilities
   priceToQ64,
   q64ToPrice,
-  priceX64ToPriceE18,
 } from "./utils/index.js";
 
 // ============ Pool Functions ============
@@ -127,7 +126,6 @@ export {
 export {
   buildArgsForSwapExactInput,
   buildArgsAndExpectedAmountsForSwapExactInput,
-  quoteSwap,
   quoteExpectedAmountsForSwapExactInput,
   buildArgsForSwapExactOutput,
   buildArgsAndExpectedAmountsForSwapExactOutput,
@@ -138,11 +136,8 @@ export {
   type PreparedSwapTransaction,
   type BuildSwapExactInputParams,
   type QuoteExpectedAmountsForSwapExactInputParams,
-  type QuoteSwapParams,
-  type QuoteSwapResult,
   type BuildSwapExactOutputParams,
   type QuoteExpectedAmountsForSwapExactOutputParams,
-  type BuildSwapPrices,
   type SwapExactInputParams,
   type SwapExactOutputParams,
   type SwapExactInputArgs,

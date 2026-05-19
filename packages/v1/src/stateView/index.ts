@@ -1,5 +1,5 @@
 /**
- * MetricAMM SDK - MetricOmmPoolDataProvider read helpers
+ * MetricAMM SDK - StateView Functions
  */
 
 export {
@@ -9,9 +9,10 @@ export {
   getBinStatesExternal,
   getBinStatesScaled,
   getBinTotalShares,
-  getPositionBinSharesFromDataProvider,
   getPositionBinSharesFromStateView,
   toPositionBinKey,
   getPositionBinSharesRange,
+  getFeeConfig,
   getPriceProvider,
+  getLastTradeTimestamp,
 } from "./read.js";

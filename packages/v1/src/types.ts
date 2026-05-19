@@ -99,7 +99,7 @@ export interface BinStatesScaled {
   totalShares: bigint[];
 }
 
-// ============ DataProvider read types ============
+// ============ StateView Types ============
 
 export interface Slot0 {
   pauseLevel: number;
@@ -115,12 +115,11 @@ export interface Slot1 {
   totalScaledToken1InBins: bigint;
 }
 
-/** Protocol and admin fee components for a pool (factory.poolFeeConfig). */
-export interface PoolFeeConfig {
-  protocolSpreadFeeE6: number;
-  adminSpreadFeeE6: number;
-  protocolNotionalFeeE8: number;
-  adminNotionalFeeE8: number;
+export interface FeeConfig {
+  adminAddr: Address;
+  protocolFee: number;
+  adminFee: number;
+  adminFeeDest: Address;
 }
 
 // ============ Position Types ============

@@ -2,8 +2,8 @@
  * MetricAMM SDK — v1 deployed addresses.
  *
  * Only Ethereum mainnet is configured (no other chain deployments for this release).
- * Pool state reads (slot0, bins, position shares) and depth/quote views use `dataProvider`
- * (MetricOmmPoolDataProvider — the single deployed lens per factory).
+ * State view (`test/MetricOmmPoolStateView.sol` in core) is not part of the periphery bundle;
+ * set `stateView` on the returned object when you deploy it, or pass its address into read helpers directly.
  */
 
 import type { Address } from "viem";
@@ -36,8 +36,8 @@ export interface ChainAddresses {
   poolDeployer: Address;
   /** MetricOmmPoolLiquidityAdder */
   liquidityAdder: Address;
-  /** MetricOmmPoolDataProvider (pool reads, swap depth, revert quotes). */
-  dataProvider: Address;
+  /** MetricOmmPoolSwapDataProvider */
+  swapDataProvider: Address;
   /** DepositAllowlist */
   depositAllowlist: Address;
   /** SwapAllowlist */
@@ -46,20 +46,24 @@ export interface ChainAddresses {
   swapper: Address;
   /** Wrapped native (WETH on Ethereum) */
   wrappedNative: Address;
+  /**
+   * Optional `MetricOmmPoolStateView` used by batch read helpers.
+   * Not included in the v1 Ethereum deploy manifest; wire when you deploy the state view.
+   */
+  stateView?: Address;
 }
 
 // ============ Deployed addresses ============
 
-/** dev-deployment v1 num 2 — Ethereum mainnet (May 2026). */
 export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
-    factory: "0xf98aD80FE666B9a23075CdF64aF5971802844Fd8",
-    poolDeployer: "0xf93e1ea4516E99A4Ee81D4979C8D3C8Ab636e397",
-    liquidityAdder: "0x05632ffd8D4a22ac6f925B9fc7b60390d436467D",
-    dataProvider: "0xAce0Ec0040e81eE3496EeE768db8F453f2f0B9Bb",
-    depositAllowlist: "0x497B15B9640eCbfFB96C1CFF7e6A3D8Ec5C6dAE2",
-    swapAllowlist: "0x657f8CAC2066481b3Cd421781410e383f173433D",
-    swapper: "0x377421359e849cc44da76b18511f6A5Dd5abFc23",
+    factory: "0x93e314a9a65a15f3c3bc039bb4261dbbbc343fba",
+    poolDeployer: "0xe56e89c4faeec39364b5a2cbde13c572a876afb6",
+    liquidityAdder: "0x1f2a03dc43947c6bdebb2e6136222997e49fa3e9",
+    swapDataProvider: "0x404bdb6d2b9ed34a5637211a8d52177c38c39d02",
+    depositAllowlist: "0xea700fcd860533474e1ff920b76914113ae56681",
+    swapAllowlist: "0x5269d78af4a288e1649be6bf169a51bb94b6eb78",
+    swapper: "0x85e4ff47427f1a62ed19a3abf97b80c333da266c",
     wrappedNative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   },
 } as const;

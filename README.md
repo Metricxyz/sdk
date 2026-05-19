@@ -6,7 +6,7 @@ This workspace publishes three npm packages:
 
 | Package | Description |
 | -------- | ----------- |
-| [`@nradko/metric-omm-sdk`](./packages/metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./packages/metric-omm-sdk/HOW_TO.md) |
+| [`@nradko/metric-omm-sdk`](./packages/metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces |
 | [`@nradko/metric-omm-sdk-v0`](./packages/v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
 | [`@nradko/metric-omm-sdk-v1`](./packages/v1) | **v1** — Swapper, LiquidityAdder, `addLiquidity` / `removeLiquidity`, Ethereum mainnet |
 
@@ -35,7 +35,8 @@ import { mainnet } from "viem/chains";
 const publicClient = createPublicClient({ chain: mainnet, transport: http() });
 const addresses = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 
-const slot0 = await v1.getSlot0(publicClient, addresses.dataProvider, poolAddress);
+// Deploy MetricOmmPoolStateView(factory) yourself, then:
+const slot0 = await v1.getSlot0(publicClient, stateViewAddress, poolAddress);
 ```
 
 See [packages/v1/README.md](./packages/v1/README.md) for Swapper quotes, LiquidityAdder flows, and mainnet addresses.
@@ -62,7 +63,7 @@ See [packages/v0/README.md](./packages/v0/README.md) for Router swaps and `modif
 | Remove liquidity | Pool `modifyLiquidity` | Pool `removeLiquidity` |
 | Pool immutables | On pool / legacy reads | `factory.poolImmutables(pool)` |
 | Deployed chains (bundled addresses) | Many chains | Ethereum mainnet only (for now) |
-| DataProvider | `addresses.dataProvider` on mainnet | Deploy `MetricOmmPoolDataProvider`; pass as `dataProviderAddress` |
+| StateView | Bundled CREATE2 address | Deploy yourself; pass address into read helpers |
 
 ## Development
 
@@ -77,7 +78,7 @@ npm run format:check
 npm test             # v1 unit tests + v0 tests (isolated install)
 ```
 
-Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env) (`METRIC_CORE_REF`, `METRIC_PERIPHERY_REF`). Refresh v1 `package.json` pins with `npm run sync:versions:v1` (or `sync:versions:v1:check` in CI).
+Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env) (`METRIC_CORE_REF`, `METRIC_PERIPHERY_REF`).
 
 ### v0 tests in a workspace
 

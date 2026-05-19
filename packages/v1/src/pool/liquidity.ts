@@ -5,7 +5,7 @@
 
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
-import { MAX_UINT104, MAX_INT104, MAX_INT128, LIQUIDITY_ADDER_ABI } from "../constants.js";
+import { Q64, MAX_UINT104, MAX_INT104, MAX_INT128, LIQUIDITY_ADDER_ABI } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type { LiquidityDelta, LiquidityBinValueInput, PoolLiquidityDelta } from "../types.js";
 import { getPoolImmutables } from "./read.js";
@@ -14,12 +14,11 @@ import {
   getBinStatesScaled,
   getPositionBinSharesRange,
   getPositionBinSharesForBins,
-} from "../dataProvider/read.js";
+} from "../stateView/read.js";
 import {
   ONE_E18,
   ceilDiv,
   toPriceE18,
-  priceX64ToPriceE18,
   convertToken0ToToken1,
   convertToken1ToToken0,
   scaledPositiveDeltaToExternal,
@@ -54,27 +53,20 @@ export type ModifyLiquidityArgs = readonly [bigint, LiquidityDelta[], bigint, bi
 
 export interface BuildModifyLiquidityArgsBase {
   publicClient: PublicClient;
-  /** MetricOmmPoolDataProvider address (`addresses.dataProvider` on mainnet). */
-  dataProviderAddress: Address;
+  /** Factory that deployed the pool (used to read `poolImmutables`). */
+  factoryAddress: Address;
+  stateViewAddress: Address;
   poolAddress: Address;
   specAmountBufferPercent?: number;
 }
 
-/** Addition builders read `factory.poolImmutables(pool)` — removal only needs the data provider lens. */
-export interface BuildModifyLiquidityArgsWithFactory extends BuildModifyLiquidityArgsBase {
-  factoryAddress: Address;
-}
-
-export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsWithFactory {
+export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsBase {
   bins: LiquidityBinValueInput[];
-  /** Human-readable price (token1 per token0). Omit when using currentPriceX64. */
-  currentPrice?: number;
-  /** On-chain Q64 price. Preferred over currentPrice when available from slot0 / oracle. */
-  currentPriceX64?: bigint;
+  currentPrice: number;
   salt?: bigint;
 }
 
-export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildModifyLiquidityArgsWithFactory {
+export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildModifyLiquidityArgsBase {
   amountInTokensPerBin: bigint;
   amountIsInToken0: boolean;
   currentPrice: number;
@@ -83,7 +75,7 @@ export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildM
   salt?: bigint;
 }
 
-export interface BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsWithFactory {
+export interface BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsBase {
   bins: number[];
   weights?: number[];
   totalValueToAddInToken: bigint;
@@ -107,23 +99,13 @@ export interface BuildModifyLiquidityArgsForRemovalParams extends BuildModifyLiq
   specs: BinRemovalSpec[];
 }
 
-function resolvePriceE18(params: { currentPrice?: number; currentPriceX64?: bigint }): bigint {
-  if (params.currentPriceX64 != null) {
-    return priceX64ToPriceE18(params.currentPriceX64);
-  }
-  if (params.currentPrice != null) {
-    return toPriceE18(params.currentPrice);
-  }
-  throw new Error("currentPrice or currentPriceX64 is required");
-}
-
 /**
  * Prepare uniform liquidity distribution across a bin range.
  */
 export async function buildModifyLiquidityArgsForUniformAddition({
   publicClient,
   factoryAddress,
-  dataProviderAddress,
+  stateViewAddress,
   poolAddress,
   amountInTokensPerBin,
   amountIsInToken0,
@@ -149,7 +131,7 @@ export async function buildModifyLiquidityArgsForUniformAddition({
   return buildModifyLiquidityArgsForAddition({
     publicClient,
     factoryAddress,
-    dataProviderAddress,
+    stateViewAddress,
     poolAddress,
     bins,
     currentPrice,
@@ -169,7 +151,7 @@ export async function buildModifyLiquidityArgsForUniformAddition({
 export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
   publicClient,
   factoryAddress,
-  dataProviderAddress,
+  stateViewAddress,
   poolAddress,
   bins,
   weights,
@@ -200,6 +182,11 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("currentPriceX64 must be > 0");
   }
 
+  const currentPrice = Number(currentPriceX64.toString()) / Number(Q64.toString());
+  if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+    throw new Error("currentPriceX64 is out of supported numeric range");
+  }
+
   const calibrationValue = totalValueToAddInToken / BigInt(bins.length) + 1n;
   const calibrationTargets: bigint[] = weights
     ? weights.map((w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n)
@@ -215,10 +202,10 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     await buildModifyLiquidityArgsForAddition({
       publicClient,
       factoryAddress,
-      dataProviderAddress,
+      stateViewAddress,
       poolAddress,
       bins: calibrationBins,
-      currentPriceX64,
+      currentPrice,
       salt,
       specAmountBufferPercent: 0,
     });
@@ -240,10 +227,10 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
   return buildModifyLiquidityArgsForAddition({
     publicClient,
     factoryAddress,
-    dataProviderAddress,
+    stateViewAddress,
     poolAddress,
     bins: scaledBins,
-    currentPriceX64,
+    currentPrice,
     salt,
     specAmountBufferPercent,
   });
@@ -276,11 +263,10 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
 export async function buildModifyLiquidityArgsForAddition({
   publicClient,
   factoryAddress,
-  dataProviderAddress,
+  stateViewAddress,
   poolAddress,
   bins,
   currentPrice,
-  currentPriceX64,
   salt = 0n,
   specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForAdditionParams): Promise<ModifyLiquidityArgs> {
@@ -294,7 +280,7 @@ export async function buildModifyLiquidityArgsForAddition({
   }
 
   const immutables = await getPoolImmutables(publicClient, factoryAddress, poolAddress);
-  const priceE18 = resolvePriceE18({ currentPrice, currentPriceX64 });
+  const priceE18 = toPriceE18(currentPrice);
 
   const targetsByBin = new Map<
     number,
@@ -356,8 +342,8 @@ export async function buildModifyLiquidityArgsForAddition({
 
   const binIndices = Array.from(targetsByBin.keys()).sort((a, b) => a - b);
   const [slot0, binStates] = await Promise.all([
-    getSlot0(publicClient, dataProviderAddress, poolAddress),
-    getBinStatesScaled(publicClient, dataProviderAddress, poolAddress, binIndices),
+    getSlot0(publicClient, stateViewAddress, poolAddress),
+    getBinStatesScaled(publicClient, stateViewAddress, poolAddress, binIndices),
   ]);
 
   const deltas: LiquidityDelta[] = [];
@@ -510,7 +496,7 @@ export async function buildModifyLiquidityArgsForRemoval(
 ): Promise<ModifyLiquidityArgs> {
   const {
     publicClient,
-    dataProviderAddress,
+    stateViewAddress,
     poolAddress,
     owner,
     salt,
@@ -543,7 +529,7 @@ export async function buildModifyLiquidityArgsForRemoval(
   const binIndices = specs.map((s) => s.bin);
   const positionShares = await getPositionBinSharesForBins(
     publicClient,
-    dataProviderAddress,
+    stateViewAddress,
     poolAddress,
     owner,
     salt,
@@ -588,7 +574,8 @@ export async function buildModifyLiquidityArgsForRemoval(
 
 export async function buildModifyLiquidityArgsForPercentageRemoval({
   publicClient,
-  dataProviderAddress,
+  factoryAddress,
+  stateViewAddress,
   poolAddress,
   owner,
   salt,
@@ -609,7 +596,7 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
     : (
         await getPositionBinSharesRange(
           publicClient,
-          dataProviderAddress,
+          stateViewAddress,
           poolAddress,
           owner,
           salt,
@@ -629,7 +616,8 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
 
   return buildModifyLiquidityArgsForRemoval({
     publicClient,
-    dataProviderAddress,
+    factoryAddress,
+    stateViewAddress,
     poolAddress,
     owner,
     salt,

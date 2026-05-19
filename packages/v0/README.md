@@ -71,10 +71,6 @@ const modifyArgs = await buildModifyLiquidityArgsForUniformAddition({ /* ... */ 
 const data = encodeModifyLiquidityCalldata(modifyArgs);
 ```
 
-## What ships on npm
-
-The published tarball includes only `dist/` and `src/` (see `package.json` `files`). Repo-only folders such as `exec/`, `ignition/`, and network deploy scripts are for maintainers and are not part of the npm package.
-
 ## Development
 
 ```bash

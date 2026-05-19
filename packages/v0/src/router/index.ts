@@ -14,7 +14,6 @@ export {
   prepareSwapExactOutputCalldata,
   prepareSwapExactInputNativeForTokensCalldata,
   type PreparedSwapTransaction,
-  type BuildSwapPrices,
   type BuildSwapExactInputParams,
   type QuoteExpectedAmountsForSwapExactInputParams,
   type SwapExactInputParams,

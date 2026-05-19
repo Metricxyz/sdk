@@ -17,8 +17,6 @@
     "format": "npm run format --workspaces --if-present",
     "format:check": "npm run format:check --workspaces --if-present",
     "sync:abis:v0": "npm run sync:abis -w @nradko/metric-omm-sdk-v0",
-    "sync:abis:v1": "npm run sync:abis -w @nradko/metric-omm-sdk-v1",
-    "sync:versions:v1": "node scripts/sync-versions-env.mjs",
-    "sync:versions:v1:check": "node scripts/sync-versions-env.mjs --check"
+    "sync:abis:v1": "npm run sync:abis -w @nradko/metric-omm-sdk-v1"
   }
 }

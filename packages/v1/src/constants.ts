@@ -4,7 +4,7 @@
 
 import type { Abi } from "viem";
 import { MetricOmmPoolAbi } from "./abis/MetricOmmPool.js";
-import { MetricOmmPoolDataProviderAbi } from "./abis/MetricOmmPoolDataProvider.js";
+import { MetricOmmPoolStateViewAbi } from "./abis/MetricOmmPoolStateView.js";
 import { MetricOmmPoolSwapperAbi } from "./abis/MetricOmmPoolSwapper.js";
 import { MetricOmmPoolLiquidityAdderAbi } from "./abis/MetricOmmPoolLiquidityAdder.js";
 import { MetricOmmPoolFactoryAbi } from "./abis/MetricOmmPoolFactory.js";
@@ -29,8 +29,7 @@ export const MAX_INT104 = 2n ** 103n - 1n;
 // ============ Internal ABI References ============
 
 export const POOL_ABI = MetricOmmPoolAbi as Abi;
-/** MetricOmmPoolDataProvider (pool reads + depth/quote views). */
-export const DATA_PROVIDER_ABI = MetricOmmPoolDataProviderAbi as Abi;
+export const STATE_VIEW_ABI = MetricOmmPoolStateViewAbi as Abi;
 export const SWAPPER_ABI = MetricOmmPoolSwapperAbi as Abi;
 export const LIQUIDITY_ADDER_ABI = MetricOmmPoolLiquidityAdderAbi as Abi;
 export const POOL_FACTORY_ABI = MetricOmmPoolFactoryAbi as Abi;

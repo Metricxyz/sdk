@@ -5,7 +5,7 @@
 
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
-import { MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
+import { Q64, MAX_UINT104, MAX_INT104, MAX_INT128 } from "../constants.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type { LiquidityDelta, LiquidityBinValueInput } from "../types.js";
 import { getPoolImmutables } from "./read.js";
@@ -19,7 +19,6 @@ import {
   ONE_E18,
   ceilDiv,
   toPriceE18,
-  priceX64ToPriceE18,
   convertToken0ToToken1,
   convertToken1ToToken0,
   scaledPositiveDeltaToExternal,
@@ -61,8 +60,7 @@ export interface BuildModifyLiquidityArgsBase {
 
 export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsBase {
   bins: LiquidityBinValueInput[];
-  currentPrice?: number;
-  currentPriceX64?: bigint;
+  currentPrice: number;
   salt?: bigint;
 }
 
@@ -97,16 +95,6 @@ export interface BuildModifyLiquidityArgsForRemovalParams extends BuildModifyLiq
   owner: Address;
   salt: bigint;
   specs: BinRemovalSpec[];
-}
-
-function resolvePriceE18(params: { currentPrice?: number; currentPriceX64?: bigint }): bigint {
-  if (params.currentPriceX64 != null) {
-    return priceX64ToPriceE18(params.currentPriceX64);
-  }
-  if (params.currentPrice != null) {
-    return toPriceE18(params.currentPrice);
-  }
-  throw new Error("currentPrice or currentPriceX64 is required");
 }
 
 /**
@@ -189,6 +177,11 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("currentPriceX64 must be > 0");
   }
 
+  const currentPrice = Number(currentPriceX64.toString()) / Number(Q64.toString());
+  if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+    throw new Error("currentPriceX64 is out of supported numeric range");
+  }
+
   const calibrationValue = totalValueToAddInToken / BigInt(bins.length) + 1n;
   const calibrationTargets: bigint[] = weights
     ? weights.map((w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n)
@@ -206,7 +199,7 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
       stateViewAddress,
       poolAddress,
       bins: calibrationBins,
-      currentPriceX64,
+      currentPrice,
       salt,
       specAmountBufferPercent: 0,
     });
@@ -230,7 +223,7 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     stateViewAddress,
     poolAddress,
     bins: scaledBins,
-    currentPriceX64,
+    currentPrice,
     salt,
     specAmountBufferPercent,
   });
@@ -266,7 +259,6 @@ export async function buildModifyLiquidityArgsForAddition({
   poolAddress,
   bins,
   currentPrice,
-  currentPriceX64,
   salt = 0n,
   specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForAdditionParams): Promise<ModifyLiquidityArgs> {
@@ -280,7 +272,7 @@ export async function buildModifyLiquidityArgsForAddition({
   }
 
   const immutables = await getPoolImmutables(publicClient, poolAddress);
-  const priceE18 = resolvePriceE18({ currentPrice, currentPriceX64 });
+  const priceE18 = toPriceE18(currentPrice);
 
   const targetsByBin = new Map<
     number,
