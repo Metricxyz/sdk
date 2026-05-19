@@ -3,8 +3,8 @@
  */
 
 import type { Address, PublicClient } from "viem";
-import { POOL_FACTORY_ABI, STATE_VIEW_ABI } from "../constants.js";
-import type { PoolImmutables, PoolState, BinState } from "../types.js";
+import { POOL_FACTORY_ABI, DATA_PROVIDER_ABI } from "../constants.js";
+import type { PoolImmutables, PoolState, BinState, PoolFeeConfig } from "../types.js";
 
 /**
  * Read pool immutables via the factory (v1 pools do not expose a pool-side immutables getter).
@@ -51,24 +51,45 @@ export async function getPoolImmutables(
   };
 }
 
+/** Read persisted fee config for a pool from the factory. */
+export async function getPoolFeeConfig(
+  publicClient: PublicClient,
+  factoryAddress: Address,
+  poolAddress: Address,
+): Promise<PoolFeeConfig> {
+  const result = (await publicClient.readContract({
+    address: factoryAddress,
+    abi: POOL_FACTORY_ABI,
+    functionName: "poolFeeConfig",
+    args: [poolAddress],
+  })) as readonly [number, number, number, number];
+
+  return {
+    protocolSpreadFeeE6: result[0],
+    adminSpreadFeeE6: result[1],
+    protocolNotionalFeeE8: result[2],
+    adminNotionalFeeE8: result[3],
+  };
+}
+
 /**
- * Read pool state via StateView (slot0 + slot1).
+ * Read pool state via MetricOmmPoolDataProvider (slot0 + slot1).
  */
 export async function getPoolState(
   publicClient: PublicClient,
-  stateViewAddress: Address,
+  dataProviderAddress: Address,
   poolAddress: Address,
 ): Promise<PoolState> {
   const [slot0, slot1] = await Promise.all([
     publicClient.readContract({
-      address: stateViewAddress,
-      abi: STATE_VIEW_ABI,
+      address: dataProviderAddress,
+      abi: DATA_PROVIDER_ABI,
       functionName: "slot0",
       args: [poolAddress],
     }) as Promise<readonly [number, number, bigint, number, number, number]>,
     publicClient.readContract({
-      address: stateViewAddress,
-      abi: STATE_VIEW_ABI,
+      address: dataProviderAddress,
+      abi: DATA_PROVIDER_ABI,
       functionName: "slot1",
       args: [poolAddress],
     }) as Promise<readonly [bigint, bigint]>,
@@ -87,18 +108,18 @@ export async function getPoolState(
 }
 
 /**
- * Read bin state (scaled balances) via StateView.
+ * Read bin state (scaled balances) via MetricOmmPoolDataProvider.
  */
 export async function getBinState(
   publicClient: PublicClient,
-  stateViewAddress: Address,
+  dataProviderAddress: Address,
   poolAddress: Address,
   binIdx: number,
 ): Promise<BinState> {
   const result = (await publicClient.readContract({
-    address: stateViewAddress,
-    abi: STATE_VIEW_ABI,
-    functionName: "binStateScaled",
+    address: dataProviderAddress,
+    abi: DATA_PROVIDER_ABI,
+    functionName: "binState",
     args: [poolAddress, binIdx],
   })) as readonly [bigint, bigint, number, number, number];
 
@@ -112,19 +133,19 @@ export async function getBinState(
 }
 
 /**
- * Get user position shares in a specific bin (StateView).
+ * Get user position shares in a specific bin (DataProvider).
  */
 export async function getPositionBinShares(
   publicClient: PublicClient,
-  stateViewAddress: Address,
+  dataProviderAddress: Address,
   poolAddress: Address,
   owner: Address,
   salt: bigint,
   binIdx: number,
 ): Promise<bigint> {
   return (await publicClient.readContract({
-    address: stateViewAddress,
-    abi: STATE_VIEW_ABI,
+    address: dataProviderAddress,
+    abi: DATA_PROVIDER_ABI,
     functionName: "positionBinShares",
     args: [poolAddress, owner, salt, binIdx],
   })) as bigint;

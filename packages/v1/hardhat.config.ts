@@ -1,6 +1,7 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatViem from "@nomicfoundation/hardhat-viem";
+import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
 
 /** Mainnet JSON-RPC for forked tests (Alchemy, Infura, etc.). */
@@ -16,7 +17,7 @@ const ethereumForkBlockNumber = process.env.ETHEREUM_FORK_BLOCK_NUMBER
   : undefined;
 
 const config: HardhatUserConfig = {
-  plugins: [hardhatViem, hardhatNodeTestRunner],
+  plugins: [hardhatViem, hardhatNetworkHelpers, hardhatNodeTestRunner],
   solidity: {
     profiles: {
       default: {
@@ -29,15 +30,16 @@ const config: HardhatUserConfig = {
       },
     },
     npmFilesToBuild: [
+      // @metric/core / @metric/periphery pins: packages/v1/package.json (use npm install --no-workspaces for tests)
       "@metric/core/contracts/MetricOmmPool.sol",
       "@metric/core/contracts/MetricOmmPoolFactory.sol",
       "@metric/core/contracts/MetricOmmPoolDeployer.sol",
-      "@metric/core/test/MetricOmmPoolStateView.sol",
       "@metric/core/contracts/Extsload.sol",
       "@metric/core/test/mocks/MockERC20.sol",
       "@metric/core/test/mocks/MockOracle.sol",
       "@metric/core/test/mocks/TestCaller.sol",
       "@metric/core/contracts/interfaces/IPriceProvider/IPriceProvider.sol",
+      "@metric/periphery/contracts/lens/MetricOmmPoolDataProvider.sol",
       "@metric/periphery/contracts/MetricOmmPoolSwapper.sol",
       "@metric/periphery/contracts/MetricOmmPoolLiquidityAdder.sol",
     ],

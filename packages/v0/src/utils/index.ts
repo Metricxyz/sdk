@@ -20,6 +20,7 @@ export {
   ONE_E18,
   ceilDiv,
   toPriceE18 as toPriceX18,
+  priceX64ToPriceE18,
   convertToken0ToToken1,
   convertToken1ToToken0,
   scaledPositiveDeltaToExternal,
