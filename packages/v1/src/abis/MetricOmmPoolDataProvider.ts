@@ -1,4 +1,4 @@
-export const MetricOmmPoolStateViewAbi = [
+export const MetricOmmPoolDataProviderAbi = [
   {
     inputs: [
       {
@@ -9,6 +9,41 @@ export const MetricOmmPoolStateViewAbi = [
     ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    inputs: [],
+    name: "BidDepthBinAvgExecPriceZero",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidDistance",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidFactory",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidNotionalFee",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidOraclePrice",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidPriceProvider",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "MaxBinsPerSideTooLarge",
+    type: "error",
   },
   {
     inputs: [
@@ -30,58 +65,27 @@ export const MetricOmmPoolStateViewAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "pool",
+        name: "target",
         type: "address",
       },
-    ],
-    name: "admin",
-    outputs: [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
+        internalType: "bytes4",
+        name: "selector",
+        type: "bytes4",
+      },
+      {
+        internalType: "bytes",
+        name: "reason",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "additionalInfo",
+        type: "bytes",
       },
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "adminFeeDestination",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "adminSpreadFeeE6",
-    outputs: [
-      {
-        internalType: "uint24",
-        name: "",
-        type: "uint24",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    name: "WrappedError",
+    type: "error",
   },
   {
     inputs: [
@@ -97,50 +101,6 @@ export const MetricOmmPoolStateViewAbi = [
       },
     ],
     name: "binState",
-    outputs: [
-      {
-        internalType: "uint104",
-        name: "token0Balance",
-        type: "uint104",
-      },
-      {
-        internalType: "uint104",
-        name: "token1Balance",
-        type: "uint104",
-      },
-      {
-        internalType: "uint16",
-        name: "lengthE6",
-        type: "uint16",
-      },
-      {
-        internalType: "uint16",
-        name: "addFeeBuyE6",
-        type: "uint16",
-      },
-      {
-        internalType: "uint16",
-        name: "addFeeSellE6",
-        type: "uint16",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
-        internalType: "int8",
-        name: "binIdx",
-        type: "int8",
-      },
-    ],
-    name: "binStateScaled",
     outputs: [
       {
         internalType: "uint104",
@@ -187,34 +147,9 @@ export const MetricOmmPoolStateViewAbi = [
     name: "binStates",
     outputs: [
       {
-        internalType: "uint104[]",
-        name: "token0Balances",
-        type: "uint104[]",
-      },
-      {
-        internalType: "uint104[]",
-        name: "token1Balances",
-        type: "uint104[]",
-      },
-      {
-        internalType: "uint16[]",
-        name: "lengthsInUnits",
-        type: "uint16[]",
-      },
-      {
-        internalType: "uint16[]",
-        name: "addFeeBuysE6",
-        type: "uint16[]",
-      },
-      {
-        internalType: "uint16[]",
-        name: "addFeeSellsE6",
-        type: "uint16[]",
-      },
-      {
-        internalType: "uint104[]",
-        name: "totalShares",
-        type: "uint104[]",
+        internalType: "bytes32[]",
+        name: "",
+        type: "bytes32[]",
       },
     ],
     stateMutability: "view",
@@ -236,123 +171,51 @@ export const MetricOmmPoolStateViewAbi = [
     name: "binTotalShares",
     outputs: [
       {
-        internalType: "uint104",
-        name: "",
-        type: "uint104",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "curBinDistFromProvidedPriceE6",
-    outputs: [
-      {
-        internalType: "int24",
-        name: "",
-        type: "int24",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "curBinIdx",
-    outputs: [
-      {
-        internalType: "int8",
-        name: "",
-        type: "int8",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "curPosInBin",
-    outputs: [
-      {
-        internalType: "uint104",
-        name: "",
-        type: "uint104",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "feeConfig",
-    outputs: [
-      {
-        internalType: "address",
-        name: "adminAddr",
-        type: "address",
-      },
-      {
-        internalType: "uint24",
-        name: "protocolSpreadFee",
-        type: "uint24",
-      },
-      {
-        internalType: "uint24",
-        name: "adminSpreadFee",
-        type: "uint24",
-      },
-      {
-        internalType: "address",
-        name: "adminFeeDest",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "getScaleMultipliers",
-    outputs: [
-      {
         internalType: "uint256",
-        name: "token0ScaleMultiplier",
+        name: "",
         type: "uint256",
       },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "int8[]",
+        name: "binIdxs",
+        type: "int8[]",
+      },
+    ],
+    name: "binTotalShares",
+    outputs: [
+      {
+        internalType: "bytes32[]",
+        name: "",
+        type: "bytes32[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+    ],
+    name: "currentPriceX64",
+    outputs: [
       {
         internalType: "uint256",
-        name: "token1ScaleMultiplier",
+        name: "currentPriceX64Value",
         type: "uint256",
       },
     ],
@@ -367,12 +230,12 @@ export const MetricOmmPoolStateViewAbi = [
         type: "address",
       },
     ],
-    name: "notionalFeeE8",
+    name: "distanceFromProvidedPriceX64",
     outputs: [
       {
-        internalType: "uint24",
-        name: "",
-        type: "uint24",
+        internalType: "int256",
+        name: "distanceX64",
+        type: "int256",
       },
     ],
     stateMutability: "view",
@@ -386,11 +249,16 @@ export const MetricOmmPoolStateViewAbi = [
         type: "address",
       },
     ],
-    name: "notionalFeeToken0Scaled",
+    name: "getBestBidAndAsk",
     outputs: [
       {
         internalType: "uint128",
-        name: "",
+        name: "bestBidX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bestAskX64",
         type: "uint128",
       },
     ],
@@ -404,89 +272,104 @@ export const MetricOmmPoolStateViewAbi = [
         name: "pool",
         type: "address",
       },
-    ],
-    name: "notionalFeeToken1Scaled",
-    outputs: [
-      {
-        internalType: "uint128",
-        name: "",
-        type: "uint128",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "pauseLevel",
-    outputs: [
       {
         internalType: "uint8",
-        name: "",
+        name: "maxBinsPerSide",
         type: "uint8",
       },
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "paused",
+    name: "getLiquidityDepth",
     outputs: [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "pendingPriceProvider",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "pendingPriceProviderExecuteAfter",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        components: [
+          {
+            internalType: "uint128",
+            name: "oracleBidX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "oracleAskX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "referenceBestBidX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "referenceBestAskX64",
+            type: "uint128",
+          },
+          {
+            components: [
+              {
+                internalType: "int8",
+                name: "binIdx",
+                type: "int8",
+              },
+              {
+                internalType: "uint256",
+                name: "amountInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountCumulative",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "binAvgExecPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeAvgExecPriceX64",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct MetricOmmPoolDataProvider.DepthLevel[]",
+            name: "asks",
+            type: "tuple[]",
+          },
+          {
+            components: [
+              {
+                internalType: "int8",
+                name: "binIdx",
+                type: "int8",
+              },
+              {
+                internalType: "uint256",
+                name: "amountInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountCumulative",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "binAvgExecPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeAvgExecPriceX64",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct MetricOmmPoolDataProvider.DepthLevel[]",
+            name: "bids",
+            type: "tuple[]",
+          },
+        ],
+        internalType: "struct MetricOmmPoolDataProvider.LiquidityDepth",
+        name: "depth",
+        type: "tuple",
       },
     ],
     stateMutability: "view",
@@ -576,16 +459,46 @@ export const MetricOmmPoolStateViewAbi = [
         name: "pool",
         type: "address",
       },
-    ],
-    name: "protocolSpreadFeeE6",
-    outputs: [
       {
-        internalType: "uint24",
-        name: "",
-        type: "uint24",
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
       },
     ],
-    stateMutability: "view",
+    name: "quoteSwap",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "amount0Delta",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "amount1Delta",
+        type: "int128",
+      },
+    ],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -644,50 +557,12 @@ export const MetricOmmPoolStateViewAbi = [
     outputs: [
       {
         internalType: "uint128",
-        name: "_totalScaledToken0InBins",
+        name: "totalScaledToken0InBins",
         type: "uint128",
       },
       {
         internalType: "uint128",
-        name: "_totalScaledToken1InBins",
-        type: "uint128",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "spreadFeeE6",
-    outputs: [
-      {
-        internalType: "uint24",
-        name: "",
-        type: "uint24",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "totalToken0InBins",
-    outputs: [
-      {
-        internalType: "uint128",
-        name: "",
+        name: "totalScaledToken1InBins",
         type: "uint128",
       },
     ],
@@ -702,11 +577,16 @@ export const MetricOmmPoolStateViewAbi = [
         type: "address",
       },
     ],
-    name: "totalToken1InBins",
+    name: "slot2",
     outputs: [
       {
         internalType: "uint128",
-        name: "",
+        name: "notionalFeeToken0Scaled",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "notionalFeeToken1Scaled",
         type: "uint128",
       },
     ],

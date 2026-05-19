@@ -17,7 +17,7 @@ export type {
   BinStatesScaled,
   Slot0,
   Slot1,
-  FeeConfig,
+  PoolFeeConfig,
   PositionBinSharesResult,
   CalculateUniformLiquidityParams,
   LiquidityBinValueInput as AnyLiquidityBinInput,
@@ -45,7 +45,7 @@ export {
 // ============ ABIs ============
 export {
   MetricOmmPoolAbi,
-  MetricOmmPoolStateViewAbi,
+  MetricOmmPoolDataProviderAbi,
   MetricOmmPoolSwapperAbi,
   MetricOmmPoolLiquidityAdderAbi,
   MetricOmmPoolFactoryAbi,
@@ -72,12 +72,13 @@ export {
   type CreatePoolFactoryParams,
   type CreatePoolParams,
   getPoolImmutables,
+  getPoolFeeConfig,
   getPoolState,
   getBinState,
   getPositionBinShares,
 } from "./pool/index.js";
 
-// ============ StateView Functions ============
+// ============ DataProvider read functions ============
 export {
   getSlot0,
   getSlot1,
@@ -85,13 +86,12 @@ export {
   getBinStatesExternal,
   getBinStatesScaled,
   getBinTotalShares,
+  getPositionBinSharesFromDataProvider,
   getPositionBinSharesFromStateView,
   toPositionBinKey,
   getPositionBinSharesRange,
-  getFeeConfig,
   getPriceProvider,
-  getLastTradeTimestamp,
-} from "./stateView/index.js";
+} from "./dataProvider/index.js";
 
 // ============ Liquidity Functions ============
 export {
@@ -132,6 +132,8 @@ export {
   buildArgsForSwapExactOutput,
   buildArgsAndExpectedAmountsForSwapExactOutput,
   quoteExpectedAmountsForSwapExactOutput,
+  encodeSwapExactInputCalldata,
+  encodeSwapExactOutputCalldata,
   prepareSwapExactInputCalldata,
   prepareSwapExactOutputCalldata,
   prepareSwapExactInputNativeForTokensCalldata,

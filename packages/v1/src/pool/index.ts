@@ -13,7 +13,13 @@ export {
 } from "./create.js";
 
 // Pool read functions
-export { getPoolImmutables, getPoolState, getBinState, getPositionBinShares } from "./read.js";
+export {
+  getPoolImmutables,
+  getPoolFeeConfig,
+  getPoolState,
+  getBinState,
+  getPositionBinShares,
+} from "./read.js";
 
 // Liquidity calculations and position operations
 export {
