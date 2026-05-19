@@ -1,6 +1,0 @@
-{
-  "FullDeployment#MetricOmmPoolFactory": "0xe22F9fc0f04486dE25ed6CF1800a4a47aFD82e0C",
-  "FullDeployment#MetricOmmPoolDeployer": "0x0f732971a3503afee276782173170D1F1154d4c1",
-  "FullDeployment#MetricOmmSwapRouter": "0x5C1e08DF74a3457648A4C4dc5DC0DE497284c53C",
-  "FullDeployment#MetricOmmPoolStateView": "0xe6b102a2aea65b9b59e4F8B86B38E221886675A8"
-}

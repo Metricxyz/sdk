@@ -1,14 +1,14 @@
-# Metric OMM SDK (monorepo)
+# Metric OMM SDK
 
 TypeScript SDKs for Metric OMM AMM contracts, built on [viem](https://viem.sh/).
 
-This workspace publishes three npm packages:
+This directory holds **three independent npm packages**. They share no root tooling, lockfiles, or config — work inside each folder on its own.
 
-| Package | Description |
-| -------- | ----------- |
-| [`@nradko/metric-omm-sdk`](./packages/metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./packages/metric-omm-sdk/HOW_TO.md) |
-| [`@nradko/metric-omm-sdk-v0`](./packages/v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
-| [`@nradko/metric-omm-sdk-v1`](./packages/v1) | **v1** — Swapper, LiquidityAdder, `addLiquidity` / `removeLiquidity`, Ethereum mainnet |
+| Package | Folder | Description |
+| -------- | ------ | ----------- |
+| `@nradko/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
+| `@nradko/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
+| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — Swapper, LiquidityAdder, `addLiquidity` / `removeLiquidity`, Ethereum mainnet |
 
 ## Installation
 
@@ -21,8 +21,8 @@ npm install @nradko/metric-omm-sdk viem
 **Version-specific:**
 
 ```bash
-npm install @nradko/metric-omm-sdk-v1 viem   # new deployments
-npm install @nradko/metric-omm-sdk-v0 viem   # legacy Router deployments
+npm install @nradko/metric-omm-sdk-v1 viem
+npm install @nradko/metric-omm-sdk-v0 viem
 ```
 
 ## Quick start (v1 — current Ethereum deployment)
@@ -38,7 +38,7 @@ const addresses = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 const slot0 = await v1.getSlot0(publicClient, addresses.dataProvider, poolAddress);
 ```
 
-See [packages/v1/README.md](./packages/v1/README.md) for Swapper quotes, LiquidityAdder flows, and mainnet addresses.
+See [v1/README.md](./v1/README.md) for Swapper quotes, LiquidityAdder flows, and mainnet addresses.
 
 ## Quick start (v0 — Router / modifyLiquidity)
 
@@ -51,7 +51,7 @@ const publicClient = createPublicClient({ chain: mainnet, transport: http() });
 const addresses = v0.getAddressesOrThrow(v0.ChainId.ETHEREUM);
 ```
 
-See [packages/v0/README.md](./packages/v0/README.md) for Router swaps and `modifyLiquidity`.
+See [v0/README.md](./v0/README.md) for Router swaps and `modifyLiquidity`.
 
 ## v0 vs v1 (breaking differences)
 
@@ -66,50 +66,58 @@ See [packages/v0/README.md](./packages/v0/README.md) for Router swaps and `modif
 
 ## Development
 
-From this directory (`dev_sdk`):
+Each package is self-contained. From the package folder:
 
 ```bash
-npm install          # runs prepare: v0 build, v1 submodule+ABI sync+build, wrapper build
+cd v0   # or v1, or metric-omm-sdk
+npm ci
 npm run build
 npm run typecheck
 npm run lint
 npm run format:check
-npm test             # v1 unit tests + v0 tests (isolated install)
+npm run verify   # full publish gate for that package
 ```
 
-Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env) (`METRIC_CORE_REF`, `METRIC_PERIPHERY_REF`). Refresh v1 `package.json` pins with `npm run sync:versions:v1` (or `sync:versions:v1:check` in CI).
+**v0** and **v1** pin different `@metric/core` / `@metric/periphery` commits and each has its own `package-lock.json`, `node_modules`, ESLint, and Prettier config.
 
-### v0 tests in a workspace
+**metric-omm-sdk** depends on **published** `@nradko/metric-omm-sdk-v0` and `@nradko/metric-omm-sdk-v1` from npm (exact versions in `package.json`), not local siblings.
 
-v0 and v1 pin **different** `@metric/core` / `@metric/periphery` commits; npm hoists one copy. v0 Hardhat tests use an isolated install:
-
-```bash
-npm run test:v0
-```
+Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env). Refresh with `npm run sync:versions:env` inside `v1/`.
 
 ### Optional v1 fork tests
 
 ```bash
+cd v1
 export ETHEREUM_RPC_URL=https://...
-# optional: V1_ETHEREUM_TEST_POOL=0x...
-npm test -w @nradko/metric-omm-sdk-v1
+npm test
 ```
 
-Fork suite is skipped when no RPC URL is set (default in CI without secrets).
-
-### Regenerate v1 ABIs
-
-```bash
-npm run sync:abis:v1
-```
-
-Committed ABIs under `packages/v1/src/abis/` let consumers use the package without running Hardhat; `prepare` refreshes them on install.
+Fork suite is skipped when no RPC URL is set.
 
 ## Publishing
 
-Publish order: **v0** → **v1** → **wrapper** (update wrapper `dependencies` to published semver before the final publish).
+Publish from **inside each package** with `npm publish`. `prepublishOnly` runs that package’s `verify` script only.
+
+Publish order: **v0** → **v1** → **metric-omm-sdk**.
+
+### v0
 
 ```bash
-npm run typecheck && npm run lint && npm run format:check && npm test
-# per package: npm publish -w @nradko/metric-omm-sdk-v1 --access public
+cd v0
+npm publish --access public
 ```
+
+### v1
+
+```bash
+cd v1
+npm publish --access public
+```
+
+### Combined wrapper
+
+1. Publish v0 and v1 first.
+2. In `metric-omm-sdk/package.json`, set `@nradko/metric-omm-sdk-v0` and `@nradko/metric-omm-sdk-v1` to the exact versions you published.
+3. `npm ci` in `metric-omm-sdk/`, then `npm publish --access public`.
+
+`verify` on the wrapper fails if dependencies use `file:` links or are missing.

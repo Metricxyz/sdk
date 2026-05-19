@@ -5,10 +5,6 @@ dist/
 
 # Dependencies
 node_modules/
-packages/*/node_modules/
-
-# Workspace: v0 isolated install lockfile (see npm run test:v0)
-packages/*/package-lock.json
 
 # Hardhat
 artifacts/

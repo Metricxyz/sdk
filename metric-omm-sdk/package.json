@@ -1,0 +1,54 @@
+{
+  "name": "@nradko/metric-omm-sdk",
+  "version": "0.1.1",
+  "description": "Metric AMM SDK — combined v0 and v1 namespaces",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "HOW_TO.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "prepare": "npm run build",
+    "verify": "node ./scripts/verify.mjs",
+    "prepublishOnly": "npm run verify && npm run build"
+  },
+  "dependencies": {
+    "@nradko/metric-omm-sdk-v0": "0.1.1",
+    "@nradko/metric-omm-sdk-v1": "0.1.1"
+  },
+  "peerDependencies": {
+    "viem": "^2.x"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.18.8",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.8.0",
+    "typescript-eslint": "^8.58.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metric-OMM/metric-sdk.git"
+  }
+}
