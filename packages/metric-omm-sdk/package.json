@@ -1,7 +1,10 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.0.16",
+  "version": "0.1.0",
   "description": "Metric AMM SDK — combined v0 and v1 namespaces",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -14,7 +17,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "HOW_TO.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -23,8 +27,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@nradko/metric-omm-sdk-v0": "file:../v0",
-    "@nradko/metric-omm-sdk-v1": "file:../v1"
+    "@nradko/metric-omm-sdk-v0": "^0.1.0",
+    "@nradko/metric-omm-sdk-v1": "^0.1.0"
   },
   "peerDependencies": {
     "viem": "^2.x"

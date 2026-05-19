@@ -4,7 +4,7 @@
 
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
-import { MAX_UINT128, POOL_ABI, SWAPPER_ABI } from "../constants.js";
+import { MAX_UINT128, POOL_FACTORY_ABI, SWAPPER_ABI } from "../constants.js";
 import { PriceProviderUiAbi } from "../abis/PriceProviderUi.js";
 
 const BPS_BASE = 10_000n;
@@ -58,28 +58,31 @@ export interface BuildSwapPrices {
   askPriceX64: bigint;
 }
 
-export interface BuildSwapExactInputParams {
+/** Shared fields for swap builders that may auto-fetch bid/ask from the pool's price provider. */
+export interface BuildSwapWithFactoryParams {
   publicClient: PublicClient;
-  swapperAddress: Address;
+  /** Factory that deployed the pool (required when `prices` is omitted). */
+  factoryAddress?: Address;
   pool: Address;
+  prices?: BuildSwapPrices;
+}
+
+export interface BuildSwapExactInputParams extends BuildSwapWithFactoryParams {
+  swapperAddress: Address;
   recipient: Address;
   zeroForOne: boolean;
   amountIn: bigint;
   slippagePercent: number;
-  prices?: BuildSwapPrices;
   priceLimitX64?: bigint;
   deadline: bigint;
 }
 
-export interface BuildSwapExactOutputParams {
-  publicClient: PublicClient;
+export interface BuildSwapExactOutputParams extends BuildSwapWithFactoryParams {
   swapperAddress: Address;
-  pool: Address;
   recipient: Address;
   zeroForOne: boolean;
   amountOut: bigint;
   slippagePercent: number;
-  prices?: BuildSwapPrices;
   priceLimitX64?: bigint;
   deadline: bigint;
 }
@@ -95,8 +98,8 @@ export type QuoteExpectedAmountsForSwapExactOutputParams = Omit<
 >;
 
 function toSlippageBps(slippagePercent: number): bigint {
-  if (!Number.isFinite(slippagePercent) || slippagePercent < 0) {
-    throw new Error("slippagePercent must be a non-negative finite number");
+  if (!Number.isFinite(slippagePercent) || slippagePercent < 0 || slippagePercent > 100) {
+    throw new Error("slippagePercent must be a finite number between 0 and 100");
   }
   return BigInt(Math.round(slippagePercent * 100));
 }
@@ -116,17 +119,25 @@ function defaultPriceLimitX64(zeroForOne: boolean): bigint {
   return zeroForOne ? 0n : MAX_UINT128;
 }
 
-async function readBidAskFromPoolPriceProvider(
+async function readBidAskFromFactoryPriceProvider(
   publicClient: PublicClient,
+  factoryAddress: Address,
   poolAddress: Address,
 ): Promise<{ bidPriceX64: bigint; askPriceX64: bigint }> {
-  const immutables = (await publicClient.readContract({
-    address: poolAddress,
-    abi: POOL_ABI,
-    functionName: "getImmutables",
-  })) as readonly unknown[];
+  const imm = (await publicClient.readContract({
+    address: factoryAddress,
+    abi: POOL_FACTORY_ABI,
+    functionName: "poolImmutables",
+    args: [poolAddress],
+  })) as { immutablePriceProvider: Address };
 
-  const priceProviderAddress = immutables[1] as Address;
+  const priceProviderAddress = imm.immutablePriceProvider;
+  if (
+    !priceProviderAddress ||
+    priceProviderAddress === "0x0000000000000000000000000000000000000000"
+  ) {
+    throw new Error(`pool ${poolAddress} has no immutable price provider (factory.poolImmutables)`);
+  }
 
   const [bidPriceX64, askPriceX64] = (await publicClient.readContract({
     address: priceProviderAddress,
@@ -139,6 +150,7 @@ async function readBidAskFromPoolPriceProvider(
 
 async function resolveBidAskPrices(params: {
   publicClient: PublicClient;
+  factoryAddress?: Address;
   pool: Address;
   prices?: BuildSwapPrices;
 }): Promise<{ bidPriceX64: bigint; askPriceX64: bigint }> {
@@ -146,7 +158,17 @@ async function resolveBidAskPrices(params: {
     return params.prices;
   }
 
-  return readBidAskFromPoolPriceProvider(params.publicClient, params.pool);
+  if (!params.factoryAddress) {
+    throw new Error(
+      "factoryAddress is required when prices are omitted (v1 reads poolImmutables from the factory, not the pool)",
+    );
+  }
+
+  return readBidAskFromFactoryPriceProvider(
+    params.publicClient,
+    params.factoryAddress,
+    params.pool,
+  );
 }
 
 export async function buildArgsForSwapExactInput(
@@ -243,14 +265,11 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
   };
 }
 
-export type QuoteSwapParams = {
-  publicClient: PublicClient;
+export type QuoteSwapParams = BuildSwapWithFactoryParams & {
   swapperAddress: Address;
-  pool: Address;
   zeroForOne: boolean;
   amountSpecified: bigint;
   priceLimitX64?: bigint;
-  prices?: BuildSwapPrices;
 };
 
 export type QuoteSwapResult = {
