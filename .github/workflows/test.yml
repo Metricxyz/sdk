@@ -6,14 +6,12 @@ on:
   pull_request:
     branches: [main]
 
-defaults:
-  run:
-    working-directory: .
-
 jobs:
-  verify:
+  v0:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: v0
     steps:
       - uses: actions/checkout@v4
 
@@ -22,28 +20,50 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: v0/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Verify v0
+        run: npm run verify
+        env:
+          MAINNET_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
 
-      - name: Format check
-        run: npm run format:check
+  v1:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v1
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: v1/package-lock.json
 
       - name: Check v1 contract pins match versions.env
-        run: npm run sync:versions:v1:check
+        run: npm run sync:versions:env:check
 
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
+      - name: Verify v1
+        run: npm run verify
         env:
           ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
-          MAINNET_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
+
+  metric-omm-sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: metric-omm-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: metric-omm-sdk/package-lock.json
+
+      - name: Verify wrapper
+        run: npm run verify
