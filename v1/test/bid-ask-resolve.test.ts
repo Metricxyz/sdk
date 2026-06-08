@@ -29,16 +29,7 @@ describe("resolve bid/ask (pool.getImmutables)", () => {
           return [100n, 200n] as const;
         }
         if (req.functionName === "quoteSwap") {
-          assert.deepEqual(req.args, [
-            pool,
-            zeroAddress,
-            true,
-            10n,
-            0n,
-            100n,
-            200n,
-            "0x",
-          ]);
+          assert.deepEqual(req.args, [pool, zeroAddress, true, 10n, 0n, 100n, 200n, "0x"]);
           return [1n, -2n] as const;
         }
         throw new Error(`unexpected readContract: ${req.functionName}`);

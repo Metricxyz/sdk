@@ -38,10 +38,10 @@ export interface ChainAddresses {
   liquidityAdder: Address;
   /** MetricOmmPoolDataProvider (pool reads, swap depth, revert quotes). */
   dataProvider: Address;
-  /** DepositAllowlist */
-  depositAllowlist: Address;
-  /** SwapAllowlist */
-  swapAllowlist: Address;
+  /** MetricOmmPoolStateView (raw pool storage reads). */
+  stateView: Address;
+  /** MetricOmmSimpleRouter (single- and multi-hop swaps; not wrapped by SDK yet). */
+  simpleRouter: Address;
   /** MetricOmmPoolSwapper */
   swapper: Address;
   /** Wrapped native (WETH on Ethereum) */
@@ -50,16 +50,16 @@ export interface ChainAddresses {
 
 // ============ Deployed addresses ============
 
-/** dev-deployment v1 num 2 — Ethereum mainnet (May 2026). */
+/** hooks-era deployment — Ethereum mainnet (Jun 2026). */
 export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
-    factory: "0xf98aD80FE666B9a23075CdF64aF5971802844Fd8",
-    poolDeployer: "0xf93e1ea4516E99A4Ee81D4979C8D3C8Ab636e397",
-    liquidityAdder: "0x05632ffd8D4a22ac6f925B9fc7b60390d436467D",
-    dataProvider: "0xAce0Ec0040e81eE3496EeE768db8F453f2f0B9Bb",
-    depositAllowlist: "0x497B15B9640eCbfFB96C1CFF7e6A3D8Ec5C6dAE2",
-    swapAllowlist: "0x657f8CAC2066481b3Cd421781410e383f173433D",
-    swapper: "0x377421359e849cc44da76b18511f6A5Dd5abFc23",
+    factory: "0xDd41F182630A395E2ED8b9c1D5f1E22F1f9b133a",
+    poolDeployer: "0xb9bb9364FEA5170713709Ba67Aec649eF043e885",
+    liquidityAdder: "0x9de47a0C84c7F9486Af77C8135CE7f480d121B44",
+    dataProvider: "0xf06454dB7E9b8BCa2FC77bF6e88f9B98dF0b52e8",
+    stateView: "0x124C2853E316d1585621560E35D4dcC8318F97FF",
+    simpleRouter: "0x94DD3A9308A1060f4BD9A95dE65F27f0F048f863",
+    swapper: "0xc73407A1d240e08EB34654e706cc3B19E356b8C4",
     wrappedNative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   },
 } as const;

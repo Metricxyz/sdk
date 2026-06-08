@@ -7,6 +7,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-08
+
+> **NOT backward compatible.** This release tracks a hooks-era **metric-core** and **metric-periphery** upgrade. On-chain ABIs changed in ways that break existing integrators at both the **smart-contract** and **SDK** level. Do not assume calldata, selectors, immutables layout, or factory read paths from `0.1.x` still work.
+>
+> Pinned upstream: **metric-core** `bc0fe2be62468d040aff73e78cad1ef3805c4d33`, **metric-periphery** `64c336d97c78b2c59c86caed91f210e4753d8f88`.
+>
+> Packages: **@nradko/metric-omm-sdk-v1** `0.2.0`, **@nradko/metric-omm-sdk** `0.2.0` (v1 namespace only). **@nradko/metric-omm-sdk-v0** stays at `0.1.1`.
+
+### Why this breaks compatibility
+
+The primary break is a **change to `MetricOmmPool` function signatures** in **metric-core**. To support optional per-pool hooks, the single `bytes data` argument on liquidity and swap actions was split into two distinct payloads:
+
+- **`callbackData`** — passed to `metricOmmSwapCallback` / `metricOmmModifyLiquidityCallback` (token payment flow, same role the old `data` had).
+- **`hookData`** — passed to `IMetricOmmHooks` (`beforeSwap`, `afterSwap`, `beforeAddLiquidity`, etc.); opaque to the pool except forwarding.
+
+Because the argument count and names changed, **function selectors changed**. Calldata encoded for pre-hooks `0.1.x` pools will not decode correctly on hooks-era pools and will revert (or hit the wrong function if a stale ABI is used).
+
+**Example — `MetricOmmPool.swap`:**
+
+```solidity
+// Pre-hooks (0.1.x) — one bytes arg
+swap(
+  address recipient,
+  bool zeroForOne,
+  int128 amountSpecified,
+  uint128 priceLimitX64,
+  bytes calldata data          // IERC20 callback payload only
+)
+
+// Hooks era (0.2.0) — two bytes args; different selector
+swap(
+  address recipient,
+  bool zeroForOne,
+  int128 amountSpecified,
+  uint128 priceLimitX64,
+  bytes calldata callbackData, // -> metricOmmSwapCallback
+  bytes calldata hookData      // -> IMetricOmmHooks beforeSwap / afterSwap
+)
+```
+
+A Swapper that previously ABI-encoded five logical swap fields now must append `hookData` as a sixth encoded argument. Passing the old five-arg calldata against a new pool is invalid. Passing hook payload in `callbackData` (old habit) will break the callback path; passing it only in `callbackData` and leaving `hookData` empty will skip hook gates on pools that require hook data.
+
+The same split applies to **`addLiquidity`** (`callbackData` + `hookData`). **`removeLiquidity`** gained `hookData`. **`simulateSwapAndRevert`** gained `recipient` and `hookData` so off-chain quotes run the same hooks as live swaps.
+
+Secondary breaks (also ABI-level): pool-creation immutables struct, factory read functions, events, and **metric-periphery** forwarding `hookData` on Swapper, LiquidityAdder, and DataProvider. This SDK release re-syncs its ABIs and encoders to the pinned contracts.
+
+**If you integrate directly with contracts:** redeploy or upgrade to the pinned core/periphery commits; update every `swap`, `addLiquidity`, `removeLiquidity`, and quote/simulation call.
+
+**If you use this SDK:** upgrade to `0.2.0` and audit all pool create, liquidity, swap, and quote code paths.
+
+### Breaking — metric-core ABIs (`bc0fe2b`)
+
+These on-chain changes drive the SDK break. Old selectors and argument lists are invalid against new deployments.
+
+- **Pool creation immutables** — `depositAllowlistProvider`, `swapAllowlistProvider`, and `reportSwapToPriceProvider` removed; replaced by `hooks` (address) and `hooksPermissions` (uint16 bitmask).
+- **`hookData` on pool actions** — `addLiquidity` and `swap` now take both `callbackData` (IERC20 callback payload) and `hookData` (forwarded to `IMetricOmmHooks`); `removeLiquidity` takes `hookData`; `simulateSwapAndRevert` takes `recipient` and `hookData`.
+- **Pool immutables read path** — immutables live on the pool via `getImmutables()`; factory `poolImmutables`, `poolTokens`, `getTokens`, and `poolScaleMultipliers` removed.
+- **Factory registry** — `poolByIdx` renamed to `idxToPool`; `poolToIdx` and `isPool` added; index 0 reserved (`nextPoolIdx` starts at 1).
+- **Callback interfaces** — `metricOmmSwapCallback` and `metricOmmModifyLiquidityCallback` rename the bytes param from `data` to `callbackData`.
+- **Deployer** — `MetricOmmPoolDeployer` links `LiquidityLib` (library dependency change for deploy scripts).
+- **Behavioral fixes** (same ABI family, different runtime results on edge paths) — swap-math audit fixes; action-scoped reentrancy guard; `inSwap` view; swap hooks run in `simulateSwapAndRevert`.
+
+### Breaking — metric-periphery ABIs (`64c336d`)
+
+Periphery ABIs follow core hook forwarding. Pre-hooks Swapper/LiquidityAdder calldata is not compatible.
+
+- **`hookData` on all periphery mutators** — `MetricOmmPoolLiquidityAdder` add-liquidity methods and `MetricOmmPoolSwapper` swap methods append `hookData`; `quoteSwap` uses an eight-argument overload with `recipient` and `hookData` (legacy six-argument overload remains but does not match hook-enabled execution).
+- **Constructor changes** — `MetricOmmPoolSwapper(weth)` only (no `poolFactory`); `MetricOmmPoolLiquidityAdder()` has no args.
+- **DataProvider** — `quoteSwap` aligned with hook-aware pool simulation.
+- **Allowlist contracts removed** — standalone `DepositAllowlist` / `SwapAllowlist` replaced by hook subhooks in periphery (`DepositAllowlistHook`, `SwapAllowlistHook`, `SwapReporterHook`, etc.).
+
+### Breaking — SDK (v1) — mirrors contract ABIs
+
+Synced ABIs: `MetricOmmPool`, `MetricOmmPoolFactory`, `MetricOmmPoolSwapper`, `MetricOmmPoolLiquidityAdder`, `MetricOmmPoolDataProvider`.
+
+- **`CreatePoolFactoryParams`** — `hooks` / `hooksPermissions` replace allowlist providers; `reportSwapToPriceProvider` removed.
+- **`getPoolImmutables`** — reads `pool.getImmutables()` instead of `factory.poolImmutables(pool)`.
+- **Liquidity encoders** — append `hookData` (default `0x`) on add and remove calldata.
+- **Swap encoders and quotes** — append `hookData`; `quoteSwap` / slippage builders use eight-arg shape with `recipient` + `hookData`. Pass the same values at quote and execution when hooks are enabled.
+- **`quoteExpectedAmountsForSwapExactInput` / `quoteExpectedAmountsForSwapExactOutput`** — now require `recipient`.
+
+### Changed — SDK (v1)
+
+- Bid/ask resolution reads `getImmutables` on the pool (`factoryAddress` no longer required when prices are omitted).
+- Test harness deploys linked `LiquidityLib` for `MetricOmmPoolDeployer` and uses `MockWETH9` for swapper setup.
+
+### Fixed — SDK (v1)
+
+- Quote and slippage paths call the hook-aware `quoteSwap` overload so off-chain quotes match on-chain execution when `recipient` and `hookData` align.
+
+### Not wrapped by this SDK yet
+
+- **metric-periphery** `MetricOmmSimpleRouter` (single- and multi-hop exact-input/output swaps).
+
 ## [0.0.14] - 2026-03-31
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk-v1",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Metric AMM SDK — v1 contracts (dev branch: Swapper, LiquidityAdder, add/removeLiquidity)",
   "type": "module",
   "main": "dist/index.js",
