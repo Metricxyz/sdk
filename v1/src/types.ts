@@ -48,6 +48,9 @@ export interface PoolImmutables {
   initialScaledToken0PerShareE18: bigint;
   initialScaledToken1PerShareE18: bigint;
   minimalMintableLiquidity: bigint;
+  immutablePriceProvider?: Address;
+  hooks?: Address;
+  hooksPermissions?: number;
   maxDriftE8: bigint;
   maxDriftDecayPerSecondE8: bigint;
   lowestBin: number;

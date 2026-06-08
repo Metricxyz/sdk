@@ -7,6 +7,7 @@ import {
   encodeAddLiquidityCalldata,
   encodeRemoveLiquidityCalldataFromArgs,
 } from "./shared/liquidityTx.js";
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 describe("SDK Remove Liquidity", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -24,19 +25,16 @@ describe("SDK Remove Liquidity", async () => {
     await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
-      factory.address,
-    ]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
 
     const params: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,

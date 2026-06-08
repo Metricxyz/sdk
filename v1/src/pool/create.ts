@@ -17,10 +17,10 @@ export interface CreatePoolFactoryParams {
   token1: Address;
   priceProvider: Address;
   admin: Address;
-  /** Defaults to zero address (no allowlist). */
-  depositAllowlistProvider?: Address;
-  /** Defaults to zero address (no allowlist). */
-  swapAllowlistProvider?: Address;
+  /** Defaults to zero address (no hooks). */
+  hooks?: Address;
+  /** Defaults to 0. */
+  hooksPermissions?: number;
   /** Defaults to 0. */
   priceProviderTimelock?: bigint;
   nonNegativeBins: bigint[];
@@ -28,7 +28,6 @@ export interface CreatePoolFactoryParams {
   initialScaledToken0PerShareE18: bigint;
   initialScaledToken1PerShareE18: bigint;
   minimalMintableLiquidity: bigint;
-  reportSwapToPriceProvider: boolean;
   /** Admin spread fee in E6 units (same convention as on-chain pool fees). */
   adminSpreadFeeE6: number;
   /** Admin notional fee in E8 units. */
@@ -70,14 +69,13 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     token0: params.token0,
     token1: params.token1,
     priceProvider: params.priceProvider,
-    depositAllowlistProvider: params.depositAllowlistProvider ?? zeroAddress,
-    swapAllowlistProvider: params.swapAllowlistProvider ?? zeroAddress,
+    hooks: params.hooks ?? zeroAddress,
+    hooksPermissions: params.hooksPermissions ?? 0,
     priceProviderTimelock: params.priceProviderTimelock ?? 0n,
     admin: params.admin,
     initialAmount0PerShareE18: params.initialScaledToken0PerShareE18,
     initialAmount1PerShareE18: params.initialScaledToken1PerShareE18,
     minimalMintableLiquidity: params.minimalMintableLiquidity,
-    reportSwapToPriceProvider: params.reportSwapToPriceProvider,
     adminSpreadFeeE6: params.adminSpreadFeeE6,
     adminNotionalFeeE8: params.adminNotionalFeeE8,
     adminFeeDestination: params.adminFeeDestination,

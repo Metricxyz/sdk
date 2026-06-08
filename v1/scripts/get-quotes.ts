@@ -11,10 +11,10 @@
 // @ts-nocheck - viem version mismatch between hardhat and sdk
 
 import { network } from "hardhat";
-import { formatUnits, parseUnits, erc20Abi } from "viem";
+import { formatUnits, parseUnits, erc20Abi, zeroAddress } from "viem";
 import * as sdk from "../index.js";
 import { PriceProviderUiAbi } from "../src/abis/PriceProviderUi.js";
-import { POOL_FACTORY_ABI, SWAPPER_ABI } from "../src/constants.js";
+import { POOL_ABI, SWAPPER_ABI } from "../src/constants.js";
 
 const POOL_ADDRESS = "0x9C9fd348505A7202Fd819D8cb5003248d920d279" as const;
 
@@ -30,12 +30,11 @@ const publicClient = await viem.getPublicClient();
 const chainId = await publicClient.getChainId();
 const addresses = sdk.getAddressesOrThrow(chainId);
 
-// v1: token pair and oracle come from factory `poolImmutables` (no pool-side getImmutables).
+// v1: token pair and oracle come from pool `getImmutables()`.
 const imm = await publicClient.readContract({
-  address: addresses.factory,
-  abi: POOL_FACTORY_ABI,
-  functionName: "poolImmutables",
-  args: [POOL_ADDRESS],
+  address: POOL_ADDRESS,
+  abi: POOL_ABI,
+  functionName: "getImmutables",
 });
 const token0 = imm.token0 as `0x${string}`;
 const token1 = imm.token1 as `0x${string}`;
@@ -109,11 +108,13 @@ const quoteResults = await publicClient.multicall({
     functionName: "quoteSwap",
     args: [
       POOL_ADDRESS,
+      zeroAddress,
       c.zeroForOne,
       c.amountSpecified,
       c.zeroForOne ? 0n : sdk.MAX_UINT128,
       bidPriceX64,
       askPriceX64,
+      "0x",
     ],
   })),
 });

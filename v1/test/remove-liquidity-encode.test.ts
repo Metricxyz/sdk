@@ -18,7 +18,7 @@ describe("encodeRemoveLiquidityCalldata (v1)", () => {
     const direct = encodeFunctionData({
       abi: MetricOmmPoolAbi,
       functionName: "removeLiquidity",
-      args: [owner, salt, { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] }],
+      args: [owner, salt, { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] }, "0x"],
     });
 
     assert.equal(viaSdk, direct);

@@ -6,11 +6,6 @@ export const MetricOmmPoolSwapperAbi = [
         name: "weth",
         type: "address",
       },
-      {
-        internalType: "address",
-        name: "poolFactory",
-        type: "address",
-      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -93,11 +88,6 @@ export const MetricOmmPoolSwapperAbi = [
   {
     inputs: [],
     name: "InvalidCallbackCaller",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidPoolFactory",
     type: "error",
   },
   {
@@ -316,6 +306,124 @@ export const MetricOmmPoolSwapperAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "quoteSwap",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "amount0Delta",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "amount1Delta",
+        type: "int128",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "swap",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "amount0Delta",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "amount1Delta",
+        type: "int128",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
         internalType: "uint256",
         name: "deadline",
         type: "uint256",
@@ -386,6 +494,65 @@ export const MetricOmmPoolSwapperAbi = [
         internalType: "int128",
         name: "amount1Delta",
         type: "int128",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountIn",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "minAmountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "swapExactInput",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
       },
     ],
     stateMutability: "payable",
@@ -536,6 +703,124 @@ export const MetricOmmPoolSwapperAbi = [
         name: "deadline",
         type: "uint256",
       },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "swapExactInputNativeForTokens",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountIn",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "minAmountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+    ],
+    name: "swapExactInputTokensForNative",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountIn",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "minAmountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
     ],
     name: "swapExactInputTokensForNative",
     outputs: [
@@ -644,6 +929,70 @@ export const MetricOmmPoolSwapperAbi = [
         name: "deadline",
         type: "uint256",
       },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "swapExactOutput",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountOutDesired",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountIn",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
     ],
     name: "swapExactOutputNativeForTokens",
     outputs: [
@@ -697,6 +1046,119 @@ export const MetricOmmPoolSwapperAbi = [
         internalType: "uint256",
         name: "deadline",
         type: "uint256",
+      },
+    ],
+    name: "swapExactOutputNativeForTokens",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountOutDesired",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountIn",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+    ],
+    name: "swapExactOutputTokensForNative",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountInUsed",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountOutDesired",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountIn",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "swapExactOutputTokensForNative",

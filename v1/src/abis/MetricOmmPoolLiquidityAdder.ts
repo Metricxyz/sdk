@@ -1,12 +1,6 @@
 export const MetricOmmPoolLiquidityAdderAbi = [
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "poolFactory",
-        type: "address",
-      },
-    ],
+    inputs: [],
     stateMutability: "nonpayable",
     type: "constructor",
   },
@@ -39,11 +33,6 @@ export const MetricOmmPoolLiquidityAdderAbi = [
   {
     inputs: [],
     name: "InvalidCallbackKind",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidPoolFactory",
     type: "error",
   },
   {
@@ -148,62 +137,6 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "address",
       },
       {
-        internalType: "uint80",
-        name: "salt",
-        type: "uint80",
-      },
-      {
-        components: [
-          {
-            internalType: "int256[]",
-            name: "binIdxs",
-            type: "int256[]",
-          },
-          {
-            internalType: "uint256[]",
-            name: "shares",
-            type: "uint256[]",
-          },
-        ],
-        internalType: "struct LiquidityDelta",
-        name: "deltas",
-        type: "tuple",
-      },
-      {
-        internalType: "uint256",
-        name: "maxAmountToken0",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "maxAmountToken1",
-        type: "uint256",
-      },
-    ],
-    name: "addLiquidityExactShares",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "amount0Added",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "amount1Added",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
         internalType: "address",
         name: "owner",
         type: "address",
@@ -239,6 +172,72 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         internalType: "uint256",
         name: "maxAmountToken1",
         type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "addLiquidityExactShares",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amount0Added",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amount1Added",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        components: [
+          {
+            internalType: "int256[]",
+            name: "binIdxs",
+            type: "int256[]",
+          },
+          {
+            internalType: "uint256[]",
+            name: "shares",
+            type: "uint256[]",
+          },
+        ],
+        internalType: "struct LiquidityDelta",
+        name: "deltas",
+        type: "tuple",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountToken0",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountToken1",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "addLiquidityExactShares",
@@ -300,6 +299,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         internalType: "uint256",
         name: "maxAmountToken1",
         type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "addLiquidityWeighted",
@@ -356,6 +360,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         internalType: "uint256",
         name: "maxAmountToken1",
         type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "addLiquidityWeighted",
@@ -388,7 +397,7 @@ export const MetricOmmPoolLiquidityAdderAbi = [
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "callbackData",
         type: "bytes",
       },
     ],

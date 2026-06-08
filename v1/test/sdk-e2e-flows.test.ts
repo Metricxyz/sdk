@@ -29,7 +29,6 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       token0: env.token0.address,
       token1: env.token1.address,
       priceProvider: env.priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,
@@ -84,7 +83,14 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
     const addDirect = encodeFunctionData({
       abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityExactShares",
-      args: [pool, salt, addDeltas, sdk.NO_SLIPPAGE_LIMIT, sdk.NO_SLIPPAGE_LIMIT],
+      args: [
+        pool,
+        salt,
+        { binIdxs: [...addDeltas.binIdxs], shares: [...addDeltas.shares] },
+        sdk.NO_SLIPPAGE_LIMIT,
+        sdk.NO_SLIPPAGE_LIMIT,
+        "0x",
+      ],
     });
     assert.equal(addData, addDirect);
 
@@ -130,6 +136,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
         swapParams.priceLimitX64,
         swapParams.minAmountOut,
         swapParams.deadline,
+        "0x",
       ],
     });
     assert.equal(swapData, swapDirect);
@@ -184,7 +191,6 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       token0: env.token0.address,
       token1: env.token1.address,
       priceProvider: env.priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,

@@ -3,7 +3,15 @@
  * npm git installs often ship without nested submodules; we init or link siblings.
  */
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +31,16 @@ function ensureCore(coreDir) {
   }
   console.log(`init submodules: ${coreDir}`);
   execSync("git submodule update --init --recursive", { cwd: coreDir, stdio: "inherit" });
+}
+
+function fixPeripheryPackageName(peripheryDir) {
+  const pkgPath = resolve(peripheryDir, "package.json");
+  if (!existsSync(pkgPath)) return;
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  if (pkg.name === "@metric/periphery") return;
+  pkg.name = "@metric/periphery";
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  console.log(`patched ${pkgPath} name -> @metric/periphery`);
 }
 
 function ensurePeriphery(peripheryDir, coreDir) {
@@ -63,5 +81,6 @@ ensureCore(coreDir);
 
 const peripheryDir = resolve(metricDir, "periphery");
 if (existsSync(peripheryDir)) {
+  fixPeripheryPackageName(peripheryDir);
   ensurePeriphery(peripheryDir, coreDir);
 }

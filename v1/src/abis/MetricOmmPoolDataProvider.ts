@@ -508,6 +508,65 @@ export const MetricOmmPoolDataProviderAbi = [
         name: "pool",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "int128",
+        name: "amountSpecified",
+        type: "int128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
+      },
+    ],
+    name: "quoteSwap",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "amount0Delta",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "amount1Delta",
+        type: "int128",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
     ],
     name: "slot0",
     outputs: [

@@ -3,6 +3,7 @@ import assert from "node:assert";
 import { network } from "hardhat";
 import { parseUnits } from "viem";
 import * as sdk from "../src/index.js";
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 describe("SDK modifyLiquidity using prepared payload encoding", async () => {
@@ -21,20 +22,17 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-    const deployer_contract = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const deployer_contract = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([deployer_contract.address]);
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
-      factory.address,
-    ]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,
@@ -197,20 +195,17 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-    const deployer_contract = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const deployer_contract = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([deployer_contract.address]);
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
-      factory.address,
-    ]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
       token1: token1.address,
       priceProvider: priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,

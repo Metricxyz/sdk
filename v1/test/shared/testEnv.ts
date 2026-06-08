@@ -7,11 +7,19 @@ export function adminSpreadFeeE6FromPercent(adminFeePercent: number): number {
   return Math.round(adminFeePercent * 10_000);
 }
 
+export async function deployLinkedPoolDeployer(viem: any, factoryAddress: Address) {
+  const liquidityLib = await viem.deployContract("LiquidityLib", []);
+  return viem.deployContract("MetricOmmPoolDeployer", [factoryAddress], {
+    libraries: { LiquidityLib: liquidityLib.address },
+  });
+}
+
 export type MetricTestEnv = {
   publicClient: any;
   deployer: any;
   token0: any;
   token1: any;
+  weth: any;
   priceProvider: any;
   factory: any;
   poolDeployer: any;
@@ -25,6 +33,7 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
 
   const token0 = await viem.deployContract("MockERC20", ["Token 0", "TKN0", 18]);
   const token1 = await viem.deployContract("MockERC20", ["Token 1", "TKN1", 6]);
+  const weth = await viem.deployContract("MockWETH9", []);
 
   const priceProvider = await viem.deployContract("MockOracle", []);
   await priceProvider.write.setTokens([token0.address, token1.address]);
@@ -32,24 +41,20 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
   await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
 
   const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-  const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+  const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
   await factory.write.setPoolDeployer([poolDeployer.address]);
 
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
-  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
-    factory.address,
-  ]);
-  const swapper = await viem.deployContract("MetricOmmPoolSwapper", [
-    token0.address,
-    factory.address,
-  ]);
+  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
+  const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
 
   return {
     publicClient,
     deployer,
     token0,
     token1,
+    weth,
     priceProvider,
     factory,
     poolDeployer,
@@ -68,7 +73,6 @@ export async function createPoolViaFactory(
     token0: env.token0.address,
     token1: env.token1.address,
     priceProvider: env.priceProvider.address,
-    reportSwapToPriceProvider: false,
     admin: wallet.account.address,
     adminFeeDestination: wallet.account.address,
     adminSpreadFeeE6: adminSpreadFeeE6FromPercent(0.5),

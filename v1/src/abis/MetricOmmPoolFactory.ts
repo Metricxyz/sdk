@@ -69,6 +69,16 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "InvalidHooksConfig",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidHooksConfig",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidInitialAmount",
     type: "error",
   },
@@ -205,22 +215,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [],
     name: "ReentrancyGuardReentrantCall",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint8",
-        name: "bits",
-        type: "uint8",
-      },
-      {
-        internalType: "int256",
-        name: "value",
-        type: "int256",
-      },
-    ],
-    name: "SafeCastOverflowedIntDowncast",
     type: "error",
   },
   {
@@ -504,14 +498,14 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: false,
         internalType: "address",
-        name: "depositAllowlistProvider",
+        name: "hooks",
         type: "address",
       },
       {
         indexed: false,
-        internalType: "address",
-        name: "swapAllowlistProvider",
-        type: "address",
+        internalType: "uint16",
+        name: "hooksPermissions",
+        type: "uint16",
       },
       {
         indexed: false,
@@ -536,12 +530,6 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "uint256",
         name: "minimalMintableLiquidity",
         type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "reportSwapToPriceProvider",
-        type: "bool",
       },
       {
         indexed: false,
@@ -867,13 +855,13 @@ export const MetricOmmPoolFactoryAbi = [
           },
           {
             internalType: "address",
-            name: "depositAllowlistProvider",
+            name: "hooks",
             type: "address",
           },
           {
-            internalType: "address",
-            name: "swapAllowlistProvider",
-            type: "address",
+            internalType: "uint16",
+            name: "hooksPermissions",
+            type: "uint16",
           },
           {
             internalType: "uint256",
@@ -899,11 +887,6 @@ export const MetricOmmPoolFactoryAbi = [
             internalType: "uint256",
             name: "minimalMintableLiquidity",
             type: "uint256",
-          },
-          {
-            internalType: "bool",
-            name: "reportSwapToPriceProvider",
-            type: "bool",
           },
           {
             internalType: "uint24",
@@ -1001,22 +984,36 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "idxToPool",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "address",
         name: "pool",
         type: "address",
       },
     ],
-    name: "getTokens",
+    name: "isPool",
     outputs: [
       {
-        internalType: "address",
-        name: "token0",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "token1",
-        type: "address",
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1248,25 +1245,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "poolByIdx",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "poolDeployer",
     outputs: [
@@ -1317,131 +1295,16 @@ export const MetricOmmPoolFactoryAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "poolImmutables",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "token0",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "token1",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "immutablePriceProvider",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "depositAllowlistProvider",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "swapAllowlistProvider",
-            type: "address",
-          },
-          {
-            internalType: "bool",
-            name: "reportSwapToPriceProvider",
-            type: "bool",
-          },
-          {
-            internalType: "uint256",
-            name: "token0ScaleMultiplier",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "token1ScaleMultiplier",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "initialScaledAmount0PerShareE18",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "initialScaledAmount1PerShareE18",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "minimalMintableLiquidity",
-            type: "uint256",
-          },
-          {
-            internalType: "int8",
-            name: "lowestBin",
-            type: "int8",
-          },
-          {
-            internalType: "int8",
-            name: "highestBin",
-            type: "int8",
-          },
-        ],
-        internalType: "struct PoolImmutables",
         name: "",
-        type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
         type: "address",
       },
     ],
-    name: "poolScaleMultipliers",
+    name: "poolToIdx",
     outputs: [
       {
         internalType: "uint256",
-        name: "token0ScaleMultiplier",
+        name: "",
         type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "token1ScaleMultiplier",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "poolTokens",
-    outputs: [
-      {
-        internalType: "address",
-        name: "token0",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "token1",
-        type: "address",
       },
     ],
     stateMutability: "view",

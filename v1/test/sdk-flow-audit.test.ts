@@ -37,7 +37,6 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       token0: token0.address,
       token1: token1.address,
       priceProvider: env.priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 5000,
@@ -141,6 +140,7 @@ describe("SDK v1 flow audit (on-chain)", async () => {
         swapParams.priceLimitX64,
         swapParams.minAmountOut,
         swapParams.deadline,
+        "0x",
       ],
     });
     assert.equal(swapCalldata, directSwap);
@@ -153,6 +153,7 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       sdk.MAX_UINT128,
       0n,
       deadline,
+      "0x",
     ]);
     const swapReceipt = await publicClient.waitForTransactionReceipt({ hash: swapHash });
     assert.equal(swapReceipt.status, "success");
@@ -201,7 +202,6 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       token0: env.token0.address,
       token1: env.token1.address,
       priceProvider: env.priceProvider.address,
-      reportSwapToPriceProvider: false,
       admin: deployer.account.address,
       adminFeeDestination: deployer.account.address,
       adminSpreadFeeE6: 0,
