@@ -26,7 +26,14 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
     const direct = encodeFunctionData({
       abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityExactShares",
-      args: [pool, salt, { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] }, max0, max1],
+      args: [
+        pool,
+        salt,
+        { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
+        max0,
+        max1,
+        "0x",
+      ],
     });
     assert.equal(viaSdk, direct);
   });
@@ -50,6 +57,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         1n,
         2n,
+        "0x",
       ],
     });
     assert.equal(viaSdk, direct);
@@ -66,7 +74,14 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
     const direct = encodeFunctionData({
       abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityWeighted",
-      args: [pool, salt, { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] }, 3n, 4n],
+      args: [
+        pool,
+        salt,
+        { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
+        3n,
+        4n,
+        "0x",
+      ],
     });
     assert.equal(viaSdk, direct);
   });

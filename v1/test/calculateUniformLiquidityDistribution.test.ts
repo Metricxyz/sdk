@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, type Address, getContract } from "viem";
 import * as sdk from "../src/index.js";
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
@@ -38,7 +39,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     await token1.write.mint([deployer.account.address, parseUnits("1000000000000", decimals1)]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 
     const dataProviderDeployment = await viem.deployContract("MetricOmmPoolDataProvider", [
@@ -50,9 +51,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
       client: { public: publicClient, wallet: deployer },
     });
 
-    const liquidityAdderDeployment = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
-      factory.address,
-    ]);
+    const liquidityAdderDeployment = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
     const liquidityAdder = liquidityAdderDeployment.address;
 
     const priceProviderDeployment = await viem.deployContract("MockOracle", []);
@@ -72,7 +71,6 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
-        reportSwapToPriceProvider: false,
         admin: deployer.account.address,
         adminFeeDestination: deployer.account.address,
         adminSpreadFeeE6: 5000,

@@ -23,13 +23,13 @@ export const MetricOmmPoolAbi = [
       },
       {
         internalType: "address",
-        name: "depositAllowlistProvider",
+        name: "hooks_",
         type: "address",
       },
       {
-        internalType: "address",
-        name: "swapAllowlistProvider",
-        type: "address",
+        internalType: "uint16",
+        name: "hooksPermissions_",
+        type: "uint16",
       },
       {
         internalType: "bool",
@@ -60,11 +60,6 @@ export const MetricOmmPoolAbi = [
         internalType: "uint256",
         name: "minimalMintableLiquidity",
         type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "reportSwapToPriceProvider",
-        type: "bool",
       },
       {
         internalType: "uint24",
@@ -176,6 +171,11 @@ export const MetricOmmPoolAbi = [
   },
   {
     inputs: [],
+    name: "HookCallFailed",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "IncorrectDelta",
     type: "error",
   },
@@ -214,6 +214,11 @@ export const MetricOmmPoolAbi = [
       },
     ],
     name: "InvalidBinIndex",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidHookResponse",
     type: "error",
   },
   {
@@ -688,7 +693,12 @@ export const MetricOmmPoolAbi = [
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "callbackData",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
         type: "bytes",
       },
     ],
@@ -804,6 +814,99 @@ export const MetricOmmPoolAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "getImmutables",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "factory",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "token0",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "token1",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "token0ScaleMultiplier",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "token1ScaleMultiplier",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "initialScaledToken0PerShareE18",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "initialScaledToken1PerShareE18",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "minimalMintableLiquidity",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "immutablePriceProvider",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "hooks",
+            type: "address",
+          },
+          {
+            internalType: "uint16",
+            name: "hooksPermissions",
+            type: "uint16",
+          },
+          {
+            internalType: "int256",
+            name: "lowestBin",
+            type: "int256",
+          },
+          {
+            internalType: "int256",
+            name: "highestBin",
+            type: "int256",
+          },
+        ],
+        internalType: "struct PoolImmutables",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "inSwap",
+    outputs: [
+      {
+        internalType: "address",
+        name: "priceProvider_",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -831,6 +934,11 @@ export const MetricOmmPoolAbi = [
         internalType: "struct LiquidityDelta",
         name: "deltas",
         type: "tuple",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "removeLiquidity",
@@ -919,6 +1027,11 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
         internalType: "bool",
         name: "zeroForOne",
         type: "bool",
@@ -942,6 +1055,11 @@ export const MetricOmmPoolAbi = [
         internalType: "uint128",
         name: "askPriceX64",
         type: "uint128",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
     name: "simulateSwapAndRevert",
@@ -984,7 +1102,12 @@ export const MetricOmmPoolAbi = [
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "callbackData",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "hookData",
         type: "bytes",
       },
     ],

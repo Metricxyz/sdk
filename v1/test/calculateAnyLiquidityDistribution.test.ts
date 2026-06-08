@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, getContract, type Address } from "viem";
 import * as sdk from "../src/index.js";
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
@@ -76,7 +77,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     await token1.write.mint([deployer.account.address, parseUnits("1000000000000", decimals1)]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 
     const dataProviderDeployment = await viem.deployContract("MetricOmmPoolDataProvider", [
@@ -88,9 +89,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       client: { public: publicClient, wallet: deployer },
     });
 
-    const liquidityAdder = (
-      await viem.deployContract("MetricOmmPoolLiquidityAdder", [factory.address])
-    ).address;
+    const liquidityAdder = (await viem.deployContract("MetricOmmPoolLiquidityAdder", [])).address;
 
     const priceProviderDeployment = await viem.deployContract("MockOracle", []);
     const priceProvider = getContract({
@@ -109,7 +108,6 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
-        reportSwapToPriceProvider: false,
         admin: deployer.account.address,
         adminFeeDestination: deployer.account.address,
         adminSpreadFeeE6: 5000,
@@ -534,10 +532,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     await publicClient.waitForTransactionReceipt({ hash: seedHash });
 
     const immutables = await sdk.getPoolImmutables(publicClient, factory.address, pool.address);
-    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [
-      token0.address,
-      factory.address,
-    ]);
+    const weth = await viem.deployContract("MockWETH9", []);
+    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
     await token0.write.approve([swapper.address, parseUnits("1000000", 18)]);
     await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
 
@@ -577,6 +573,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
             candidate.priceLimitX64,
             0n,
             deadline,
+            "0x",
           ]);
           selectedSlot0 = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
           if (selectedSlot0.curPosInBin > posBefore) {
@@ -735,10 +732,8 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       "current bin has no available token balance for specified-out setup",
     );
 
-    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [
-      token0.address,
-      factory.address,
-    ]);
+    const weth = await viem.deployContract("MockWETH9", []);
+    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
     await token0.write.approve([swapper.address, parseUnits("1000000", 18)]);
     await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
 
@@ -752,6 +747,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       maxUint128,
       swapOutToken0 ? parseUnits("1000000", 6) : parseUnits("1000000", 18),
       deadline,
+      "0x",
     ]);
 
     const slot0AfterSwap = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);

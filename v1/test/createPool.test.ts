@@ -3,6 +3,8 @@ import assert from "node:assert";
 import { network } from "hardhat";
 import * as sdk from "../src/index.js";
 
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+
 describe("SDK createPool", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
   const [deployer] = await viem.getWalletClients();
@@ -24,7 +26,7 @@ describe("SDK createPool", async () => {
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
 
     // Deploy pool deployer with factory address
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
 
     // Link deployer to factory
     await factory.write.setPoolDeployer([poolDeployer.address]);
@@ -84,7 +86,6 @@ describe("SDK createPool", async () => {
         token0: token0.address,
         token1: token1.address,
         priceProvider: priceProvider.address,
-        reportSwapToPriceProvider: false,
         admin: deployer.account.address,
         adminFeeDestination: deployer.account.address,
         nonNegativeBins: sdk.createUniformBins(10, 10_000),
@@ -113,7 +114,6 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
-        reportSwapToPriceProvider: false,
         adminFeeDestination: deployer.account.address,
         nonNegativeBins: sdk.createUniformBins(10, 10_000),
         negativeBins: sdk.createUniformBins(10, 10_000),
@@ -171,7 +171,6 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
-        reportSwapToPriceProvider: false,
         nonNegativeBins,
         negativeBins,
         adminSpreadFeeE6: 25000,
@@ -209,7 +208,6 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
-        reportSwapToPriceProvider: false,
         adminFeeDestination: deployer.account.address,
         // Using createBins with BinData (E6 values)
         nonNegativeBins: sdk.createBins([
@@ -253,7 +251,6 @@ describe("SDK createPool", async () => {
         token1: token1.address,
         priceProvider: priceProvider.address,
         admin: deployer.account.address,
-        reportSwapToPriceProvider: false,
         adminFeeDestination: deployer.account.address,
         nonNegativeBins: sdk.createUniformBins(10, 10000),
         negativeBins: sdk.createUniformBins(10, 10000),

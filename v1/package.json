@@ -63,8 +63,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@metric/core": "github:Metric-OMM/metric-core#1e450c7c30085606edf462eac8af80816153d443",
-    "@metric/periphery": "github:Metric-OMM/metric-periphery#ca248f3a753807868ab8ade8910e5e24ce0a73d2",
+    "@metric/core": "github:Metric-OMM/metric-core#bc0fe2be62468d040aff73e78cad1ef3805c4d33",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#64c336d97c78b2c59c86caed91f210e4753d8f88",
     "hardhat": "^3.0.17",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",

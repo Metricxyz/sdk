@@ -1,53 +1,55 @@
 /**
- * MetricAMM SDK - Pool read helpers (v1 pools + factory-backed immutables).
+ * MetricAMM SDK - Pool read helpers (v1 pools + pool-side immutables).
  */
 
 import type { Address, PublicClient } from "viem";
-import { POOL_FACTORY_ABI, DATA_PROVIDER_ABI } from "../constants.js";
+import { POOL_FACTORY_ABI, POOL_ABI, DATA_PROVIDER_ABI } from "../constants.js";
 import type { PoolImmutables, PoolState, BinState, PoolFeeConfig } from "../types.js";
 
 /**
- * Read pool immutables via the factory (v1 pools do not expose a pool-side immutables getter).
+ * Read pool immutables via `MetricOmmPool.getImmutables()`.
  */
 export async function getPoolImmutables(
   publicClient: PublicClient,
-  factoryAddress: Address,
+  _factoryAddress: Address,
   poolAddress: Address,
 ): Promise<PoolImmutables> {
   const imm = (await publicClient.readContract({
-    address: factoryAddress,
-    abi: POOL_FACTORY_ABI,
-    functionName: "poolImmutables",
-    args: [poolAddress],
+    address: poolAddress,
+    abi: POOL_ABI,
+    functionName: "getImmutables",
   })) as {
+    factory: Address;
     token0: Address;
     token1: Address;
-    immutablePriceProvider: Address;
-    depositAllowlistProvider: Address;
-    swapAllowlistProvider: Address;
-    reportSwapToPriceProvider: boolean;
     token0ScaleMultiplier: bigint;
     token1ScaleMultiplier: bigint;
-    initialScaledAmount0PerShareE18: bigint;
-    initialScaledAmount1PerShareE18: bigint;
+    initialScaledToken0PerShareE18: bigint;
+    initialScaledToken1PerShareE18: bigint;
     minimalMintableLiquidity: bigint;
-    lowestBin: number;
-    highestBin: number;
+    immutablePriceProvider: Address;
+    hooks: Address;
+    hooksPermissions: number;
+    lowestBin: bigint;
+    highestBin: bigint;
   };
 
   return {
-    factory: factoryAddress,
+    factory: imm.factory,
     token0: imm.token0,
     token1: imm.token1,
     token0ScaleMultiplier: imm.token0ScaleMultiplier,
     token1ScaleMultiplier: imm.token1ScaleMultiplier,
-    initialScaledToken0PerShareE18: imm.initialScaledAmount0PerShareE18,
-    initialScaledToken1PerShareE18: imm.initialScaledAmount1PerShareE18,
+    initialScaledToken0PerShareE18: imm.initialScaledToken0PerShareE18,
+    initialScaledToken1PerShareE18: imm.initialScaledToken1PerShareE18,
     minimalMintableLiquidity: imm.minimalMintableLiquidity,
+    immutablePriceProvider: imm.immutablePriceProvider,
+    hooks: imm.hooks,
+    hooksPermissions: imm.hooksPermissions,
     maxDriftE8: 0n,
     maxDriftDecayPerSecondE8: 0n,
-    lowestBin: imm.lowestBin,
-    highestBin: imm.highestBin,
+    lowestBin: Number(imm.lowestBin),
+    highestBin: Number(imm.highestBin),
   };
 }
 

@@ -3,11 +3,38 @@
  */
 
 import type { Address, PublicClient, Hex } from "viem";
-import { encodeFunctionData } from "viem";
-import { MAX_UINT128, POOL_FACTORY_ABI, SWAPPER_ABI } from "../constants.js";
+import { encodeFunctionData, zeroAddress } from "viem";
+import { MAX_UINT128, POOL_ABI, SWAPPER_ABI } from "../constants.js";
 import { PriceProviderUiAbi } from "../abis/PriceProviderUi.js";
 
 const BPS_BASE = 10_000n;
+const EMPTY_HOOK_DATA = "0x" as Hex;
+
+function withHookData(args: readonly unknown[]): readonly unknown[] {
+  return args.length >= 8 ? args : [...args, EMPTY_HOOK_DATA];
+}
+
+function quoteSwapArgs(params: {
+  pool: Address;
+  recipient: Address;
+  zeroForOne: boolean;
+  amountSpecified: bigint;
+  priceLimitX64: bigint;
+  bidPriceX64: bigint;
+  askPriceX64: bigint;
+  hookData?: Hex;
+}): readonly [Address, Address, boolean, bigint, bigint, bigint, bigint, Hex] {
+  return [
+    params.pool,
+    params.recipient,
+    params.zeroForOne,
+    params.amountSpecified,
+    params.priceLimitX64,
+    params.bidPriceX64,
+    params.askPriceX64,
+    params.hookData ?? EMPTY_HOOK_DATA,
+  ];
+}
 export interface PreparedSwapTransaction {
   data: Hex;
   value?: bigint;
@@ -65,6 +92,7 @@ export interface BuildSwapWithFactoryParams {
   factoryAddress?: Address;
   pool: Address;
   prices?: BuildSwapPrices;
+  hookData?: Hex;
 }
 
 export interface BuildSwapExactInputParams extends BuildSwapWithFactoryParams {
@@ -89,12 +117,12 @@ export interface BuildSwapExactOutputParams extends BuildSwapWithFactoryParams {
 
 export type QuoteExpectedAmountsForSwapExactInputParams = Omit<
   BuildSwapExactInputParams,
-  "recipient" | "deadline"
+  "deadline"
 >;
 
 export type QuoteExpectedAmountsForSwapExactOutputParams = Omit<
   BuildSwapExactOutputParams,
-  "recipient" | "deadline"
+  "deadline"
 >;
 
 function toSlippageBps(slippagePercent: number): bigint {
@@ -119,16 +147,14 @@ function defaultPriceLimitX64(zeroForOne: boolean): bigint {
   return zeroForOne ? 0n : MAX_UINT128;
 }
 
-async function readBidAskFromFactoryPriceProvider(
+async function readBidAskFromPoolPriceProvider(
   publicClient: PublicClient,
-  factoryAddress: Address,
   poolAddress: Address,
 ): Promise<{ bidPriceX64: bigint; askPriceX64: bigint }> {
   const imm = (await publicClient.readContract({
-    address: factoryAddress,
-    abi: POOL_FACTORY_ABI,
-    functionName: "poolImmutables",
-    args: [poolAddress],
+    address: poolAddress,
+    abi: POOL_ABI,
+    functionName: "getImmutables",
   })) as { immutablePriceProvider: Address };
 
   const priceProviderAddress = imm.immutablePriceProvider;
@@ -136,7 +162,7 @@ async function readBidAskFromFactoryPriceProvider(
     !priceProviderAddress ||
     priceProviderAddress === "0x0000000000000000000000000000000000000000"
   ) {
-    throw new Error(`pool ${poolAddress} has no immutable price provider (factory.poolImmutables)`);
+    throw new Error(`pool ${poolAddress} has no immutable price provider (getImmutables)`);
   }
 
   const [bidPriceX64, askPriceX64] = (await publicClient.readContract({
@@ -158,17 +184,7 @@ async function resolveBidAskPrices(params: {
     return params.prices;
   }
 
-  if (!params.factoryAddress) {
-    throw new Error(
-      "factoryAddress is required when prices are omitted (v1 reads poolImmutables from the factory, not the pool)",
-    );
-  }
-
-  return readBidAskFromFactoryPriceProvider(
-    params.publicClient,
-    params.factoryAddress,
-    params.pool,
-  );
+  return readBidAskFromPoolPriceProvider(params.publicClient, params.pool);
 }
 
 export async function buildArgsForSwapExactInput(
@@ -185,14 +201,16 @@ export async function buildArgsForSwapExactInput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      params.amountIn,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: params.amountIn,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
 
@@ -231,14 +249,16 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      params.amountIn,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: params.amountIn,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
 
@@ -270,6 +290,8 @@ export type QuoteSwapParams = BuildSwapWithFactoryParams & {
   zeroForOne: boolean;
   amountSpecified: bigint;
   priceLimitX64?: bigint;
+  /** Defaults to zero address when omitted. */
+  recipient?: Address;
 };
 
 export type QuoteSwapResult = {
@@ -287,14 +309,16 @@ export async function quoteSwap(params: QuoteSwapParams): Promise<QuoteSwapResul
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      params.amountSpecified,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient ?? zeroAddress,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: params.amountSpecified,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
   })) as [bigint, bigint];
 
   const amountIn = params.zeroForOne ? absBigInt(amount0Delta) : absBigInt(amount1Delta);
@@ -314,14 +338,16 @@ export async function quoteExpectedAmountsForSwapExactInput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      params.amountIn,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: params.amountIn,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
   })) as [bigint, bigint];
 
   const expectedOutput = params.zeroForOne ? absBigInt(amount1Delta) : absBigInt(amount0Delta);
@@ -345,14 +371,16 @@ export async function buildArgsForSwapExactOutput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      -params.amountOut,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: -params.amountOut,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
 
@@ -389,14 +417,16 @@ export async function buildArgsAndExpectedAmountsForSwapExactOutput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      -params.amountOut,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: -params.amountOut,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
 
@@ -434,14 +464,16 @@ export async function quoteExpectedAmountsForSwapExactOutput(
     address: params.swapperAddress,
     abi: SWAPPER_ABI,
     functionName: "quoteSwap",
-    args: [
-      params.pool,
-      params.zeroForOne,
-      -params.amountOut,
+    args: quoteSwapArgs({
+      pool: params.pool,
+      recipient: params.recipient,
+      zeroForOne: params.zeroForOne,
+      amountSpecified: -params.amountOut,
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-    ],
+      hookData: params.hookData,
+    }),
   })) as [bigint, bigint];
 
   const expectedInput = params.zeroForOne ? absBigInt(amount0Delta) : absBigInt(amount1Delta);
@@ -469,7 +501,7 @@ export function encodeSwapExactInputCalldata(
   return encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactInput",
-    args,
+    args: withHookData(args),
   });
 }
 
@@ -493,7 +525,7 @@ export function encodeSwapExactOutputCalldata(
   return encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactOutput",
-    args,
+    args: withHookData(args),
   });
 }
 
@@ -505,7 +537,7 @@ export function encodeSwapExactInputNativeForTokensCalldata(
   const data = encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactInputNativeForTokens",
-    args: [
+    args: withHookData([
       params.pool,
       params.recipient,
       params.zeroForOne,
@@ -513,7 +545,7 @@ export function encodeSwapExactInputNativeForTokensCalldata(
       params.priceLimitX64,
       params.minAmountOut,
       params.deadline,
-    ],
+    ]),
   });
 
   return {

@@ -8,6 +8,7 @@
  */
 
 import { describe, it } from "node:test";
+import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import assert from "node:assert";
 import { network } from "hardhat";
 import { zeroAddress } from "viem";
@@ -36,7 +37,7 @@ describe("Factory Deployment Flow", async () => {
     ]);
 
     // Deploy pool deployer with factory address
-    const poolDeployer = await viem.deployContract("MetricOmmPoolDeployer", [factory.address]);
+    const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
 
     // Link deployer to factory (owner calls setPoolDeployer)
     await factory.write.setPoolDeployer([poolDeployer.address]);
@@ -95,7 +96,6 @@ describe("Factory Deployment Flow", async () => {
       token1: token1.address,
       priceProvider: priceProvider.address,
       admin: admin.account.address,
-      reportSwapToPriceProvider: false,
 
       // 10 bins on each side, 1% each
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
@@ -144,7 +144,6 @@ describe("Factory Deployment Flow", async () => {
       token1: token1.address,
       priceProvider: priceProvider.address,
       admin: admin.account.address,
-      reportSwapToPriceProvider: false,
       adminFeeDestination: admin.account.address,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
@@ -197,15 +196,14 @@ describe("Factory Deployment Flow", async () => {
             token0: token0.address,
             token1: token1.address,
             priceProvider: priceProvider.address,
-            depositAllowlistProvider: zeroAddress,
-            swapAllowlistProvider: zeroAddress,
+            hooks: zeroAddress,
+            hooksPermissions: 0,
             immutablePriceProvider: false,
             token0ScaleMultiplier: 1n,
             token1ScaleMultiplier: 1n,
             initialScaledAmount0PerShareE18: 1_000_000_000_000_000_000n,
             initialScaledAmount1PerShareE18: 1_000_000_000_000_000_000n,
             minimalMintableLiquidity: 1000n,
-            reportSwapToPriceProvider: false,
             protocolSpreadFeeE6: 0,
             adminSpreadFeeE6: 5000,
             curBinDistFromProvidedPriceE6: 0,

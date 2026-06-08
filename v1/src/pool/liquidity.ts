@@ -28,6 +28,8 @@ export { convertToken0ToToken1, convertToken1ToToken0 };
 export const getPositionShares = getPositionBinSharesRange;
 export const getPositionSharesForBins = getPositionBinSharesForBins;
 
+const EMPTY_HOOK_DATA = "0x" as Hex;
+
 export interface RemoveLiquidityParams {
   percentageToRemove: number;
   bins?: number[];
@@ -60,7 +62,7 @@ export interface BuildModifyLiquidityArgsBase {
   specAmountBufferPercent?: number;
 }
 
-/** Addition builders read `factory.poolImmutables(pool)` — removal only needs the data provider lens. */
+/** Addition builders read pool immutables via `getImmutables()` — removal only needs the data provider lens. */
 export interface BuildModifyLiquidityArgsWithFactory extends BuildModifyLiquidityArgsBase {
   factoryAddress: Address;
 }
@@ -709,6 +711,7 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
   deltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  hookData?: Hex;
 }): Hex {
   return encodeFunctionData({
     abi: LIQUIDITY_ADDER_ABI,
@@ -719,6 +722,7 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      params.hookData ?? EMPTY_HOOK_DATA,
     ],
   });
 }
@@ -730,6 +734,7 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
   deltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  hookData?: Hex;
 }): Hex {
   return encodeFunctionData({
     abi: LIQUIDITY_ADDER_ABI,
@@ -741,6 +746,7 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      params.hookData ?? EMPTY_HOOK_DATA,
     ],
   });
 }
@@ -751,6 +757,7 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  hookData?: Hex;
 }): Hex {
   return encodeFunctionData({
     abi: LIQUIDITY_ADDER_ABI,
@@ -761,6 +768,7 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      params.hookData ?? EMPTY_HOOK_DATA,
     ],
   });
 }
@@ -772,6 +780,7 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  hookData?: Hex;
 }): Hex {
   return encodeFunctionData({
     abi: LIQUIDITY_ADDER_ABI,
@@ -783,6 +792,7 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      params.hookData ?? EMPTY_HOOK_DATA,
     ],
   });
 }
@@ -791,6 +801,7 @@ export function encodeRemoveLiquidityCalldata(params: {
   owner: Address;
   salt: bigint;
   deltas: PoolLiquidityDelta;
+  hookData?: Hex;
 }): Hex {
   return encodeFunctionData({
     abi: MetricOmmPoolAbi,
@@ -799,6 +810,7 @@ export function encodeRemoveLiquidityCalldata(params: {
       params.owner,
       params.salt,
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
+      params.hookData ?? EMPTY_HOOK_DATA,
     ],
   });
 }
