@@ -12,3 +12,4 @@ export { SwapAllowlistExtensionAbi } from "./SwapAllowlistExtension.js";
 export { PriceVelocityGuardExtensionAbi } from "./PriceVelocityGuardExtension.js";
 export { OracleValueStopLossExtensionAbi } from "./OracleValueStopLossExtension.js";
 export { PriceProviderAbi } from "./PriceProvider.js";
+export { OracleProviderAbi } from "./OracleProvider.js";

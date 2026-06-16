@@ -53,6 +53,7 @@ export {
   SwapAllowlistExtensionAbi,
   PriceVelocityGuardExtensionAbi,
   OracleValueStopLossExtensionAbi,
+  OracleProviderAbi,
 } from "./abis/index.js";
 
 // ============ Utils ============
@@ -162,6 +163,18 @@ export {
   type CollectedFactoryFeeTx,
   type CollectFactoryFeesResult,
 } from "./factory/index.js";
+
+// ============ Oracle Functions (pool registration + blacklist) ============
+export {
+  getRegistrationFee,
+  isPoolBlacklisted,
+  isPoolRegistered,
+  getPoolOracleStatus,
+  registerPool,
+  type PoolOracleStatus,
+  type RegisterPoolParams,
+  type RegisterPoolResult,
+} from "./oracle/index.js";
 
 // ============ Extension Functions ============
 export {

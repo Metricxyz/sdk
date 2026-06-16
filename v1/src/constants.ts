@@ -8,6 +8,7 @@ import { MetricOmmPoolDataProviderAbi } from "./abis/MetricOmmPoolDataProvider.j
 import { MetricOmmPoolSwapperAbi } from "./abis/MetricOmmPoolSwapper.js";
 import { MetricOmmPoolLiquidityAdderAbi } from "./abis/MetricOmmPoolLiquidityAdder.js";
 import { MetricOmmPoolFactoryAbi } from "./abis/MetricOmmPoolFactory.js";
+import { OracleProviderAbi } from "./abis/OracleProvider.js";
 
 // ============ Numeric Constants ============
 
@@ -34,3 +35,5 @@ export const DATA_PROVIDER_ABI = MetricOmmPoolDataProviderAbi as Abi;
 export const SWAPPER_ABI = MetricOmmPoolSwapperAbi as Abi;
 export const LIQUIDITY_ADDER_ABI = MetricOmmPoolLiquidityAdderAbi as Abi;
 export const POOL_FACTORY_ABI = MetricOmmPoolFactoryAbi as Abi;
+/** Abuse-protected providers oracle (pool registration + blacklist). */
+export const ORACLE_PROVIDER_ABI = OracleProviderAbi as Abi;
