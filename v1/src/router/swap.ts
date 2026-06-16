@@ -6,7 +6,6 @@ import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData, zeroAddress } from "viem";
 import { MAX_UINT128, POOL_ABI, SWAPPER_ABI } from "../constants.js";
 import { EMPTY_EXTENSION_DATA } from "../extensions/types.js";
-import { PriceProviderUiAbi } from "../abis/PriceProviderUi.js";
 
 const BPS_BASE = 10_000n;
 
@@ -151,27 +150,20 @@ async function readBidAskFromPoolPriceProvider(
   publicClient: PublicClient,
   poolAddress: Address,
 ): Promise<{ bidPriceX64: bigint; askPriceX64: bigint }> {
-  const imm = (await publicClient.readContract({
-    address: poolAddress,
-    abi: POOL_ABI,
-    functionName: "getImmutables",
-  })) as { immutablePriceProvider: Address };
-
-  const priceProviderAddress = imm.immutablePriceProvider;
-  if (
-    !priceProviderAddress ||
-    priceProviderAddress === "0x0000000000000000000000000000000000000000"
-  ) {
-    throw new Error(`pool ${poolAddress} has no immutable price provider (getImmutables)`);
+  // The pool's getBidAndAskPrice() returns the swap-adjusted bid/ask (current marginal price ± fee).
+  // It is non-view (it reads the attributed oracle via the in-swap handshake), so simulate it. On any
+  // failure (stale feed, halted/reverting provider) fall back to the fail-closed sentinel (0, uint128.max).
+  try {
+    const { result } = await publicClient.simulateContract({
+      address: poolAddress,
+      abi: POOL_ABI,
+      functionName: "getBidAndAskPrice",
+    });
+    const [bidPriceX64, askPriceX64] = result as readonly [bigint, bigint];
+    return { bidPriceX64, askPriceX64 };
+  } catch {
+    return { bidPriceX64: 0n, askPriceX64: MAX_UINT128 };
   }
-
-  const [bidPriceX64, askPriceX64] = (await publicClient.readContract({
-    address: priceProviderAddress,
-    abi: PriceProviderUiAbi,
-    functionName: "getBidAndAskPriceUi",
-  })) as [bigint, bigint];
-
-  return { bidPriceX64, askPriceX64 };
 }
 
 async function resolveBidAskPrices(params: {

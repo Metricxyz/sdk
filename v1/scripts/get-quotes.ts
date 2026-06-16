@@ -13,7 +13,6 @@
 import { network } from "hardhat";
 import { formatUnits, parseUnits, erc20Abi, zeroAddress } from "viem";
 import * as sdk from "../index.js";
-import { PriceProviderUiAbi } from "../src/abis/PriceProviderUi.js";
 import { POOL_ABI, SWAPPER_ABI } from "../src/constants.js";
 
 const POOL_ADDRESS = "0x9C9fd348505A7202Fd819D8cb5003248d920d279" as const;
@@ -50,9 +49,9 @@ const [symbol0, decimals0, symbol1, decimals1, [bidPriceX64, askPriceX64]] =
       { address: token1, abi: erc20Abi, functionName: "symbol" },
       { address: token1, abi: erc20Abi, functionName: "decimals" },
       {
-        address: priceProviderAddress,
-        abi: PriceProviderUiAbi,
-        functionName: "getBidAndAskPriceUi",
+        address: POOL_ADDRESS,
+        abi: POOL_ABI,
+        functionName: "getBidAndAskPrice",
       },
     ],
   });

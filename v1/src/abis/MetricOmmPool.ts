@@ -1,5 +1,15 @@
 export const MetricOmmPoolAbi = [
   {
+    inputs: [],
+    name: "getBidAndAskPrice",
+    outputs: [
+      { internalType: "uint128", name: "bidPrice", type: "uint128" },
+      { internalType: "uint128", name: "askPrice", type: "uint128" },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
