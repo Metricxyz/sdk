@@ -49,6 +49,10 @@ export {
   MetricOmmPoolSwapperAbi,
   MetricOmmPoolLiquidityAdderAbi,
   MetricOmmPoolFactoryAbi,
+  DepositAllowlistExtensionAbi,
+  SwapAllowlistExtensionAbi,
+  PriceVelocityGuardExtensionAbi,
+  OracleValueStopLossExtensionAbi,
 } from "./abis/index.js";
 
 // ============ Utils ============
@@ -71,6 +75,7 @@ export {
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,
+  type ExtensionOrders,
   getPoolImmutables,
   getPoolFeeConfig,
   getPoolState,
@@ -157,3 +162,31 @@ export {
   type CollectedFactoryFeeTx,
   type CollectFactoryFeesResult,
 } from "./factory/index.js";
+
+// ============ Extension Functions ============
+export {
+  EMPTY_EXTENSION_DATA,
+  EMPTY_EXTENSION_ORDERS,
+  EMPTY_EXTENSION_INIT_DATA,
+  encodeExtensionOrder,
+  buildExtensionOrders,
+  encodeOracleStopLossInitData,
+  encodeSetAllowedToDepositCalldata,
+  encodeSetAllowedToSwapCalldata,
+  encodeSetMaxChangePerBlockCalldata,
+  encodeSetLastMidPriceCalldata,
+  encodeProposeOracleStopLossTimelockCalldata,
+  encodeExecuteOracleStopLossTimelockCalldata,
+  encodeCancelOracleStopLossTimelockCalldata,
+  encodeProposeOracleStopLossDrawdownCalldata,
+  encodeExecuteOracleStopLossDrawdownCalldata,
+  encodeCancelOracleStopLossDrawdownCalldata,
+  encodeProposeOracleStopLossDecayCalldata,
+  encodeExecuteOracleStopLossDecayCalldata,
+  encodeCancelOracleStopLossDecayCalldata,
+  encodeProposeOracleStopLossHighWatermarksCalldata,
+  encodeExecuteOracleStopLossHighWatermarksCalldata,
+  encodeCancelOracleStopLossHighWatermarksCalldata,
+  type PoolExtensions,
+  type ExtensionOrderAction,
+} from "./extensions/index.js";

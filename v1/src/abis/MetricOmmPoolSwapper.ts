@@ -317,7 +317,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -376,7 +376,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -538,7 +538,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -705,7 +705,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -818,7 +818,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -931,7 +931,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -990,7 +990,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],
@@ -1157,7 +1157,7 @@ export const MetricOmmPoolSwapperAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],

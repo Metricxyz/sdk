@@ -5,13 +5,13 @@
 import type { Address, PublicClient, Hex } from "viem";
 import { encodeFunctionData, zeroAddress } from "viem";
 import { MAX_UINT128, POOL_ABI, SWAPPER_ABI } from "../constants.js";
+import { EMPTY_EXTENSION_DATA } from "../extensions/types.js";
 import { PriceProviderUiAbi } from "../abis/PriceProviderUi.js";
 
 const BPS_BASE = 10_000n;
-const EMPTY_HOOK_DATA = "0x" as Hex;
 
-function withHookData(args: readonly unknown[]): readonly unknown[] {
-  return args.length >= 8 ? args : [...args, EMPTY_HOOK_DATA];
+function withExtensionData(args: readonly unknown[]): readonly unknown[] {
+  return args.length >= 8 ? args : [...args, EMPTY_EXTENSION_DATA];
 }
 
 function quoteSwapArgs(params: {
@@ -22,7 +22,7 @@ function quoteSwapArgs(params: {
   priceLimitX64: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
-  hookData?: Hex;
+  extensionData?: Hex;
 }): readonly [Address, Address, boolean, bigint, bigint, bigint, bigint, Hex] {
   return [
     params.pool,
@@ -32,7 +32,7 @@ function quoteSwapArgs(params: {
     params.priceLimitX64,
     params.bidPriceX64,
     params.askPriceX64,
-    params.hookData ?? EMPTY_HOOK_DATA,
+    params.extensionData ?? EMPTY_EXTENSION_DATA,
   ];
 }
 export interface PreparedSwapTransaction {
@@ -92,7 +92,7 @@ export interface BuildSwapWithFactoryParams {
   factoryAddress?: Address;
   pool: Address;
   prices?: BuildSwapPrices;
-  hookData?: Hex;
+  extensionData?: Hex;
 }
 
 export interface BuildSwapExactInputParams extends BuildSwapWithFactoryParams {
@@ -209,7 +209,7 @@ export async function buildArgsForSwapExactInput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
@@ -257,7 +257,7 @@ export async function buildArgsAndExpectedAmountsForSwapExactInput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
@@ -317,7 +317,7 @@ export async function quoteSwap(params: QuoteSwapParams): Promise<QuoteSwapResul
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
   })) as [bigint, bigint];
 
@@ -346,7 +346,7 @@ export async function quoteExpectedAmountsForSwapExactInput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
   })) as [bigint, bigint];
 
@@ -379,7 +379,7 @@ export async function buildArgsForSwapExactOutput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
@@ -425,7 +425,7 @@ export async function buildArgsAndExpectedAmountsForSwapExactOutput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
     account: params.recipient,
   })) as unknown as { result: [bigint, bigint] };
@@ -472,7 +472,7 @@ export async function quoteExpectedAmountsForSwapExactOutput(
       priceLimitX64,
       bidPriceX64,
       askPriceX64,
-      hookData: params.hookData,
+      extensionData: params.extensionData,
     }),
   })) as [bigint, bigint];
 
@@ -501,7 +501,7 @@ export function encodeSwapExactInputCalldata(
   return encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactInput",
-    args: withHookData(args),
+    args: withExtensionData(args),
   });
 }
 
@@ -525,7 +525,7 @@ export function encodeSwapExactOutputCalldata(
   return encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactOutput",
-    args: withHookData(args),
+    args: withExtensionData(args),
   });
 }
 
@@ -537,7 +537,7 @@ export function encodeSwapExactInputNativeForTokensCalldata(
   const data = encodeFunctionData({
     abi: SWAPPER_ABI,
     functionName: "swapExactInputNativeForTokens",
-    args: withHookData([
+    args: withExtensionData([
       params.pool,
       params.recipient,
       params.zeroForOne,

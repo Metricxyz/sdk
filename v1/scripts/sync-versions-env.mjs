@@ -24,13 +24,11 @@ function parseVersionsEnv(content) {
 }
 
 function expectedPins(refs) {
-  const core = refs.METRIC_CORE_REF;
   const periphery = refs.METRIC_PERIPHERY_REF;
-  if (!core || !periphery) {
-    throw new Error("versions.env must define METRIC_CORE_REF and METRIC_PERIPHERY_REF");
+  if (!periphery) {
+    throw new Error("versions.env must define METRIC_PERIPHERY_REF");
   }
   return {
-    "@metric/core": `github:Metric-OMM/metric-core#${core}`,
     "@metric/periphery": `github:Metric-OMM/metric-periphery#${periphery}`,
   };
 }
@@ -55,6 +53,16 @@ async function main() {
       changed = true;
       console.log(`Updated ${name} -> ${expected}`);
     }
+  }
+
+  if (devDeps["@metric/core"]) {
+    if (checkOnly) {
+      console.error("Unexpected direct @metric/core pin (core comes via @metric/periphery)");
+      process.exit(1);
+    }
+    delete devDeps["@metric/core"];
+    changed = true;
+    console.log("Removed @metric/core (core comes via @metric/periphery)");
   }
 
   if (checkOnly) {

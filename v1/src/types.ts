@@ -4,6 +4,7 @@
  */
 
 import type { Address } from "viem";
+import type { ExtensionOrders, PoolExtensions } from "./extensions/types.js";
 
 // ============ Core Types ============
 
@@ -49,10 +50,8 @@ export interface PoolImmutables {
   initialScaledToken1PerShareE18: bigint;
   minimalMintableLiquidity: bigint;
   immutablePriceProvider?: Address;
-  hooks?: Address;
-  hooksPermissions?: number;
-  maxDriftE8: bigint;
-  maxDriftDecayPerSecondE8: bigint;
+  extensions: PoolExtensions;
+  extensionOrders: ExtensionOrders;
   lowestBin: number;
   highestBin: number;
 }

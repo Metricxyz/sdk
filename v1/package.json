@@ -1,7 +1,7 @@
 {
   "name": "@nradko/metric-omm-sdk-v1",
-  "version": "0.2.0",
-  "description": "Metric AMM SDK — v1 contracts (dev branch: Swapper, LiquidityAdder, add/removeLiquidity)",
+  "version": "0.3.0",
+  "description": "Metric AMM SDK — v1 contracts (Swapper, LiquidityAdder, extensions, add/removeLiquidity)",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -63,14 +63,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@metric/core": "github:Metric-OMM/metric-core#bc0fe2be62468d040aff73e78cad1ef3805c4d33",
-    "@metric/periphery": "github:Metric-OMM/metric-periphery#64c336d97c78b2c59c86caed91f210e4753d8f88",
-    "hardhat": "^3.0.17",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#cc8fef9781fba405cfd1945fe6bf49a00da132bb",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-viem": "^3.0.1",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
+    "hardhat": "^3.0.17",
     "prettier": "^3.8.1",
     "typescript": "~5.8.0",
     "typescript-eslint": "^8.58.0"
