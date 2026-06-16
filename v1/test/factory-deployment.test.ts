@@ -175,7 +175,7 @@ describe("Factory Deployment Flow", async () => {
   });
 
   it("should only allow factory to deploy pools via deployer", async () => {
-    const { factory, poolDeployer, token0, token1, priceProvider } =
+    const { factory, poolDeployer, token0, token1, priceProvider, admin } =
       await networkHelpers.loadFixture(deployFactoryInfrastructure);
 
     const emptyBin = {
@@ -193,24 +193,39 @@ describe("Factory Deployment Flow", async () => {
           {
             salt: "0x0000000000000000000000000000000000000000000000000000000000000001",
             factory: factory.address,
+            admin: admin.account.address,
+            adminFeeDestination: admin.account.address,
             token0: token0.address,
             token1: token1.address,
             priceProvider: priceProvider.address,
-            hooks: zeroAddress,
-            hooksPermissions: 0,
+            extensions: {
+              extension1: zeroAddress,
+              extension2: zeroAddress,
+              extension3: zeroAddress,
+              extension4: zeroAddress,
+              extension5: zeroAddress,
+              extension6: zeroAddress,
+              extension7: zeroAddress,
+            },
+            extensionOrders: {
+              beforeAddLiquidity: 0,
+              afterAddLiquidity: 0,
+              beforeRemoveLiquidity: 0,
+              afterRemoveLiquidity: 0,
+              beforeSwap: 0,
+              afterSwap: 0,
+            },
             immutablePriceProvider: false,
             token0ScaleMultiplier: 1n,
             token1ScaleMultiplier: 1n,
             initialScaledAmount0PerShareE18: 1_000_000_000_000_000_000n,
             initialScaledAmount1PerShareE18: 1_000_000_000_000_000_000n,
             minimalMintableLiquidity: 1000n,
-            protocolSpreadFeeE6: 0,
-            adminSpreadFeeE6: 5000,
+            spreadFeeE6: 5000,
             curBinDistFromProvidedPriceE6: 0,
             nonNegativeBinStates: [emptyBin],
             negativeBinStates: [emptyBin],
-            protocolNotionalFeeE8: 0,
-            adminNotionalFeeE8: 0,
+            notionalFeeE8: 0,
           },
         ]);
       },

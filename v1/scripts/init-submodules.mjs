@@ -1,12 +1,13 @@
 /**
- * Prepare @metric/core / @metric/periphery under this package's node_modules.
- * npm git installs often ship without nested submodules; we init or link siblings.
+ * Prepare @metric/periphery under this package's node_modules.
+ * Core is not a direct dependency; it is provided via periphery's lib/metric-core submodule.
  */
 import { execSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readlinkSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -24,13 +25,13 @@ function ozReady(packageDir) {
   return existsSync(file) && statSync(file).size > 0;
 }
 
-function ensureCore(coreDir) {
-  if (ozReady(coreDir)) {
-    console.log(`@metric/core ready: ${coreDir}`);
+function ensureSubmodules(packageDir, label) {
+  if (ozReady(packageDir)) {
+    console.log(`${label} ready: ${packageDir}`);
     return;
   }
-  console.log(`init submodules: ${coreDir}`);
-  execSync("git submodule update --init --recursive", { cwd: coreDir, stdio: "inherit" });
+  console.log(`init submodules: ${packageDir}`);
+  execSync("git submodule update --init --recursive", { cwd: packageDir, stdio: "inherit" });
 }
 
 function fixPeripheryPackageName(peripheryDir) {
@@ -43,44 +44,44 @@ function fixPeripheryPackageName(peripheryDir) {
   console.log(`patched ${pkgPath} name -> @metric/periphery`);
 }
 
-function ensurePeriphery(peripheryDir, coreDir) {
-  const remappings = existsSync(resolve(peripheryDir, "remappings.txt"))
-    ? readFileSync(resolve(peripheryDir, "remappings.txt"), "utf8")
-    : "";
+function linkCoreFromPeriphery(coreLink, coreDir) {
+  const poolMarker = resolve(coreDir, "contracts/MetricOmmPool.sol");
+  if (!existsSync(poolMarker)) {
+    throw new Error(
+      `Expected core contracts at ${coreDir}. Run "git submodule update --init --recursive" in @metric/periphery.`,
+    );
+  }
 
-  if (remappings.includes("lib/metric-core/")) {
-    const linkPath = resolve(peripheryDir, "lib/metric-core");
-    const poolMarker = resolve(linkPath, "contracts/MetricOmmPool.sol");
-    if (existsSync(poolMarker)) {
-      console.log(`@metric/periphery lib/metric-core ready: ${linkPath}`);
-      return;
+  if (existsSync(coreLink)) {
+    try {
+      if (
+        statSync(coreLink).isSymbolicLink() &&
+        resolve(readlinkSync(coreLink)) === resolve(coreDir)
+      ) {
+        console.log(`@metric/core ready: ${coreLink} -> ${coreDir}`);
+        return;
+      }
+    } catch {
+      // fall through and recreate the link
     }
-    rmSync(linkPath, { recursive: true, force: true });
-    mkdirSync(resolve(peripheryDir, "lib"), { recursive: true });
-    symlinkSync(coreDir, linkPath, "dir");
-    console.log(`linked ${linkPath} -> ${coreDir}`);
-    return;
+    rmSync(coreLink, { recursive: true, force: true });
   }
 
-  if (ozReady(peripheryDir)) {
-    console.log(`@metric/periphery ready: ${peripheryDir}`);
-    return;
-  }
-  console.log(`init submodules: ${peripheryDir}`);
-  execSync("git submodule update --init --recursive", { cwd: peripheryDir, stdio: "inherit" });
+  mkdirSync(metricDir, { recursive: true });
+  symlinkSync(coreDir, coreLink, "dir");
+  console.log(`linked ${coreLink} -> ${coreDir}`);
 }
 
-if (!existsSync(resolve(metricDir, "core"))) {
+const peripheryDir = resolve(metricDir, "periphery");
+if (!existsSync(peripheryDir)) {
   throw new Error(
-    `Could not find @metric/core in ${metricDir}. Run "npm ci" in ${packageRoot} first.`,
+    `Could not find @metric/periphery in ${metricDir}. Run "npm ci" in ${packageRoot} first.`,
   );
 }
 
-const coreDir = resolve(metricDir, "core");
-ensureCore(coreDir);
+fixPeripheryPackageName(peripheryDir);
+ensureSubmodules(peripheryDir, "@metric/periphery");
 
-const peripheryDir = resolve(metricDir, "periphery");
-if (existsSync(peripheryDir)) {
-  fixPeripheryPackageName(peripheryDir);
-  ensurePeriphery(peripheryDir, coreDir);
-}
+const coreDir = resolve(peripheryDir, "lib/metric-core");
+ensureSubmodules(coreDir, "@metric/core (via periphery)");
+linkCoreFromPeriphery(resolve(metricDir, "core"), coreDir);

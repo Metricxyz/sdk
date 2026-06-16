@@ -54,6 +54,11 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "ExtensionCallFailed",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "FeeCapsExceedHardLimit",
     type: "error",
   },
@@ -69,12 +74,17 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
-    name: "InvalidHooksConfig",
+    name: "InvalidExtensionOrder",
     type: "error",
   },
   {
     inputs: [],
-    name: "InvalidHooksConfig",
+    name: "InvalidExtensionResponse",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidExtensionsConfig",
     type: "error",
   },
   {
@@ -248,11 +258,6 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "SafeERC20FailedOperation",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "WrongBinArrays",
     type: "error",
   },
   {
@@ -497,15 +502,47 @@ export const MetricOmmPoolFactoryAbi = [
       },
       {
         indexed: false,
-        internalType: "address",
-        name: "hooks",
-        type: "address",
+        internalType: "address[]",
+        name: "extensions",
+        type: "address[]",
       },
       {
+        components: [
+          {
+            internalType: "uint256",
+            name: "beforeAddLiquidity",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "afterAddLiquidity",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "beforeRemoveLiquidity",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "afterRemoveLiquidity",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "beforeSwap",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "afterSwap",
+            type: "uint256",
+          },
+        ],
         indexed: false,
-        internalType: "uint16",
-        name: "hooksPermissions",
-        type: "uint16",
+        internalType: "struct ExtensionOrders",
+        name: "extensionOrders",
+        type: "tuple",
       },
       {
         indexed: false,
@@ -854,14 +891,51 @@ export const MetricOmmPoolFactoryAbi = [
             type: "address",
           },
           {
-            internalType: "address",
-            name: "hooks",
-            type: "address",
+            internalType: "address[]",
+            name: "extensions",
+            type: "address[]",
           },
           {
-            internalType: "uint16",
-            name: "hooksPermissions",
-            type: "uint16",
+            components: [
+              {
+                internalType: "uint256",
+                name: "beforeAddLiquidity",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "afterAddLiquidity",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "beforeRemoveLiquidity",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "afterRemoveLiquidity",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "beforeSwap",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "afterSwap",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct ExtensionOrders",
+            name: "extensionOrders",
+            type: "tuple",
+          },
+          {
+            internalType: "bytes[]",
+            name: "extensionInitData",
+            type: "bytes[]",
           },
           {
             internalType: "uint256",

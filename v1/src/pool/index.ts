@@ -10,6 +10,7 @@ export {
   preparePoolBinData,
   type CreatePoolFactoryParams,
   type CreatePoolParams,
+  type ExtensionOrders,
 } from "./create.js";
 
 // Pool read functions

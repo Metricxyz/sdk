@@ -219,7 +219,7 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "uint256",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -262,7 +262,7 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "uint128",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -372,7 +372,7 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "tuple",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -540,7 +540,7 @@ export const MetricOmmPoolDataProviderAbi = [
       },
       {
         internalType: "bytes",
-        name: "hookData",
+        name: "extensionData",
         type: "bytes",
       },
     ],

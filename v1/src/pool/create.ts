@@ -3,11 +3,12 @@
  */
 
 import type { Address, PublicClient, WalletClient, Hex } from "viem";
-import { encodeFunctionData, zeroAddress } from "viem";
+import { encodeFunctionData } from "viem";
 import { POOL_FACTORY_ABI } from "../constants.js";
 import { createUniformBins } from "../utils/binData.js";
+import { EMPTY_EXTENSION_ORDERS, type ExtensionOrders } from "../extensions/types.js";
 
-// ============ Types ============
+export type { ExtensionOrders };
 
 /**
  * Parameters for creating a new pool via the v1 factory.
@@ -17,10 +18,12 @@ export interface CreatePoolFactoryParams {
   token1: Address;
   priceProvider: Address;
   admin: Address;
-  /** Defaults to zero address (no hooks). */
-  hooks?: Address;
-  /** Defaults to 0. */
-  hooksPermissions?: number;
+  /** Defaults to empty (no extensions). */
+  extensions?: Address[];
+  /** Defaults to all-zero orders (no extension calls). */
+  extensionOrders?: ExtensionOrders;
+  /** Defaults to empty; length must match `extensions` when extensions are set. */
+  extensionInitData?: Hex[];
   /** Defaults to 0. */
   priceProviderTimelock?: bigint;
   nonNegativeBins: bigint[];
@@ -69,8 +72,9 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     token0: params.token0,
     token1: params.token1,
     priceProvider: params.priceProvider,
-    hooks: params.hooks ?? zeroAddress,
-    hooksPermissions: params.hooksPermissions ?? 0,
+    extensions: params.extensions ?? [],
+    extensionOrders: params.extensionOrders ?? EMPTY_EXTENSION_ORDERS,
+    extensionInitData: params.extensionInitData ?? [],
     priceProviderTimelock: params.priceProviderTimelock ?? 0n,
     admin: params.admin,
     initialAmount0PerShareE18: params.initialScaledToken0PerShareE18,

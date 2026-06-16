@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-16
+
+> **NOT backward compatible with `0.2.0`.** This release tracks the **extensions** rename in **metric-core** and **metric-periphery** (successor to the hooks-era `0.2.0` pin). Field names, factory pool-creation params, and immutables layout changed again.
+>
+> Pinned upstream: **metric-periphery** `cc8fef9781fba405cfd1945fe6bf49a00da132bb` (core via periphery `lib/metric-core`).
+>
+> Package: **@nradko/metric-omm-sdk-v1** `0.3.0`.
+
+### Why this breaks compatibility with `0.2.0`
+
+The hooks model was replaced by **extensions**: standalone periphery contracts (`DepositAllowlistExtension`, `SwapAllowlistExtension`, `PriceVelocityGuardExtension`, `OracleValueStopLossExtension`) configured per pool at creation.
+
+- **`hookData` → `extensionData`** on pool swap/add/remove, Swapper, LiquidityAdder, and DataProvider quote paths.
+- **Pool creation** — `hooks` / `hooksPermissions` replaced by `extensions[]`, `ExtensionOrders`, and `extensionInitData[]`.
+- **Pool immutables** — single `hooks` + `hooksPermissions` replaced by `extension1…extension7` and six packed order fields.
+- **`addLiquidityWeighted`** — LiquidityAdder overloads gained bin-position bound args (`minimalCurBin`, `minimalPosition`, `maximalCurBin`, `maximalPosition`).
+
+Calldata and types from `0.2.0` must be audited and updated.
+
+### Added — SDK (v1)
+
+- **Extension module** — `encodeExtensionOrder`, `buildExtensionOrders`, `EMPTY_EXTENSION_DATA`, `EMPTY_EXTENSION_ORDERS`.
+- **Initialize encoders** — `EMPTY_EXTENSION_INIT_DATA`, `encodeOracleStopLossInitData`.
+- **Admin calldata encoders** for DepositAllowlist, SwapAllowlist, PriceVelocityGuard, and OracleValueStopLoss (propose / execute / cancel).
+- **Extension ABIs** exported from `@nradko/metric-omm-sdk-v1/abis`.
+- **Tests** — extension order packing, init encoding, admin encode parity, pool create with extensions, deposit/swap allowlist E2E.
+
+### Breaking — SDK (v1)
+
+- **`CreatePoolFactoryParams`** — `extensions`, `extensionOrders`, `extensionInitData` replace `hooks` / `hookOrders` / `hookInitData`.
+- **`PoolImmutables`** — `extensions` (`PoolExtensions`) and `extensionOrders` replace `hooks` / `hooksPermissions`; removed `maxDriftE8` / `maxDriftDecayPerSecondE8`.
+- **Swap and liquidity encoders** — `extensionData` replaces `hookData`.
+- **`encodeAddLiquidityWeighted*`** — append bin-position bound args (defaults: no bounds).
+
+### Changed — SDK (v1)
+
+- Synced ABIs from pinned **metric-periphery** `cc8fef9781fba405cfd1945fe6bf49a00da132bb`.
+- Liquidity encoders resolve correct LiquidityAdder overloads by input arity.
+- Hardhat `npmFilesToBuild` and `sync-abis.mjs` include the four periphery extension contracts.
+
+### Not wrapped by this SDK yet
+
+- **metric-periphery** `MetricOmmSimpleRouter` (single- and multi-hop exact-input/output swaps).
+
 ## [0.2.0] - 2026-06-08
 
 > **NOT backward compatible.** This release tracks a hooks-era **metric-core** and **metric-periphery** upgrade. On-chain ABIs changed in ways that break existing integrators at both the **smart-contract** and **SDK** level. Do not assume calldata, selectors, immutables layout, or factory read paths from `0.1.x` still work.

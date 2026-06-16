@@ -28,10 +28,21 @@ export async function getPoolImmutables(
     initialScaledToken1PerShareE18: bigint;
     minimalMintableLiquidity: bigint;
     immutablePriceProvider: Address;
-    hooks: Address;
-    hooksPermissions: number;
     lowestBin: bigint;
     highestBin: bigint;
+    extension1: Address;
+    extension2: Address;
+    extension3: Address;
+    extension4: Address;
+    extension5: Address;
+    extension6: Address;
+    extension7: Address;
+    beforeAddLiquidityOrder: bigint;
+    afterAddLiquidityOrder: bigint;
+    beforeRemoveLiquidityOrder: bigint;
+    afterRemoveLiquidityOrder: bigint;
+    beforeSwapOrder: bigint;
+    afterSwapOrder: bigint;
   };
 
   return {
@@ -44,10 +55,23 @@ export async function getPoolImmutables(
     initialScaledToken1PerShareE18: imm.initialScaledToken1PerShareE18,
     minimalMintableLiquidity: imm.minimalMintableLiquidity,
     immutablePriceProvider: imm.immutablePriceProvider,
-    hooks: imm.hooks,
-    hooksPermissions: imm.hooksPermissions,
-    maxDriftE8: 0n,
-    maxDriftDecayPerSecondE8: 0n,
+    extensions: {
+      extension1: imm.extension1,
+      extension2: imm.extension2,
+      extension3: imm.extension3,
+      extension4: imm.extension4,
+      extension5: imm.extension5,
+      extension6: imm.extension6,
+      extension7: imm.extension7,
+    },
+    extensionOrders: {
+      beforeAddLiquidity: imm.beforeAddLiquidityOrder,
+      afterAddLiquidity: imm.afterAddLiquidityOrder,
+      beforeRemoveLiquidity: imm.beforeRemoveLiquidityOrder,
+      afterRemoveLiquidity: imm.afterRemoveLiquidityOrder,
+      beforeSwap: imm.beforeSwapOrder,
+      afterSwap: imm.afterSwapOrder,
+    },
     lowestBin: Number(imm.lowestBin),
     highestBin: Number(imm.highestBin),
   };
@@ -109,9 +133,6 @@ export async function getPoolState(
   };
 }
 
-/**
- * Read bin state (scaled balances) via MetricOmmPoolDataProvider.
- */
 export async function getBinState(
   publicClient: PublicClient,
   dataProviderAddress: Address,
@@ -122,7 +143,7 @@ export async function getBinState(
     address: dataProviderAddress,
     abi: DATA_PROVIDER_ABI,
     functionName: "binState",
-    args: [poolAddress, binIdx],
+    args: [poolAddress, BigInt(binIdx)],
   })) as readonly [bigint, bigint, number, number, number];
 
   return {
@@ -134,9 +155,6 @@ export async function getBinState(
   };
 }
 
-/**
- * Get user position shares in a specific bin (DataProvider).
- */
 export async function getPositionBinShares(
   publicClient: PublicClient,
   dataProviderAddress: Address,
@@ -145,10 +163,10 @@ export async function getPositionBinShares(
   salt: bigint,
   binIdx: number,
 ): Promise<bigint> {
-  return (await publicClient.readContract({
+  return publicClient.readContract({
     address: dataProviderAddress,
     abi: DATA_PROVIDER_ABI,
     functionName: "positionBinShares",
-    args: [poolAddress, owner, salt, binIdx],
-  })) as bigint;
+    args: [poolAddress, owner, salt, BigInt(binIdx)],
+  }) as Promise<bigint>;
 }

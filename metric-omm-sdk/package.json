@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Metric AMM SDK — combined v0 and v1 namespaces",
   "engines": {
     "node": ">=22"

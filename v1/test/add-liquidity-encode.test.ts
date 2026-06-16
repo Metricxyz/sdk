@@ -12,6 +12,15 @@ const deltas = {
   shares: [100n, 200n] as const,
 };
 
+function liquidityAdderFn(name: string, inputCount: number) {
+  const item = MetricOmmPoolLiquidityAdderAbi.find(
+    (entry) =>
+      entry.type === "function" && entry.name === name && entry.inputs.length === inputCount,
+  );
+  if (!item) throw new Error(`Missing ${name} overload (${inputCount} inputs)`);
+  return item;
+}
+
 describe("LiquidityAdder calldata encoders (v1)", () => {
   it("encodeAddLiquidityExactSharesSelfCalldata matches viem", () => {
     const max0 = 1_000n;
@@ -24,7 +33,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: max1,
     });
     const direct = encodeFunctionData({
-      abi: MetricOmmPoolLiquidityAdderAbi,
+      abi: [liquidityAdderFn("addLiquidityExactShares", 6)],
       functionName: "addLiquidityExactShares",
       args: [
         pool,
@@ -36,6 +45,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       ],
     });
     assert.equal(viaSdk, direct);
+    assert.equal(viaSdk.slice(0, 10), "0xb00f0a73");
   });
 
   it("encodeAddLiquidityExactSharesWithOwnerCalldata matches viem", () => {
@@ -48,7 +58,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: 2n,
     });
     const direct = encodeFunctionData({
-      abi: MetricOmmPoolLiquidityAdderAbi,
+      abi: [liquidityAdderFn("addLiquidityExactShares", 7)],
       functionName: "addLiquidityExactShares",
       args: [
         pool,
@@ -72,7 +82,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: 4n,
     });
     const direct = encodeFunctionData({
-      abi: MetricOmmPoolLiquidityAdderAbi,
+      abi: [liquidityAdderFn("addLiquidityWeighted", 10)],
       functionName: "addLiquidityWeighted",
       args: [
         pool,
@@ -80,6 +90,10 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         3n,
         4n,
+        -128,
+        0n,
+        127,
+        sdk.MAX_UINT104,
         "0x",
       ],
     });
