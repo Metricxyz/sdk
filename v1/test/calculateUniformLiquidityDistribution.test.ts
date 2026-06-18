@@ -6,10 +6,10 @@ import * as sdk from "../src/index.js";
 import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
-import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
-import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
+import MockOracleArtifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockOracle.sol/MockOracle.json";
+import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
 import { MetricOmmPoolDataProviderAbi } from "../src/abis/MetricOmmPoolDataProvider.js";
-import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");

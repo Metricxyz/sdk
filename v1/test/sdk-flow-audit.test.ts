@@ -6,13 +6,13 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { encodeFunctionData, parseUnits } from "viem";
 import * as sdk from "../src/index.js";
-import { MetricOmmPoolFactoryAbi, MetricOmmPoolSwapperAbi } from "../src/abis/index.js";
+import { MetricOmmPoolFactoryAbi, MetricOmmSimpleRouterAbi } from "../src/abis/index.js";
 import {
   encodeAddLiquidityCalldata,
   encodeRemoveLiquidityCalldataFromDeltas,
 } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
-import { deployMetricTestEnv } from "./shared/testEnv.js";
+import { deployMetricTestEnv, buildExactInputSingleTestParams } from "./shared/testEnv.js";
 
 describe("SDK v1 flow audit (on-chain)", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
@@ -20,7 +20,7 @@ describe("SDK v1 flow audit (on-chain)", async () => {
 
   it("create pool → add liquidity → swap → remove liquidity via SDK encoders", async () => {
     const env = await deployMetricTestEnv(viem, deployer);
-    const { publicClient, token0, token1, factory, liquidityAdder, swapper } = env;
+    const { publicClient, token0, token1, factory, liquidityAdder, simpleRouter } = env;
 
     const max0 = parseUnits("1000000", 18);
     const max1 = parseUnits("1000000", 6);
@@ -28,8 +28,8 @@ describe("SDK v1 flow audit (on-chain)", async () => {
     await token1.write.mint([deployer.account.address, max1]);
     await token0.write.approve([liquidityAdder.address, max0]);
     await token1.write.approve([liquidityAdder.address, max1]);
-    await token0.write.approve([swapper.address, max0]);
-    await token1.write.approve([swapper.address, max1]);
+    await token0.write.approve([simpleRouter.address, max0]);
+    await token1.write.approve([simpleRouter.address, max1]);
 
     // --- Create pool (SDK encodeCreatePoolCalldata → factory) ---
     const fixedSalt = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -115,45 +115,51 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       "pool should hold liquidity after add",
     );
 
-    // --- Swap (SDK → Swapper) ---
+    // --- Swap (SDK → SimpleRouter) ---
     const slot0BeforeSwap = await sdk.getSlot0(publicClient, env.dataProvider.address, poolAddress);
     const amountIn = parseUnits("1", 6);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
-    const swapParams: sdk.SwapExactInputParams = {
-      pool: poolAddress,
+    const swapParams = buildExactInputSingleTestParams(env, poolAddress, {
       recipient: deployer.account.address,
       zeroForOne: false,
       amountIn,
-      priceLimitX64: sdk.MAX_UINT128,
-      minAmountOut: 0n,
       deadline,
-    };
-    const swapCalldata = sdk.prepareSwapExactInputCalldata(swapParams);
+      priceLimitX64: sdk.MAX_UINT128,
+    });
+    const swapCalldata = sdk.prepareExactInputSingleCalldata(swapParams);
     const directSwap = encodeFunctionData({
-      abi: MetricOmmPoolSwapperAbi,
-      functionName: "swapExactInput",
+      abi: MetricOmmSimpleRouterAbi,
+      functionName: "exactInputSingle",
       args: [
-        swapParams.pool,
-        swapParams.recipient,
-        swapParams.zeroForOne,
-        swapParams.amountIn,
-        swapParams.priceLimitX64,
-        swapParams.minAmountOut,
-        swapParams.deadline,
-        "0x",
+        {
+          pool: swapParams.pool,
+          tokenIn: swapParams.tokenIn,
+          tokenOut: swapParams.tokenOut,
+          zeroForOne: swapParams.zeroForOne,
+          amountIn: swapParams.amountIn,
+          amountOutMinimum: swapParams.amountOutMinimum,
+          recipient: swapParams.recipient,
+          deadline: swapParams.deadline,
+          priceLimitX64: swapParams.priceLimitX64,
+          extensionData: "0x",
+        },
       ],
     });
     assert.equal(swapCalldata, directSwap);
 
-    const swapHash = await swapper.write.swapExactInput([
-      poolAddress,
-      deployer.account.address,
-      false,
-      amountIn,
-      sdk.MAX_UINT128,
-      0n,
-      deadline,
-      "0x",
+    const swapHash = await simpleRouter.write.exactInputSingle([
+      {
+        pool: swapParams.pool,
+        tokenIn: swapParams.tokenIn,
+        tokenOut: swapParams.tokenOut,
+        zeroForOne: swapParams.zeroForOne,
+        amountIn: swapParams.amountIn,
+        amountOutMinimum: swapParams.amountOutMinimum,
+        recipient: swapParams.recipient,
+        deadline: swapParams.deadline,
+        priceLimitX64: swapParams.priceLimitX64,
+        extensionData: "0x",
+      },
     ]);
     const swapReceipt = await publicClient.waitForTransactionReceipt({ hash: swapHash });
     assert.equal(swapReceipt.status, "success");

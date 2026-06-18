@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@metric/periphery": "github:Metric-OMM/metric-periphery#cc8fef9781fba405cfd1945fe6bf49a00da132bb",
+    "@metric/periphery": "github:Metric-OMM/metric-periphery#fc7c947507ec465af950add2263507db2f3ff904",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-viem": "^3.0.1",

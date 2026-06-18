@@ -25,7 +25,8 @@ export type MetricTestEnv = {
   poolDeployer: any;
   dataProvider: { address: Address };
   liquidityAdder: any;
-  swapper: any;
+  simpleRouter: any;
+  quoter: any;
 };
 
 export async function deployMetricTestEnv(viem: any, deployer: any): Promise<MetricTestEnv> {
@@ -47,7 +48,8 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
   const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
-  const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
+  const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+  const quoter = await viem.deployContract("MetricOmmSwapQuoter", []);
 
   return {
     publicClient,
@@ -60,7 +62,8 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
     poolDeployer,
     dataProvider,
     liquidityAdder,
-    swapper,
+    simpleRouter,
+    quoter,
   };
 }
 
@@ -104,4 +107,64 @@ export async function approveTokensForLiquidityAdder(
   await env.token1.write.mint([wallet.account.address, amount1]);
   await env.token0.write.approve([env.liquidityAdder.address, amount0]);
   await env.token1.write.approve([env.liquidityAdder.address, amount1]);
+}
+
+export async function approveTokensForSimpleRouter(
+  env: MetricTestEnv,
+  wallet: any,
+  amount0: bigint,
+  amount1: bigint,
+) {
+  await env.token0.write.approve([env.simpleRouter.address, amount0]);
+  await env.token1.write.approve([env.simpleRouter.address, amount1]);
+}
+
+export function buildExactInputSingleTestParams(
+  env: MetricTestEnv,
+  pool: Address,
+  params: {
+    recipient: Address;
+    zeroForOne: boolean;
+    amountIn: bigint;
+    amountOutMinimum?: bigint;
+    deadline: bigint;
+    priceLimitX64?: bigint;
+  },
+): sdk.ExactInputSingleParams {
+  return {
+    pool,
+    tokenIn: params.zeroForOne ? env.token0.address : env.token1.address,
+    tokenOut: params.zeroForOne ? env.token1.address : env.token0.address,
+    zeroForOne: params.zeroForOne,
+    amountIn: params.amountIn,
+    amountOutMinimum: params.amountOutMinimum ?? 0n,
+    recipient: params.recipient,
+    deadline: params.deadline,
+    priceLimitX64: params.priceLimitX64 ?? (params.zeroForOne ? 0n : sdk.MAX_UINT128),
+  };
+}
+
+export function buildExactOutputSingleTestParams(
+  env: MetricTestEnv,
+  pool: Address,
+  params: {
+    recipient: Address;
+    zeroForOne: boolean;
+    amountOut: bigint;
+    amountInMaximum?: bigint;
+    deadline: bigint;
+    priceLimitX64?: bigint;
+  },
+): sdk.ExactOutputSingleParams {
+  return {
+    pool,
+    tokenIn: params.zeroForOne ? env.token0.address : env.token1.address,
+    tokenOut: params.zeroForOne ? env.token1.address : env.token0.address,
+    zeroForOne: params.zeroForOne,
+    amountOut: params.amountOut,
+    amountInMaximum: params.amountInMaximum ?? sdk.MAX_UINT128,
+    recipient: params.recipient,
+    deadline: params.deadline,
+    priceLimitX64: params.priceLimitX64 ?? (params.zeroForOne ? 0n : sdk.MAX_UINT128),
+  };
 }

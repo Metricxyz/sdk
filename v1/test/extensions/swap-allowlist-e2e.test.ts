@@ -5,15 +5,17 @@ import { maxUint128, parseUnits } from "viem";
 import * as sdk from "../../src/index.js";
 import {
   approveTokensForLiquidityAdder,
+  approveTokensForSimpleRouter,
+  buildExactInputSingleTestParams,
   createPoolViaFactory,
   deployMetricTestEnv,
 } from "../shared/testEnv.js";
 
 describe("SwapAllowlistExtension E2E", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
-  const [deployer, swapper] = await viem.getWalletClients();
+  const [deployer, trader] = await viem.getWalletClients();
 
-  it("blocks swaps until pool admin allows the swapper", async () => {
+  it("blocks swaps until pool admin allows the simple router", async () => {
     const env = await deployMetricTestEnv(viem, deployer);
     const swapAllowlist = await viem.deployContract("SwapAllowlistExtension", [
       env.factory.address,
@@ -28,8 +30,7 @@ describe("SwapAllowlistExtension E2E", async () => {
     const max0 = parseUnits("1000000", 18);
     const max1 = parseUnits("1000000", 6);
     await approveTokensForLiquidityAdder(env, deployer, max0, max1);
-    await env.token0.write.approve([env.swapper.address, max0]);
-    await env.token1.write.approve([env.swapper.address, max1]);
+    await approveTokensForSimpleRouter(env, deployer, max0, max1);
 
     const salt = 1n;
     const addData = sdk.encodeAddLiquidityExactSharesSelfCalldata({
@@ -48,27 +49,27 @@ describe("SwapAllowlistExtension E2E", async () => {
     });
     await env.publicClient.waitForTransactionReceipt({ hash: addHash });
 
-    await env.token1.write.mint([swapper.account.address, parseUnits("100", 6)], {
-      account: swapper.account,
+    await env.token1.write.mint([trader.account.address, parseUnits("100", 6)], {
+      account: trader.account,
     });
-    await env.token1.write.approve([env.swapper.address, parseUnits("100", 6)], {
-      account: swapper.account,
+    await env.token1.write.approve([env.simpleRouter.address, parseUnits("100", 6)], {
+      account: trader.account,
     });
 
-    const swapData = sdk.encodeSwapExactInputCalldata({
-      pool,
-      recipient: swapper.account.address,
-      zeroForOne: false,
-      amountIn: parseUnits("1", 6),
-      priceLimitX64: maxUint128,
-      minAmountOut: 0n,
-      deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
-    });
+    const swapData = sdk.encodeExactInputSingleCalldata(
+      buildExactInputSingleTestParams(env, pool, {
+        recipient: trader.account.address,
+        zeroForOne: false,
+        amountIn: parseUnits("1", 6),
+        priceLimitX64: maxUint128,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
+      }),
+    );
 
     await assert.rejects(
       async () => {
-        const hash = await swapper.sendTransaction({
-          to: env.swapper.address,
+        const hash = await trader.sendTransaction({
+          to: env.simpleRouter.address,
           data: swapData,
         });
         await env.publicClient.waitForTransactionReceipt({ hash });
@@ -81,17 +82,17 @@ describe("SwapAllowlistExtension E2E", async () => {
       data: sdk.encodeSetAllowedToSwapCalldata({
         extension: swapAllowlist.address,
         pool,
-        swapper: env.swapper.address,
+        swapper: env.simpleRouter.address,
         allowed: true,
       }),
     });
     await env.publicClient.waitForTransactionReceipt({ hash: allowTx });
 
-    const allowed = await swapAllowlist.read.isAllowedToSwap([pool, env.swapper.address]);
+    const allowed = await swapAllowlist.read.isAllowedToSwap([pool, env.simpleRouter.address]);
     assert.equal(allowed, true);
 
-    const swapHash = await swapper.sendTransaction({
-      to: env.swapper.address,
+    const swapHash = await trader.sendTransaction({
+      to: env.simpleRouter.address,
       data: swapData,
     });
     const receipt = await env.publicClient.waitForTransactionReceipt({ hash: swapHash });

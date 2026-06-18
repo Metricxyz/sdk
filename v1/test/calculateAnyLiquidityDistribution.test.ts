@@ -6,10 +6,10 @@ import * as sdk from "../src/index.js";
 import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
-import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
-import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
+import MockOracleArtifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockOracle.sol/MockOracle.json";
+import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
 import { MetricOmmPoolDataProviderAbi } from "../src/abis/MetricOmmPoolDataProvider.js";
-import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("buildModifyLiquidityArgsForAddition", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");
@@ -533,9 +533,9 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     const immutables = await sdk.getPoolImmutables(publicClient, factory.address, pool.address);
     const weth = await viem.deployContract("MockWETH9", []);
-    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
-    await token0.write.approve([swapper.address, parseUnits("1000000", 18)]);
-    await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
+    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+    await token0.write.approve([simpleRouter.address, parseUnits("1000000", 18)]);
+    await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
     let selectedSlot0 = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
@@ -565,15 +565,19 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
       for (const candidate of candidates) {
         try {
-          await swapper.write.swapExactInput([
-            pool.address,
-            deployer.account.address,
-            candidate.zeroForOne,
-            candidate.amountIn,
-            candidate.priceLimitX64,
-            0n,
-            deadline,
-            "0x",
+          await simpleRouter.write.exactInputSingle([
+            {
+              pool: pool.address,
+              tokenIn: candidate.zeroForOne ? token0.address : token1.address,
+              tokenOut: candidate.zeroForOne ? token1.address : token0.address,
+              zeroForOne: candidate.zeroForOne,
+              amountIn: candidate.amountIn,
+              amountOutMinimum: 0n,
+              recipient: deployer.account.address,
+              deadline,
+              priceLimitX64: candidate.priceLimitX64,
+              extensionData: "0x",
+            },
           ]);
           selectedSlot0 = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
           if (selectedSlot0.curPosInBin > posBefore) {
@@ -733,21 +737,25 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
 
     const weth = await viem.deployContract("MockWETH9", []);
-    const swapper = await viem.deployContract("MetricOmmPoolSwapper", [weth.address]);
-    await token0.write.approve([swapper.address, parseUnits("1000000", 18)]);
-    await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
+    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+    await token0.write.approve([simpleRouter.address, parseUnits("1000000", 18)]);
+    await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
     const maxUint128 = (1n << 128n) - 1n;
-    await swapper.write.swapExactOutput([
-      pool.address,
-      deployer.account.address,
-      swapOutToken0 ? false : true,
-      amountOutDesired,
-      maxUint128,
-      swapOutToken0 ? parseUnits("1000000", 6) : parseUnits("1000000", 18),
-      deadline,
-      "0x",
+    await simpleRouter.write.exactOutputSingle([
+      {
+        pool: pool.address,
+        tokenIn: swapOutToken0 ? token1.address : token0.address,
+        tokenOut: swapOutToken0 ? token0.address : token1.address,
+        zeroForOne: swapOutToken0 ? false : true,
+        amountOut: amountOutDesired,
+        amountInMaximum: swapOutToken0 ? parseUnits("1000000", 6) : parseUnits("1000000", 18),
+        recipient: deployer.account.address,
+        deadline,
+        priceLimitX64: maxUint128,
+        extensionData: "0x",
+      },
     ]);
 
     const slot0AfterSwap = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
