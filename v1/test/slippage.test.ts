@@ -1,26 +1,26 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { PublicClient } from "viem";
-import { buildArgsForSwapExactInput } from "../src/router/swap.js";
+import { buildExactInputSingleParams } from "../src/router/swap.js";
 
 const stubClient = {} as PublicClient;
 
 const base = {
   publicClient: stubClient,
-  swapperAddress: "0x3333333333333333333333333333333333333333" as const,
+  quoterAddress: "0x4444444444444444444444444444444444444444" as const,
   pool: "0x2222222222222222222222222222222222222222" as const,
-  recipient: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
-  zeroForOne: true,
+  tokenIn: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
+  tokenOut: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const,
+  recipient: "0xcccccccccccccccccccccccccccccccccccccccc" as const,
   amountIn: 1n,
   deadline: 1n,
-  prices: { bidPriceX64: 1n, askPriceX64: 1n },
 };
 
 describe("slippagePercent bounds (v1)", () => {
   it("rejects slippage above 100%", async () => {
     await assert.rejects(
       () =>
-        buildArgsForSwapExactInput({
+        buildExactInputSingleParams({
           ...base,
           slippagePercent: 100.01,
         }),
@@ -31,7 +31,7 @@ describe("slippagePercent bounds (v1)", () => {
   it("rejects negative slippage", async () => {
     await assert.rejects(
       () =>
-        buildArgsForSwapExactInput({
+        buildExactInputSingleParams({
           ...base,
           slippagePercent: -1,
         }),

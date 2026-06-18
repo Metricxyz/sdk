@@ -1029,6 +1029,24 @@ export const MetricOmmPoolAbi = [
   },
   {
     inputs: [],
+    name: "getSellAndBuyPrices",
+    outputs: [
+      {
+        internalType: "uint128",
+        name: "sellPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "buyPriceX64",
+        type: "uint128",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "inSwap",
     outputs: [
       {

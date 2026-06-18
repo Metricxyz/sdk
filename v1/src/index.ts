@@ -46,13 +46,16 @@ export {
 export {
   MetricOmmPoolAbi,
   MetricOmmPoolDataProviderAbi,
-  MetricOmmPoolSwapperAbi,
+  MetricOmmSwapQuoterAbi,
+  MetricOmmPoolStateViewAbi,
+  MetricOmmSimpleRouterAbi,
   MetricOmmPoolLiquidityAdderAbi,
   MetricOmmPoolFactoryAbi,
   DepositAllowlistExtensionAbi,
   SwapAllowlistExtensionAbi,
   PriceVelocityGuardExtensionAbi,
   OracleValueStopLossExtensionAbi,
+  OracleProviderAbi,
 } from "./abis/index.js";
 
 // ============ Utils ============
@@ -129,28 +132,52 @@ export {
   type BinRemovalSpec,
 } from "./pool/liquidity.js";
 
-// ============ Swapper Functions ============
+// ============ Quoter Functions ============
 export {
-  buildArgsForSwapExactInput,
-  buildArgsAndExpectedAmountsForSwapExactInput,
-  quoteExpectedAmountsForSwapExactInput,
-  buildArgsForSwapExactOutput,
-  buildArgsAndExpectedAmountsForSwapExactOutput,
-  quoteExpectedAmountsForSwapExactOutput,
-  encodeSwapExactInputCalldata,
-  encodeSwapExactOutputCalldata,
-  prepareSwapExactInputCalldata,
-  prepareSwapExactOutputCalldata,
-  prepareSwapExactInputNativeForTokensCalldata,
-  type PreparedSwapTransaction,
-  type BuildSwapExactInputParams,
-  type QuoteExpectedAmountsForSwapExactInputParams,
-  type BuildSwapExactOutputParams,
-  type QuoteExpectedAmountsForSwapExactOutputParams,
-  type SwapExactInputParams,
-  type SwapExactOutputParams,
-  type SwapExactInputArgs,
-  type SwapExactOutputArgs,
+  quoteLiveExactInSingle,
+  quoteLiveExactOutSingle,
+  quoteLiveExactIn,
+  quoteLiveExactOut,
+  quoteHypotheticalExactInputSingle,
+  quoteHypotheticalExactOutputSingle,
+  quoteHypotheticalExactInput,
+  quoteHypotheticalExactOutput,
+  resolveQuoterAddress,
+  defaultPriceLimitX64,
+  type QuoteSwapResult,
+  type QuoteLiveExactInSingleParams,
+  type QuoteLiveExactOutSingleParams,
+  type QuoteLiveExactInParams,
+  type QuoteLiveExactOutParams,
+  type QuoteHypotheticalExactInputSingleParams,
+  type QuoteHypotheticalExactOutputSingleParams,
+  type QuoteHypotheticalExactInputParams,
+  type QuoteHypotheticalExactOutputParams,
+} from "./quoter/index.js";
+
+// ============ SimpleRouter Functions ============
+export {
+  buildExactInputSingleParams,
+  buildExactOutputSingleParams,
+  buildExactInputParams,
+  buildExactOutputParams,
+  encodeExactInputSingleCalldata,
+  encodeExactOutputSingleCalldata,
+  encodeExactInputCalldata,
+  encodeExactOutputCalldata,
+  encodeZeroForOneBitMap,
+  prepareExactInputSingleCalldata,
+  prepareExactOutputSingleCalldata,
+  prepareExactInputCalldata,
+  prepareExactOutputCalldata,
+  type ExactInputSingleParams,
+  type ExactOutputSingleParams,
+  type ExactInputParams,
+  type ExactOutputParams,
+  type BuildExactInputSingleParams,
+  type BuildExactOutputSingleParams,
+  type BuildExactInputParams,
+  type BuildExactOutputParams,
 } from "./router/index.js";
 
 // ============ Factory Functions ============
@@ -162,6 +189,18 @@ export {
   type CollectedFactoryFeeTx,
   type CollectFactoryFeesResult,
 } from "./factory/index.js";
+
+// ============ Oracle Functions (pool registration + blacklist) ============
+export {
+  getRegistrationFee,
+  isPoolBlacklisted,
+  isPoolRegistered,
+  getPoolOracleStatus,
+  registerPool,
+  type PoolOracleStatus,
+  type RegisterPoolParams,
+  type RegisterPoolResult,
+} from "./oracle/index.js";
 
 // ============ Extension Functions ============
 export {

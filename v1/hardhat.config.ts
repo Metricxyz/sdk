@@ -31,17 +31,19 @@ const config: HardhatUserConfig = {
     },
     npmFilesToBuild: [
       // @metric/periphery pin: v1/package.json; core via periphery lib/metric-core (init:submodules)
-      "@metric/core/contracts/MetricOmmPool.sol",
-      "@metric/core/contracts/MetricOmmPoolFactory.sol",
-      "@metric/core/contracts/MetricOmmPoolDeployer.sol",
-      "@metric/core/contracts/libraries/LiquidityLib.sol",
-      "@metric/core/contracts/Extsload.sol",
-      "@metric/core/test/mocks/MockERC20.sol",
-      "@metric/core/test/mocks/MockOracle.sol",
-      "@metric/core/test/mocks/TestCaller.sol",
-      "@metric/core/contracts/interfaces/IPriceProvider/IPriceProvider.sol",
+      "@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol",
+      "@metric/periphery/lib/metric-core/contracts/MetricOmmPoolFactory.sol",
+      "@metric/periphery/lib/metric-core/contracts/MetricOmmPoolDeployer.sol",
+      "@metric/periphery/lib/metric-core/contracts/libraries/LiquidityLib.sol",
+      "@metric/periphery/lib/metric-core/contracts/Extsload.sol",
+      "@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol",
+      "@metric/periphery/lib/metric-core/test/mocks/MockOracle.sol",
+      "@metric/periphery/lib/metric-core/test/mocks/TestCaller.sol",
+      "@metric/periphery/lib/metric-core/contracts/interfaces/IPriceProvider/IPriceProvider.sol",
       "@metric/periphery/contracts/lens/MetricOmmPoolDataProvider.sol",
-      "@metric/periphery/contracts/MetricOmmPoolSwapper.sol",
+      "@metric/periphery/contracts/lens/MetricOmmSwapQuoter.sol",
+      "@metric/periphery/contracts/common/MetricOmmPoolStateView.sol",
+      "@metric/periphery/contracts/MetricOmmSimpleRouter.sol",
       "@metric/periphery/contracts/MetricOmmPoolLiquidityAdder.sol",
       "@metric/periphery/contracts/extensions/DepositAllowlistExtension.sol",
       "@metric/periphery/contracts/extensions/SwapAllowlistExtension.sol",
@@ -53,6 +55,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       type: "edr-simulated",
+      allowUnlimitedContractSize: true,
     },
     "ethereum-mainnet-fork": {
       type: "edr-simulated",

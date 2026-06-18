@@ -40,10 +40,10 @@ export interface ChainAddresses {
   dataProvider: Address;
   /** MetricOmmPoolStateView (raw pool storage reads). */
   stateView: Address;
-  /** MetricOmmSimpleRouter (single- and multi-hop swaps; not wrapped by SDK yet). */
+  /** MetricOmmSimpleRouter (single- and multi-hop ERC-20 swaps). */
   simpleRouter: Address;
-  /** MetricOmmPoolSwapper */
-  swapper: Address;
+  /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
+  quoter: Address;
   /** Wrapped native (WETH on Ethereum / Base) */
   wrappedNative: Address;
 
@@ -60,18 +60,18 @@ export interface ChainAddresses {
 
 /** Shared protocol deployment (Ethereum + Base). */
 const PROTOCOL_ADDRESSES = {
-  factory: "0x175851292f22621F337D76fE5445e9372fb06f9C",
-  poolDeployer: "0x1C0502457231fF2BE9af4468115B33c112A580eF",
-  liquidityAdder: "0x7A2C0A39A48c526F1Cae4d67cb0e7aE883A7B623",
-  dataProvider: "0xD0C4df72910Fd70C89CBa5f0FE0ef45638D12775",
+  factory: "0x567C7205107257650dC73a73d87b879a45F5b6F6",
+  poolDeployer: "0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4",
+  liquidityAdder: "0x323B95ABcE8b3025829980bb19d1Fd819808FCB2",
+  dataProvider: "0x5A100da447833D94b8e50AeD1916D7488D15D3fc",
   stateView: "0xb40F8B0cfBB6a01c3232c6D063B1F87d1C0bE40f",
-  simpleRouter: "0x818a948B25f32F41547a7B9175cB174d2B1e6AD7",
-  swapper: "0x3B8F17A4cb4f91805338f4b6c2f2aAf94243587e",
+  simpleRouter: "0x18f85056444452E718cD680A08f219B2347FE672",
+  quoter: "0x0000000000000000000000000000000000000000",
   extensions: {
-    depositAllowlistExtension: "0xa56f616c1C8108750b8a5BF387a34C757B8Bdc2c",
-    swapAllowlistExtension: "0x1aee646900bE4aa1D0A7Ec6c98483923E1aBf481",
-    oracleValueStopLossExtension: "0x3CB3EdCce50Bdc95e746F6e7C23fd61d439fA02a",
-    priceVelocityGuardExtension: "0x65D5C490fF5Df1861D966A671dB43a8d0c22b9C4",
+    depositAllowlistExtension: "0x088B0CCBdb17531132173a30428f66c1d5A73794",
+    swapAllowlistExtension: "0x952D844e166E6FAaF73a5e56F0fB0C54543a0f69",
+    oracleValueStopLossExtension: "0x9694959a452283d86eBF4EF4eB5651dEAa1eCec1",
+    priceVelocityGuardExtension: "0xa53E5db6c18Ce258b3090F1470c5fE7f2e0215Fc",
   },
 } as const satisfies Omit<ChainAddresses, "wrappedNative">;
 

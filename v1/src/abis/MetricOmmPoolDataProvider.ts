@@ -65,32 +65,6 @@ export const MetricOmmPoolDataProviderAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "target",
-        type: "address",
-      },
-      {
-        internalType: "bytes4",
-        name: "selector",
-        type: "bytes4",
-      },
-      {
-        internalType: "bytes",
-        name: "reason",
-        type: "bytes",
-      },
-      {
-        internalType: "bytes",
-        name: "additionalInfo",
-        type: "bytes",
-      },
-    ],
-    name: "WrappedError",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
         name: "pool",
         type: "address",
       },
@@ -211,25 +185,6 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "address",
       },
     ],
-    name: "currentPriceX64",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "currentPriceX64Value",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
     name: "distanceFromProvidedPriceX64",
     outputs: [
       {
@@ -239,30 +194,6 @@ export const MetricOmmPoolDataProviderAbi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "getBestBidAndAsk",
-    outputs: [
-      {
-        internalType: "uint128",
-        name: "bestBidX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bestAskX64",
-        type: "uint128",
-      },
-    ],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -450,114 +381,6 @@ export const MetricOmmPoolDataProviderAbi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "int128",
-        name: "amountSpecified",
-        type: "int128",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bidPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "askPriceX64",
-        type: "uint128",
-      },
-    ],
-    name: "quoteSwap",
-    outputs: [
-      {
-        internalType: "int128",
-        name: "amount0Delta",
-        type: "int128",
-      },
-      {
-        internalType: "int128",
-        name: "amount1Delta",
-        type: "int128",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "recipient",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "int128",
-        name: "amountSpecified",
-        type: "int128",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bidPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "askPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "bytes",
-        name: "extensionData",
-        type: "bytes",
-      },
-    ],
-    name: "quoteSwap",
-    outputs: [
-      {
-        internalType: "int128",
-        name: "amount0Delta",
-        type: "int128",
-      },
-      {
-        internalType: "int128",
-        name: "amount1Delta",
-        type: "int128",
-      },
-    ],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {

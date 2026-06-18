@@ -19,13 +19,21 @@ export const PriceProviderAbi = [
   },
   {
     inputs: [],
-    name: "getTokens",
+    name: "token0",
     outputs: [
       {
         internalType: "address",
         name: "baseToken",
         type: "address",
       },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "token1",
+    outputs: [
       {
         internalType: "address",
         name: "quoteToken",

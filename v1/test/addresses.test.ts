@@ -24,7 +24,8 @@ describe("v1 addresses", () => {
     const base = ADDRESSES[ChainId.BASE];
 
     assert.equal(eth.factory, base.factory);
-    assert.equal(eth.swapper, base.swapper);
+    assert.equal(eth.simpleRouter, base.simpleRouter);
+    assert.equal(eth.quoter, base.quoter);
     assert.equal(
       eth.extensions.depositAllowlistExtension,
       base.extensions.depositAllowlistExtension,
@@ -37,7 +38,7 @@ describe("v1 addresses", () => {
     const eth = getAddressesOrThrow(ChainId.ETHEREUM);
     assert.equal(eth.factory, ADDRESSES[ChainId.ETHEREUM].factory);
     assert.equal(eth.dataProvider, ADDRESSES[ChainId.ETHEREUM].dataProvider);
-    assert.equal(eth.swapper, ADDRESSES[ChainId.ETHEREUM].swapper);
+    assert.equal(eth.simpleRouter, ADDRESSES[ChainId.ETHEREUM].simpleRouter);
     assert.equal(isChainDeployed(ChainId.ETHEREUM), true);
 
     const base = getAddressesOrThrow(ChainId.BASE);

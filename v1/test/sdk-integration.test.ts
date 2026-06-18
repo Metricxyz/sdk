@@ -16,10 +16,14 @@ import {
   encodeAddLiquidityCalldata,
   encodeRemoveLiquidityCalldataFromDeltas,
 } from "./shared/liquidityTx.js";
-import { createPoolViaFactory, deployMetricTestEnv } from "./shared/testEnv.js";
+import {
+  createPoolViaFactory,
+  deployMetricTestEnv,
+  buildExactInputSingleTestParams,
+} from "./shared/testEnv.js";
 
-import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
-import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("SDK Integration Tests", async function () {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -100,7 +104,7 @@ describe("SDK Integration Tests", async function () {
       dataProvider,
       liquidityAdder,
       factory,
-      swapper,
+      simpleRouter,
     } = env;
 
     const poolAddress = await createPoolViaFactory(env, deployer, {
@@ -122,15 +126,16 @@ describe("SDK Integration Tests", async function () {
     await token1.write.mint([deployer.account.address, max1]);
     await token0.write.approve([liquidityAdder.address, max0]);
     await token1.write.approve([liquidityAdder.address, max1]);
-    await token0.write.approve([swapper.address, max0]);
+    await token0.write.approve([simpleRouter.address, max0]);
 
     return {
+      env,
       pool,
       poolAddress,
       factory,
       dataProvider,
       liquidityAdder,
-      swapper,
+      simpleRouter,
       token0,
       token1,
       priceProvider,
@@ -820,7 +825,7 @@ describe("SDK Integration Tests", async function () {
 
   describe("Swaps", () => {
     it("should execute exact input swap via SDK calldata", async () => {
-      const { pool, swapper, liquidityAdder, token1, publicClient } =
+      const { env, pool, simpleRouter, liquidityAdder, token1, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       // Add liquidity first - need consecutive bins with sufficient liquidity
@@ -843,23 +848,22 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
 
-      await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
+      await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 
-      // Execute swap via SDK calldata
-      const amountIn = parseUnits("1", 6); // 1 token1 (6 decimals)
+      const amountIn = parseUnits("1", 6);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
 
-      const swapData = sdk.encodeSwapExactInputCalldata({
-        pool: pool.address,
-        recipient: deployer.account.address,
-        zeroForOne: false,
-        amountIn,
-        priceLimitX64: 0xffffffffffffffffffffffffffffffffn,
-        minAmountOut: 0n,
-        deadline,
-      });
+      const swapData = sdk.encodeExactInputSingleCalldata(
+        buildExactInputSingleTestParams(env, pool.address, {
+          recipient: deployer.account.address,
+          zeroForOne: false,
+          amountIn,
+          deadline,
+          priceLimitX64: 0xffffffffffffffffffffffffffffffffn,
+        }),
+      );
       const hash = await deployer.sendTransaction({
-        to: swapper.address,
+        to: simpleRouter.address,
         data: swapData,
       });
 
@@ -868,7 +872,7 @@ describe("SDK Integration Tests", async function () {
     });
 
     it("should verify pool state changed after swap via SDK calldata", async () => {
-      const { pool, swapper, dataProvider, liquidityAdder, token1, publicClient } =
+      const { env, pool, simpleRouter, dataProvider, liquidityAdder, token1, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       // Add liquidity - need consecutive bins with sufficient liquidity
@@ -889,24 +893,22 @@ describe("SDK Integration Tests", async function () {
       });
       await publicClient.waitForTransactionReceipt({ hash: addHash });
 
-      await token1.write.approve([swapper.address, parseUnits("1000000", 6)]);
+      await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 
-      // Read state before
       const slot0Before = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
 
-      // Execute swap - use much larger amount to ensure position moves
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
-      const swapData = sdk.encodeSwapExactInputCalldata({
-        pool: pool.address,
-        recipient: deployer.account.address,
-        zeroForOne: false,
-        amountIn: parseUnits("100", 6),
-        priceLimitX64: 0xffffffffffffffffffffffffffffffffn,
-        minAmountOut: 0n,
-        deadline,
-      });
+      const swapData = sdk.encodeExactInputSingleCalldata(
+        buildExactInputSingleTestParams(env, pool.address, {
+          recipient: deployer.account.address,
+          zeroForOne: false,
+          amountIn: parseUnits("100", 6),
+          deadline,
+          priceLimitX64: 0xffffffffffffffffffffffffffffffffn,
+        }),
+      );
       await deployer.sendTransaction({
-        to: swapper.address,
+        to: simpleRouter.address,
         data: swapData,
       });
 

@@ -11,10 +11,9 @@
 // @ts-nocheck - viem version mismatch between hardhat and sdk
 
 import { network } from "hardhat";
-import { formatUnits, parseUnits, erc20Abi, zeroAddress } from "viem";
-import * as sdk from "../index.js";
-import { PriceProviderUiAbi } from "../src/abis/PriceProviderUi.js";
-import { POOL_ABI, SWAPPER_ABI } from "../src/constants.js";
+import { formatUnits, parseUnits, erc20Abi } from "viem";
+import * as sdk from "../src/index.js";
+import { POOL_ABI, QUOTER_ABI } from "../src/constants.js";
 
 const POOL_ADDRESS = "0x9C9fd348505A7202Fd819D8cb5003248d920d279" as const;
 
@@ -30,7 +29,10 @@ const publicClient = await viem.getPublicClient();
 const chainId = await publicClient.getChainId();
 const addresses = sdk.getAddressesOrThrow(chainId);
 
-// v1: token pair and oracle come from pool `getImmutables()`.
+if (addresses.quoter === "0x0000000000000000000000000000000000000000") {
+  throw new Error("Configure addresses.quoter in src/addresses.ts before running get-quotes");
+}
+
 const imm = await publicClient.readContract({
   address: POOL_ADDRESS,
   abi: POOL_ABI,
@@ -40,8 +42,7 @@ const token0 = imm.token0 as `0x${string}`;
 const token1 = imm.token1 as `0x${string}`;
 const priceProviderAddress = imm.immutablePriceProvider as `0x${string}`;
 
-// Round 2: token metadata + bid/ask prices (depend on round 1)
-const [symbol0, decimals0, symbol1, decimals1, [bidPriceX64, askPriceX64]] =
+const [symbol0, decimals0, symbol1, decimals1, [sellPriceX64, buyPriceX64]] =
   await publicClient.multicall({
     allowFailure: false,
     contracts: [
@@ -50,9 +51,9 @@ const [symbol0, decimals0, symbol1, decimals1, [bidPriceX64, askPriceX64]] =
       { address: token1, abi: erc20Abi, functionName: "symbol" },
       { address: token1, abi: erc20Abi, functionName: "decimals" },
       {
-        address: priceProviderAddress,
-        abi: PriceProviderUiAbi,
-        functionName: "getBidAndAskPriceUi",
+        address: POOL_ADDRESS,
+        abi: POOL_ABI,
+        functionName: "getSellAndBuyPrices",
       },
     ],
   });
@@ -60,11 +61,11 @@ const [symbol0, decimals0, symbol1, decimals1, [bidPriceX64, askPriceX64]] =
 const one0 = parseUnits("1000", decimals0);
 const one1 = parseUnits("1000", decimals1);
 
-const cases = [
+const exactInCases = [
   {
     label: `exact-in  ${symbol0} -> ${symbol1}`,
     zeroForOne: true,
-    amountSpecified: one0,
+    amountIn: one0,
     inDecimals: decimals0,
     outDecimals: decimals1,
     inSymbol: symbol0,
@@ -73,16 +74,19 @@ const cases = [
   {
     label: `exact-in  ${symbol1} -> ${symbol0}`,
     zeroForOne: false,
-    amountSpecified: one1,
+    amountIn: one1,
     inDecimals: decimals1,
     outDecimals: decimals0,
     inSymbol: symbol1,
     outSymbol: symbol0,
   },
+];
+
+const exactOutCases = [
   {
     label: `exact-out ${symbol0} -> ${symbol1}`,
     zeroForOne: true,
-    amountSpecified: -one1,
+    amountOut: one1,
     inDecimals: decimals0,
     outDecimals: decimals1,
     inSymbol: symbol0,
@@ -91,7 +95,7 @@ const cases = [
   {
     label: `exact-out ${symbol1} -> ${symbol0}`,
     zeroForOne: false,
-    amountSpecified: -one0,
+    amountOut: one0,
     inDecimals: decimals1,
     outDecimals: decimals0,
     inSymbol: symbol1,
@@ -99,24 +103,36 @@ const cases = [
   },
 ];
 
-// Round 3: all 4 quoteSwap calls (depend on round 2)
 const quoteResults = await publicClient.multicall({
   allowFailure: true,
-  contracts: cases.map((c) => ({
-    address: addresses.swapper,
-    abi: SWAPPER_ABI,
-    functionName: "quoteSwap",
-    args: [
-      POOL_ADDRESS,
-      zeroAddress,
-      c.zeroForOne,
-      c.amountSpecified,
-      c.zeroForOne ? 0n : sdk.MAX_UINT128,
-      bidPriceX64,
-      askPriceX64,
-      "0x",
-    ],
-  })),
+  contracts: [
+    ...exactInCases.map((c) => ({
+      address: addresses.quoter,
+      abi: QUOTER_ABI,
+      functionName: "quoteLiveExactInSingle" as const,
+      args: [
+        POOL_ADDRESS,
+        "0x0000000000000000000000000000000000000000",
+        c.zeroForOne,
+        c.amountIn,
+        c.zeroForOne ? 0n : sdk.MAX_UINT128,
+        "0x",
+      ],
+    })),
+    ...exactOutCases.map((c) => ({
+      address: addresses.quoter,
+      abi: QUOTER_ABI,
+      functionName: "quoteLiveExactOutSingle" as const,
+      args: [
+        POOL_ADDRESS,
+        "0x0000000000000000000000000000000000000000",
+        c.zeroForOne,
+        c.amountOut,
+        c.zeroForOne ? 0n : sdk.MAX_UINT128,
+        "0x",
+      ],
+    })),
+  ],
 });
 
 console.log(`\nPool:       ${POOL_ADDRESS}`);
@@ -124,36 +140,23 @@ console.log(`Token0:     ${symbol0} (${token0})`);
 console.log(`Token1:     ${symbol1} (${token1})`);
 console.log(`Provider:   ${priceProviderAddress}`);
 console.log(
-  `Bid price:  ${x64ToHumanPrice(bidPriceX64, decimals0, decimals1)} ${symbol1}/${symbol0}`,
+  `Sell price: ${x64ToHumanPrice(sellPriceX64, decimals0, decimals1)} ${symbol1}/${symbol0}`,
 );
 console.log(
-  `Ask price:  ${x64ToHumanPrice(askPriceX64, decimals0, decimals1)} ${symbol1}/${symbol0}\n`,
+  `Buy price:  ${x64ToHumanPrice(buyPriceX64, decimals0, decimals1)} ${symbol1}/${symbol0}\n`,
 );
 console.log("=".repeat(70));
 
-for (let i = 0; i < cases.length; i++) {
-  const c = cases[i];
+const allCases = [...exactInCases, ...exactOutCases];
+for (let i = 0; i < allCases.length; i++) {
+  const c = allCases[i];
   const result = quoteResults[i];
 
   console.log(c.label);
   if (result.status === "failure") {
     console.log(`  ERROR: ${result.error?.message ?? "unknown error"}`);
   } else {
-    const [amount0Delta, amount1Delta] = result.result as [bigint, bigint];
-    const amountIn = c.zeroForOne
-      ? amount0Delta < 0n
-        ? -amount0Delta
-        : amount0Delta
-      : amount1Delta < 0n
-        ? -amount1Delta
-        : amount1Delta;
-    const amountOut = c.zeroForOne
-      ? amount1Delta < 0n
-        ? -amount1Delta
-        : amount1Delta
-      : amount0Delta < 0n
-        ? -amount0Delta
-        : amount0Delta;
+    const [amountIn, amountOut] = result.result as [bigint, bigint];
     console.log(`  pay:     ${formatUnits(amountIn, c.inDecimals)}  ${c.inSymbol}`);
     console.log(`  receive: ${formatUnits(amountOut, c.outDecimals)} ${c.outSymbol}`);
   }

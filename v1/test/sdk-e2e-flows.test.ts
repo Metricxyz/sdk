@@ -9,11 +9,13 @@ import { network } from "hardhat";
 import { encodeFunctionData, maxUint128, parseUnits } from "viem";
 import { MetricOmmPoolFactoryAbi } from "../src/abis/MetricOmmPoolFactory.js";
 import { MetricOmmPoolLiquidityAdderAbi } from "../src/abis/MetricOmmPoolLiquidityAdder.js";
-import { MetricOmmPoolSwapperAbi } from "../src/abis/MetricOmmPoolSwapper.js";
+import { MetricOmmSimpleRouterAbi } from "../src/abis/MetricOmmSimpleRouter.js";
 import * as sdk from "../src/index.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 import {
   approveTokensForLiquidityAdder,
+  approveTokensForSimpleRouter,
+  buildExactInputSingleTestParams,
   createPoolViaFactory,
   deployMetricTestEnv,
 } from "./shared/testEnv.js";
@@ -63,8 +65,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
     const max0 = parseUnits("1000000", 18);
     const max1 = parseUnits("1000000", 6);
     await approveTokensForLiquidityAdder(env, deployer, max0, max1);
-    await env.token0.write.approve([env.swapper.address, max0]);
-    await env.token1.write.approve([env.swapper.address, max1]);
+    await approveTokensForSimpleRouter(env, deployer, max0, max1);
 
     const pool = await createPoolViaFactory(env, deployer);
 
@@ -115,34 +116,36 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
 
     const slot0Before = await sdk.getSlot0(env.publicClient, env.dataProvider.address, pool);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
-    const swapParams: sdk.SwapExactInputParams = {
-      pool,
+    const swapParams = buildExactInputSingleTestParams(env, pool, {
       recipient: deployer.account.address,
       zeroForOne: false,
       amountIn: parseUnits("10", 6),
       priceLimitX64: maxUint128,
-      minAmountOut: 0n,
       deadline,
-    };
-    const swapData = sdk.encodeSwapExactInputCalldata(swapParams);
+    });
+    const swapData = sdk.encodeExactInputSingleCalldata(swapParams);
     const swapDirect = encodeFunctionData({
-      abi: MetricOmmPoolSwapperAbi,
-      functionName: "swapExactInput",
+      abi: MetricOmmSimpleRouterAbi,
+      functionName: "exactInputSingle",
       args: [
-        swapParams.pool,
-        swapParams.recipient,
-        swapParams.zeroForOne,
-        swapParams.amountIn,
-        swapParams.priceLimitX64,
-        swapParams.minAmountOut,
-        swapParams.deadline,
-        "0x",
+        {
+          pool: swapParams.pool,
+          tokenIn: swapParams.tokenIn,
+          tokenOut: swapParams.tokenOut,
+          zeroForOne: swapParams.zeroForOne,
+          amountIn: swapParams.amountIn,
+          amountOutMinimum: swapParams.amountOutMinimum,
+          recipient: swapParams.recipient,
+          deadline: swapParams.deadline,
+          priceLimitX64: swapParams.priceLimitX64,
+          extensionData: "0x",
+        },
       ],
     });
     assert.equal(swapData, swapDirect);
 
     const swapHash = await deployer.sendTransaction({
-      to: env.swapper.address,
+      to: env.simpleRouter.address,
       data: swapData,
     });
     assert.equal(
