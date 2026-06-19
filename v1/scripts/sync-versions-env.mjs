@@ -1,4 +1,4 @@
-// Sync v1 package.json @metric/* git pins from dev_metric-deploy/versions.env.
+// Sync v1 metricPeripheryRef from dev_metric-deploy/versions.env.
 // Usage: node scripts/sync-versions-env.mjs [--check]
 
 import { promises as fs } from "node:fs";
@@ -23,46 +23,52 @@ function parseVersionsEnv(content) {
   return refs;
 }
 
-function expectedPins(refs) {
-  const periphery = refs.METRIC_PERIPHERY_REF;
-  if (!periphery) {
-    throw new Error("versions.env must define METRIC_PERIPHERY_REF");
-  }
-  return {
-    "@metric/periphery": `github:Metric-OMM/metric-periphery#${periphery}`,
-  };
-}
-
 async function main() {
   const envRaw = await fs.readFile(versionsEnvPath, "utf8");
-  const pins = expectedPins(parseVersionsEnv(envRaw));
-  const pkgRaw = await fs.readFile(packageJsonPath, "utf8");
-  const pkg = JSON.parse(pkgRaw);
-  const devDeps = pkg.devDependencies ?? {};
-
-  let changed = false;
-  for (const [name, expected] of Object.entries(pins)) {
-    if (devDeps[name] !== expected) {
-      if (checkOnly) {
-        console.error(`Mismatch: ${name}`);
-        console.error(`  expected: ${expected}`);
-        console.error(`  actual:   ${devDeps[name] ?? "(missing)"}`);
-        process.exit(1);
-      }
-      devDeps[name] = expected;
-      changed = true;
-      console.log(`Updated ${name} -> ${expected}`);
-    }
+  const refs = parseVersionsEnv(envRaw);
+  const expected = refs.METRIC_PERIPHERY_REF;
+  if (!expected) {
+    throw new Error("versions.env must define METRIC_PERIPHERY_REF");
   }
 
-  if (devDeps["@metric/core"]) {
+  const pkgRaw = await fs.readFile(packageJsonPath, "utf8");
+  const pkg = JSON.parse(pkgRaw);
+
+  if (pkg.metricPeripheryRef !== expected) {
+    if (checkOnly) {
+      console.error("Mismatch: metricPeripheryRef");
+      console.error(`  expected: ${expected}`);
+      console.error(`  actual:   ${pkg.metricPeripheryRef ?? "(missing)"}`);
+      process.exit(1);
+    }
+    pkg.metricPeripheryRef = expected;
+    await fs.writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+    console.log(`Updated metricPeripheryRef -> ${expected}`);
+    return;
+  }
+
+  if (pkg.devDependencies?.["@metric/core"]) {
     if (checkOnly) {
       console.error("Unexpected direct @metric/core pin (core comes via @metric/periphery)");
       process.exit(1);
     }
-    delete devDeps["@metric/core"];
-    changed = true;
+    delete pkg.devDependencies["@metric/core"];
+    await fs.writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
     console.log("Removed @metric/core (core comes via @metric/periphery)");
+    return;
+  }
+
+  if (pkg.devDependencies?.["@metric/periphery"]) {
+    if (checkOnly) {
+      console.error(
+        "Remove @metric/periphery from devDependencies; use metricPeripheryRef + init:submodules",
+      );
+      process.exit(1);
+    }
+    delete pkg.devDependencies["@metric/periphery"];
+    await fs.writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+    console.log("Removed @metric/periphery devDependency (installed via init:submodules)");
+    return;
   }
 
   if (checkOnly) {
@@ -70,13 +76,7 @@ async function main() {
     return;
   }
 
-  if (changed) {
-    pkg.devDependencies = devDeps;
-    await fs.writeFile(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
-    console.log("Updated package.json");
-  } else {
-    console.log("No changes needed");
-  }
+  console.log("No changes needed");
 }
 
 main().catch((err) => {

@@ -1,6 +1,6 @@
 /**
- * Prepare @metric/periphery under this package's node_modules.
- * Core is not a direct dependency; it is provided via periphery's lib/metric-core submodule.
+ * Install pinned @metric/periphery (git clone, not npm git dep) and init its submodules.
+ * Core is provided via periphery's lib/metric-core submodule.
  */
 import { execSync } from "node:child_process";
 import {
@@ -18,7 +18,53 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const metricDir = resolve(packageRoot, "node_modules/@metric");
+const peripheryDir = resolve(metricDir, "periphery");
 const ozMarker = "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+const PERIPHERY_REPO = "https://github.com/Metric-OMM/metric-periphery.git";
+
+function readPeripheryRef() {
+  const pkg = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
+  const ref = pkg.metricPeripheryRef;
+  if (typeof ref !== "string" || ref.length < 7) {
+    throw new Error("package.json must define metricPeripheryRef (git commit SHA)");
+  }
+  return ref;
+}
+
+function git(cwd, args) {
+  execSync(["git", ...args].join(" "), { cwd, stdio: "inherit" });
+}
+
+function peripheryAtRef(ref) {
+  if (!existsSync(resolve(peripheryDir, ".git"))) return false;
+  try {
+    const head = execSync("git rev-parse HEAD", { cwd: peripheryDir, encoding: "utf8" }).trim();
+    return head.startsWith(ref) || ref.startsWith(head);
+  } catch {
+    return false;
+  }
+}
+
+function ensurePeripheryCheckout(ref) {
+  mkdirSync(metricDir, { recursive: true });
+
+  if (peripheryAtRef(ref)) {
+    console.log(`@metric/periphery ready at ${ref}: ${peripheryDir}`);
+    return;
+  }
+
+  if (existsSync(peripheryDir)) {
+    console.log(`Updating @metric/periphery to ${ref}`);
+    git(peripheryDir, ["fetch", "origin", ref]);
+    git(peripheryDir, ["checkout", "--force", ref]);
+    return;
+  }
+
+  console.log(`Cloning @metric/periphery at ${ref}`);
+  git(metricDir, ["clone", PERIPHERY_REPO, "periphery"]);
+  git(peripheryDir, ["fetch", "origin", ref]);
+  git(peripheryDir, ["checkout", "--force", ref]);
+}
 
 function ozReady(packageDir) {
   const file = resolve(packageDir, ozMarker);
@@ -31,10 +77,10 @@ function ensureSubmodules(packageDir, label) {
     return;
   }
   console.log(`init submodules: ${packageDir}`);
-  execSync("git submodule update --init --recursive", { cwd: packageDir, stdio: "inherit" });
+  git(packageDir, ["submodule", "update", "--init", "--recursive"]);
 }
 
-function fixPeripheryPackageName(peripheryDir) {
+function fixPeripheryPackageName() {
   const pkgPath = resolve(peripheryDir, "package.json");
   if (!existsSync(pkgPath)) return;
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
@@ -72,14 +118,9 @@ function linkCoreFromPeriphery(coreLink, coreDir) {
   console.log(`linked ${coreLink} -> ${coreDir}`);
 }
 
-const peripheryDir = resolve(metricDir, "periphery");
-if (!existsSync(peripheryDir)) {
-  throw new Error(
-    `Could not find @metric/periphery in ${metricDir}. Run "npm ci" in ${packageRoot} first.`,
-  );
-}
-
-fixPeripheryPackageName(peripheryDir);
+const ref = readPeripheryRef();
+ensurePeripheryCheckout(ref);
+fixPeripheryPackageName();
 ensureSubmodules(peripheryDir, "@metric/periphery");
 
 const coreDir = resolve(peripheryDir, "lib/metric-core");

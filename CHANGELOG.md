@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-18
+
+> **NOT backward compatible with `0.3.0`.** Swaps and quotes move from **MetricOmmPoolSwapper** to **MetricOmmSimpleRouter** + **MetricOmmSwapQuoter**. Bundled Ethereum and Base deployment addresses changed.
+>
+> Pinned upstream: **metric-periphery** `fc7c947507ec465af950add2263507db2f3ff904` (core via periphery `lib/metric-core`).
+>
+> Packages: **@nradko/metric-omm-sdk-v1** `0.4.0`, **@nradko/metric-omm-sdk** `0.4.0`. **@nradko/metric-omm-sdk-v0** stays at `0.1.1`.
+
+### Why this breaks compatibility with `0.3.0`
+
+- **Swap entrypoint** — `addresses.swapper` removed; use `addresses.simpleRouter` with `exactInputSingle` / `exactOutputSingle` (single hop) or `exactInput` / `exactOutput` (multihop).
+- **Quotes** — `quoteSwap` and Swapper-aligned builders removed; use **MetricOmmSwapQuoter** via `quoteLiveExactInSingle`, `quoteLiveExactOutSingle`, and multihop `quoteLiveExactIn` / `quoteLiveExactOut` (plus hypothetical variants).
+- **ABIs** — `MetricOmmPoolSwapperAbi` and `PriceProviderUiAbi` removed; added `MetricOmmSimpleRouterAbi`, `MetricOmmSwapQuoterAbi`, `MetricOmmPoolStateViewAbi`, `OracleProviderAbi`.
+- **Deployment addresses** — new CREATE2 bundle on Ethereum mainnet and Base (factory, deployer, liquidity adder, data provider, simple router, extensions).
+
+### Added — SDK (v1)
+
+- **Quoter module** — live and hypothetical single-hop and multihop quotes via `simulateContract`.
+- **SimpleRouter module** — `buildExactInputSingleParams`, `buildExactInputParams`, calldata encoders, and slippage helpers for single- and multi-hop swaps.
+- **Swap path helpers** — `resolveSwapPath` derives `zeroForOneBitMap` from pool immutables and token path.
+- **Oracle registry** — `getPoolOracleStatus`, `registerPool`, and related reads for providers-oracle pool registration.
+- **Tests** — two-hop path quote/swap parity, oracle registry unit and e2e tests.
+
+### Breaking — SDK (v1)
+
+- **`ChainAddresses`** — `swapper` replaced by `simpleRouter` and `quoter`.
+- **Router exports** — removed Swapper builders (`buildArgsAndExpectedAmountsForSwap*`, `encodeSwapExact*`, `quoteSwap`, etc.).
+- **Bundled addresses** — protocol deployment table updated for Ethereum and Base.
+
+### Changed — SDK (v1)
+
+- Synced ABIs from pinned **metric-periphery** `fc7c947507ec465af950add2263507db2f3ff904`.
+- Hardhat `npmFilesToBuild` compiles SimpleRouter, SwapQuoter, and PoolStateView from periphery.
+- Test harness deploys SimpleRouter and SwapQuoter instead of PoolSwapper.
+
 ## [0.3.0] - 2026-06-16
 
 > **NOT backward compatible with `0.2.0`.** This release tracks the **extensions** rename in **metric-core** and **metric-periphery** (successor to the hooks-era `0.2.0` pin). Field names, factory pool-creation params, and immutables layout changed again.

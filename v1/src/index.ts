@@ -1,5 +1,5 @@
 /**
- * MetricAMM SDK (v1 contracts: Swapper, LiquidityAdder, add/removeLiquidity).
+ * MetricAMM SDK (v1 contracts: SimpleRouter, SwapQuoter, LiquidityAdder, add/removeLiquidity).
  *
  * @packageDocumentation
  */

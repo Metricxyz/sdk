@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
       },
     },
     npmFilesToBuild: [
-      // @metric/periphery pin: v1/package.json; core via periphery lib/metric-core (init:submodules)
+      // @metric/periphery pin: package.json metricPeripheryRef; cloned by init:submodules (maintainers only)
       "@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol",
       "@metric/periphery/lib/metric-core/contracts/MetricOmmPoolFactory.sol",
       "@metric/periphery/lib/metric-core/contracts/MetricOmmPoolDeployer.sol",
@@ -42,7 +42,6 @@ const config: HardhatUserConfig = {
       "@metric/periphery/lib/metric-core/contracts/interfaces/IPriceProvider/IPriceProvider.sol",
       "@metric/periphery/contracts/lens/MetricOmmPoolDataProvider.sol",
       "@metric/periphery/contracts/lens/MetricOmmSwapQuoter.sol",
-      "@metric/periphery/contracts/common/MetricOmmPoolStateView.sol",
       "@metric/periphery/contracts/MetricOmmSimpleRouter.sol",
       "@metric/periphery/contracts/MetricOmmPoolLiquidityAdder.sol",
       "@metric/periphery/contracts/extensions/DepositAllowlistExtension.sol",
