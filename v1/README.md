@@ -1,8 +1,8 @@
 # @nradko/metric-omm-sdk-v1
 
-TypeScript SDK for **v1** Metric OMM contracts: **Swapper**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
+TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `cc8fef9781fba405cfd1945fe6bf49a00da132bb` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `dccbda7970da36d55a86108e3dbcce1e794c9634` (core via periphery `lib/metric-core`).
 
 ## Installation
 
@@ -22,21 +22,21 @@ Protocol contracts use the **same addresses** on Ethereum mainnet and Base (CREA
 
 | Contract | Address |
 | -------- | ------- |
-| MetricOmmPoolFactory | `0x175851292f22621F337D76fE5445e9372fb06f9C` |
-| MetricOmmPoolDeployer | `0x1C0502457231fF2BE9af4468115B33c112A580eF` |
-| MetricOmmPoolLiquidityAdder | `0x7A2C0A39A48c526F1Cae4d67cb0e7aE883A7B623` |
-| MetricOmmPoolDataProvider | `0xD0C4df72910Fd70C89CBa5f0FE0ef45638D12775` |
-| MetricOmmPoolStateView | `0xb40F8B0cfBB6a01c3232c6D063B1F87d1C0bE40f` |
-| MetricOmmSimpleRouter | `0x818a948B25f32F41547a7B9175cB174d2B1e6AD7` |
-| MetricOmmPoolSwapper | `0x3B8F17A4cb4f91805338f4b6c2f2aAf94243587e` |
-| DepositAllowlistExtension | `0xa56f616c1C8108750b8a5BF387a34C757B8Bdc2c` |
-| SwapAllowlistExtension | `0x1aee646900bE4aa1D0A7Ec6c98483923E1aBf481` |
-| OracleValueStopLossExtension | `0x3CB3EdCce50Bdc95e746F6e7C23fd61d439fA02a` |
-| PriceVelocityGuardExtension | `0x65D5C490fF5Df1861D966A671dB43a8d0c22b9C4` |
+| MetricOmmPoolFactory | `0x567C7205107257650dC73a73d87b879a45F5b6F6` |
+| MetricOmmPoolDeployer | `0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4` |
+| MetricOmmPoolLiquidityAdder | `0x323B95ABcE8b3025829980bb19d1Fd819808FCB2` |
+| MetricOmmPoolDataProvider | `0x5A100da447833D94b8e50AeD1916D7488D15D3fc` |
+| MetricOmmSimpleRouter | `0x18f85056444452E718cD680A08f219B2347FE672` |
+| DepositAllowlistExtension | `0x088B0CCBdb17531132173a30428f66c1d5A73794` |
+| SwapAllowlistExtension | `0x952D844e166E6FAaF73a5e56F0fB0C54543a0f69` |
+| OracleValueStopLossExtension | `0x9694959a452283d86eBF4EF4eB5651dEAa1eCec1` |
+| PriceVelocityGuardExtension | `0xa53E5db6c18Ce258b3090F1470c5fE7f2e0215Fc` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | WETH (Base) | `0x4200000000000000000000000000000000000006` |
 
-`MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …) plus swap depth and revert-based quotes. Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param).
+`addresses.quoter` is a zero placeholder until a public SwapQuoter deployment is wired in this SDK release. Pass `quoterAddress` to quote helpers or set the bundled address when available.
+
+`MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param).
 
 ```typescript
 import { getAddressesOrThrow, ChainId, isChainSupported } from "@nradko/metric-omm-sdk-v1";
@@ -46,125 +46,120 @@ const a = getAddressesOrThrow(ChainId.ETHEREUM);
 // isChainSupported(ChainId.ARBITRUM) === false — use DeployedChainId / getSupportedChainIds()
 ```
 
-ChainId lists future chain IDs for typing; **Ethereum mainnet and Base** have entries in ADDRESSES for this release. Use getSupportedChainIds(), isChainSupported(), or DeployedChainId when you need compile-time guarantees.
+ChainId lists future chain IDs for typing; **Ethereum mainnet and Base** have entries in ADDRESSES for this release.
 
-## Swaps (Swapper)
+## Swaps (SimpleRouter)
+
+### Single hop
 
 ```typescript
 import {
-  buildArgsAndExpectedAmountsForSwapExactInput,
+  buildExactInputSingleParams,
   getAddressesOrThrow,
   ChainId,
 } from "@nradko/metric-omm-sdk-v1";
-import { MetricOmmPoolSwapperAbi } from "@nradko/metric-omm-sdk-v1/abis";
+import { MetricOmmSimpleRouterAbi } from "@nradko/metric-omm-sdk-v1/abis";
 
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 
-const { args, expectedInput, expectedOutput } =
-  await buildArgsAndExpectedAmountsForSwapExactInput({
-    publicClient,
-    factoryAddress: addresses.factory,
-    swapperAddress: addresses.swapper,
-    pool: poolAddress,
-    recipient: account,
-    zeroForOne: true,
-    amountIn: 1_000_000_000_000_000_000n,
-    slippagePercent: 0.5,
-    deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
-    // extensionData: "0x", // optional; defaults to empty
-  });
+const params = await buildExactInputSingleParams({
+  publicClient,
+  pool: poolAddress,
+  tokenIn,
+  tokenOut,
+  recipient: account,
+  amountIn: 1_000_000_000_000_000_000n,
+  slippagePercent: 0.5,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
+  quoterAddress, // required until addresses.quoter is set
+});
 
 await walletClient.writeContract({
-  address: addresses.swapper,
-  abi: MetricOmmPoolSwapperAbi,
-  functionName: "swapExactInput",
-  args,
+  address: addresses.simpleRouter,
+  abi: MetricOmmSimpleRouterAbi,
+  functionName: "exactInputSingle",
+  args: [params],
   account,
 });
 ```
 
-Quote without building tx args: `quoteSwap` (read-only pool quote), `quoteExpectedAmountsForSwapExactInput` / `quoteExpectedAmountsForSwapExactOutput` (Swapper-aligned estimates for slippage math).
+### Multihop
+
+```typescript
+import { buildExactInputParams, encodeExactInputCalldata } from "@nradko/metric-omm-sdk-v1";
+
+const pathParams = await buildExactInputParams({
+  publicClient,
+  tokenIn,
+  tokenOut,
+  pools: [poolA, poolB],
+  recipient: account,
+  amountIn,
+  slippagePercent: 0.5,
+  deadline,
+  quoterAddress,
+});
+
+await walletClient.sendTransaction({
+  to: addresses.simpleRouter,
+  data: encodeExactInputCalldata(pathParams),
+  account,
+});
+```
+
+Approve the **SimpleRouter** for input tokens (ERC-20 path). Swap allowlist extensions gate the **router contract address**, not the end-user EOA.
+
+## Quotes (SwapQuoter)
+
+Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` when `addresses.quoter` is unset.
+
+```typescript
+import { quoteLiveExactInSingle, quoteLiveExactIn } from "@nradko/metric-omm-sdk-v1";
+
+const single = await quoteLiveExactInSingle({
+  publicClient,
+  pool: poolAddress,
+  tokenIn,
+  tokenOut,
+  recipient: account,
+  amountIn,
+  quoterAddress,
+});
+
+const path = await quoteLiveExactIn({
+  publicClient,
+  tokenIn,
+  tokenOut,
+  pools: [poolA, poolB],
+  recipient: account,
+  amountIn,
+  quoterAddress,
+});
+```
+
+Hypothetical quotes: `quoteHypotheticalExactInputSingle`, `quoteHypotheticalExactInput`, and exact-output variants with per-pool bid/ask prices.
 
 ## Liquidity
 
 - **Add (EOA):** approve **LiquidityAdder**, then `addLiquidityExactShares` / `addLiquidityWeighted` on the adder (see `encodeAddLiquidity*` helpers).
 - **Remove:** `removeLiquidity` on the pool — build deltas with `buildModifyLiquidityArgsForRemoval` / `encodeRemoveLiquidityCalldata`.
 
-`addLiquidityWeighted` encoders accept optional bin-position bounds (`minimalCurBin`, `minimalPosition`, `maximalCurBin`, `maximalPosition`); defaults disable bounds.
-
-SDK builders still use internal names like `buildModifyLiquidityArgsForUniformAddition` where the math is shared; encoders target v1 pool/adder ABIs.
-
 ## Extensions
 
 Pools support up to seven **extensions** (periphery contracts) configured at creation via `extensions`, `extensionOrders`, and `extensionInitData`. Swap and liquidity encoders forward optional **`extensionData`** (defaults to `0x`).
 
-### Pool creation with extensions
+See extension admin encoders (`encodeSetAllowedToDepositCalldata`, `encodeSetAllowedToSwapCalldata`, …) and [HOW_TO.md](../metric-omm-sdk/HOW_TO.md) for pool-creation examples.
+
+## Oracle registration
+
+For providers-oracle price feeds, register pools before attributed reads:
 
 ```typescript
-import {
-  encodeCreatePoolCalldata,
-  buildExtensionOrders,
-  encodeOracleStopLossInitData,
-  EMPTY_EXTENSION_INIT_DATA,
-} from "@nradko/metric-omm-sdk-v1";
+import { getPoolOracleStatus, registerPool } from "@nradko/metric-omm-sdk-v1";
 
-const calldata = encodeCreatePoolCalldata({
-  token0,
-  token1,
-  priceProvider,
-  admin,
-  adminFeeDestination,
-  adminSpreadFeeE6: 5000,
-  adminNotionalFeeE8: 0,
-  curBinDistFromProvidedPricePercent: 0,
-  initialScaledToken0PerShareE18,
-  initialScaledToken1PerShareE18,
-  minimalMintableLiquidity: 1000n,
-  nonNegativeBins,
-  negativeBins,
-  extensions: [depositAllowlistAddress, swapAllowlistAddress],
-  extensionOrders: buildExtensionOrders({
-    beforeAddLiquidity: [1],
-    beforeSwap: [2],
-  }),
-  extensionInitData: [
-    EMPTY_EXTENSION_INIT_DATA, // DepositAllowlist — no init payload
-    EMPTY_EXTENSION_INIT_DATA, // SwapAllowlist — no init payload
-  ],
-});
+const status = await getPoolOracleStatus(publicClient, oracleAddress, feedId, poolAddress);
+await registerPool({ publicClient, walletClient, oracleAddress, feedId, pool: poolAddress, factory, account });
 ```
-
-`encodeExtensionOrder` / `buildExtensionOrders` pack 3-bit extension indices per action (same encoding as on-chain `ExtensionOrders`).
-
-### Initialize data
-
-| Extension | Init encoder |
-| --------- | ------------ |
-| DepositAllowlist, SwapAllowlist, PriceVelocityGuard | `EMPTY_EXTENSION_INIT_DATA` |
-| OracleValueStopLoss | `encodeOracleStopLossInitData({ drawdownE6, decayPerSecondE8, timelockSeconds })` |
-
-### Admin actions (pool admin)
-
-```typescript
-import {
-  encodeSetAllowedToDepositCalldata,
-  encodeSetAllowedToSwapCalldata,
-  encodeSetMaxChangePerBlockCalldata,
-  encodeProposeOracleStopLossDrawdownCalldata,
-} from "@nradko/metric-omm-sdk-v1";
-
-// Allow a depositor on a pool with DepositAllowlistExtension
-const data = encodeSetAllowedToDepositCalldata({
-  extension: depositAllowlistAddress,
-  pool: poolAddress,
-  depositor: userAddress,
-  allowed: true,
-});
-```
-
-Also available: swap allowlist setters, price-velocity guard setters, and oracle stop-loss propose / execute / cancel helpers for timelock, drawdown, decay, and high-watermark updates.
-
-**Swap allowlist note:** when users swap via `MetricOmmPoolSwapper`, the extension gates the **Swapper contract address** as the pool swap caller — allow that address, not the end-user EOA.
 
 ## Pool reads
 
@@ -173,7 +168,6 @@ import { getPoolImmutables, getPoolState, getSlot0, getAddressesOrThrow, ChainId
 
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 const imm = await getPoolImmutables(publicClient, addresses.factory, poolAddress);
-// imm.extensions (extension1…7), imm.extensionOrders
 const state = await getPoolState(publicClient, addresses.dataProvider, poolAddress);
 const slot0 = await getSlot0(publicClient, addresses.dataProvider, poolAddress);
 ```
@@ -184,12 +178,14 @@ const slot0 = await getSlot0(publicClient, addresses.dataProvider, poolAddress);
 import {
   MetricOmmPoolAbi,
   MetricOmmPoolDataProviderAbi,
-  MetricOmmPoolSwapperAbi,
+  MetricOmmSimpleRouterAbi,
+  MetricOmmSwapQuoterAbi,
   MetricOmmPoolLiquidityAdderAbi,
   DepositAllowlistExtensionAbi,
   SwapAllowlistExtensionAbi,
   PriceVelocityGuardExtensionAbi,
   OracleValueStopLossExtensionAbi,
+  OracleProviderAbi,
 } from "@nradko/metric-omm-sdk-v1/abis";
 ```
 
@@ -199,29 +195,20 @@ Regenerate from pinned contracts:
 npm run setup:contracts    # init submodules, hardhat build, sync ABIs
 ```
 
-All pinned contracts are compiled by Hardhat from the pinned `@metric/periphery` git dependency (core via `lib/metric-core`).
-
 ## Development
 
 ```bash
 npm run build              # tsc only (default prepare)
 npm run setup:contracts    # refresh ABIs from pinned git deps (maintainers)
 npm test                   # Hardhat tests (needs matching @metric/* in node_modules)
+npm run verify             # lint, format, typecheck, test — publish gate
 ```
-
-In the monorepo, run v1 tests with an isolated install:
 
 ```bash
 cd v1
 npm ci
 npm run setup:contracts
 npm test
-```
-
-## Tests
-
-```bash
-npm run setup:contracts && npm test
 ```
 
 Fork tests: set `ETHEREUM_RPC_URL` (optional `ETHEREUM_FORK_BLOCK_NUMBER`).

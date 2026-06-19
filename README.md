@@ -8,7 +8,7 @@ This directory holds **three independent npm packages**. They share no root tool
 | -------- | ------ | ----------- |
 | `@nradko/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
 | `@nradko/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
-| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — Swapper, LiquidityAdder, `addLiquidity` / `removeLiquidity`, Ethereum mainnet |
+| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base |
 
 ## Installation
 
@@ -38,7 +38,7 @@ const addresses = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 const slot0 = await v1.getSlot0(publicClient, addresses.dataProvider, poolAddress);
 ```
 
-See [v1/README.md](./v1/README.md) for Swapper quotes, LiquidityAdder flows, and mainnet addresses.
+See [v1/README.md](./v1/README.md) for SimpleRouter swaps, SwapQuoter quotes, LiquidityAdder flows, and deployment addresses.
 
 ## Quick start (v0 — Router / modifyLiquidity)
 
@@ -57,12 +57,12 @@ See [v0/README.md](./v0/README.md) for Router swaps and `modifyLiquidity`.
 
 | | v0 | v1 |
 | --- | --- | --- |
-| Swaps | `MetricOmmSwapRouter` | `MetricOmmPoolSwapper` |
+| Swaps | `MetricOmmSwapRouter` | `MetricOmmSimpleRouter` (+ `MetricOmmSwapQuoter` for quotes) |
 | Add liquidity | Pool `modifyLiquidity` | `MetricOmmPoolLiquidityAdder.addLiquidity*` |
 | Remove liquidity | Pool `modifyLiquidity` | Pool `removeLiquidity` |
 | Pool immutables | On pool / legacy reads | `factory.poolImmutables(pool)` |
-| Deployed chains (bundled addresses) | Many chains | Ethereum mainnet only (for now) |
-| DataProvider | `addresses.dataProvider` on mainnet | Deploy `MetricOmmPoolDataProvider`; pass as `dataProviderAddress` |
+| Deployed chains (bundled addresses) | Many chains | Ethereum mainnet and Base |
+| DataProvider | `addresses.dataProvider` on mainnet | `addresses.dataProvider` (MetricOmmPoolDataProvider) |
 
 ## Development
 

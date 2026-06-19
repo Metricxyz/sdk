@@ -1,7 +1,7 @@
 {
   "name": "@nradko/metric-omm-sdk-v1",
-  "version": "0.3.0",
-  "description": "Metric AMM SDK — v1 contracts (Swapper, LiquidityAdder, extensions, add/removeLiquidity)",
+  "version": "0.4.2",
+  "description": "Metric AMM SDK — v1 contracts (SimpleRouter, SwapQuoter, LiquidityAdder, extensions, add/removeLiquidity)",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -28,7 +28,6 @@
     "sync:contracts": "npx hardhat build --force",
     "sync:abis": "npm run sync:contracts && node ./scripts/sync-abis.mjs",
     "setup:contracts": "npm run init:submodules && npm run sync:abis",
-    "prepare": "npm run build",
     "pretest": "npm run init:submodules",
     "test": "hardhat test",
     "typecheck": "tsc --noEmit",
@@ -55,6 +54,7 @@
     "type": "git",
     "url": "https://github.com/Metric-OMM/metric-sdk.git"
   },
+  "metricPeripheryRef": "dccbda7970da36d55a86108e3dbcce1e794c9634",
   "dependencies": {
     "viem": "^2.x"
   },
@@ -63,7 +63,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@metric/periphery": "github:Metric-OMM/metric-periphery#fc7c947507ec465af950add2263507db2f3ff904",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.7",
     "@nomicfoundation/hardhat-viem": "^3.0.1",

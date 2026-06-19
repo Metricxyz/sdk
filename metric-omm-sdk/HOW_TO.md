@@ -8,7 +8,7 @@ This guide is for **application developers** integrating swaps and liquidity. Yo
 | -------- | ------------- |
 | `@nradko/metric-omm-sdk` | **Combined** — `v0` and `v1` namespaces in one dependency |
 | `@nradko/metric-omm-sdk-v0` | Legacy Router + `modifyLiquidity` API only |
-| `@nradko/metric-omm-sdk-v1` | Current Swapper + LiquidityAdder API only |
+| `@nradko/metric-omm-sdk-v1` | Current SimpleRouter + SwapQuoter + LiquidityAdder API only |
 
 All packages require **viem** `^2.x` and **Node ≥ 22**.
 
@@ -51,7 +51,7 @@ import { buildArgsAndExpectedAmountsForSwapExactInput } from "@nradko/metric-omm
 Each version exposes committed ABIs:
 
 ```typescript
-import { MetricOmmPoolSwapperAbi } from "@nradko/metric-omm-sdk-v1/abis";
+import { MetricOmmSimpleRouterAbi, MetricOmmSwapQuoterAbi } from "@nradko/metric-omm-sdk-v1/abis";
 import { MetricOmmSwapRouterAbi } from "@nradko/metric-omm-sdk-v0/abis";
 ```
 
@@ -64,15 +64,16 @@ Via the combined package, import from the underlying package name (re-export of 
 
 | Topic | v0 | v1 |
 | ----- | --- | --- |
-| **Swaps** | `MetricOmmSwapRouter` | `MetricOmmPoolSwapper` |
+| **Swaps** | `MetricOmmSwapRouter` | `MetricOmmSimpleRouter` |
+| **Quotes** | Router quote helpers | `MetricOmmSwapQuoter` (`quoteLiveExactInSingle`, multihop `quoteLiveExactIn`, …) |
 | **Add liquidity** | Pool `modifyLiquidity` (positive deltas) | `MetricOmmPoolLiquidityAdder.addLiquidity*` |
 | **Remove liquidity** | Pool `modifyLiquidity` (negative deltas) | Pool `removeLiquidity` |
-| **Swap builder needs** | `routerAddress` | `factoryAddress` + `swapperAddress` |
+| **Swap builder needs** | `routerAddress` | `simpleRouter` + `quoterAddress` (until bundled quoter is set) |
 | **Addition builder needs** | `stateViewAddress` + pool | `factoryAddress` + `dataProviderAddress` + pool |
 | **Pool immutables** | Read from pool / StateView | `getPoolImmutables(client, factory, pool)` |
 | **Create-pool admin fees** | `maxDriftPercent`, `driftDecayPerSecondPercent`, `adminFeePercent` | `adminSpreadFeeE6`, `adminNotionalFeeE8` |
 | **Create-pool extras** | — | Optional deposit/swap allowlists, `priceProviderTimelock` |
-| **Chains in SDK** | Many | Ethereum mainnet (for bundled addresses) |
+| **Chains in SDK** | Many | Ethereum mainnet and Base (bundled addresses) |
 | **Lens for reads** | `addresses.stateView` (StateView) | `addresses.dataProvider` (MetricOmmPoolDataProvider) |
 
 Shared between versions (same mental model):
@@ -95,7 +96,7 @@ v1:
   createPool     → factory.createPool
   add            → liquidityAdder.addLiquidityExactShares | addLiquidityWeighted
   remove         → pool.removeLiquidity
-  swap           → swapper.swapExactInput | swapExactOutput
+  swap           → router.exactInputSingle / exactOutputSingle (or exactInput / exactOutput multihop)
 ```
 
 ### On-chain calldata shapes (v1 only)
@@ -128,7 +129,7 @@ const walletClient = createWalletClient({
 });
 
 const addresses = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
-// addresses.factory, .dataProvider, .swapper, .liquidityAdder, …
+// addresses.factory, .dataProvider, .simpleRouter, .liquidityAdder, .quoter, …
 
 // Read helpers use addresses.dataProvider (dataProviderAddress param):
 const lensAddress = addresses.dataProvider;
@@ -372,44 +373,45 @@ await walletClient.writeContract({
 
 Quote without tx: `v0.quoteSwap`, `quoteExpectedAmountsForSwapExactInput`.
 
-### v1 — Swapper
+### v1 — SimpleRouter
 
 ```typescript
-import { MetricOmmPoolSwapperAbi } from "@nradko/metric-omm-sdk-v1/abis";
+import { MetricOmmSimpleRouterAbi } from "@nradko/metric-omm-sdk-v1/abis";
 
-const { args } = await v1.buildArgsAndExpectedAmountsForSwapExactInput({
+const params = await v1.buildExactInputSingleParams({
   publicClient,
-  factoryAddress: addresses.factory,
-  swapperAddress: addresses.swapper,
   pool: poolAddress,
+  tokenIn,
+  tokenOut,
   recipient: account.address,
-  zeroForOne: true,
   amountIn: 1_000_000_000_000_000_000n,
   slippagePercent: 0.5,
   deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
+  quoterAddress, // pass until addresses.quoter is configured
 });
 
-// Approve input token on swapper (ERC20 path)
 await walletClient.writeContract({
-  address: addresses.swapper,
-  abi: MetricOmmPoolSwapperAbi,
-  functionName: "swapExactInput",
-  args,
+  address: addresses.simpleRouter,
+  abi: MetricOmmSimpleRouterAbi,
+  functionName: "exactInputSingle",
+  args: [params],
   account,
 });
 ```
 
-Low-level encoding (no quote math): `v1.encodeSwapExactInputCalldata` / `prepareSwapExactInputCalldata` (aliases). Native ETH input: `prepareSwapExactInputNativeForTokensCalldata`.
+Multihop: `buildExactInputParams` / `encodeExactInputCalldata` with `pools[]` and optional `extensionDatas[]`.
+
+Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`, and hypothetical variants.
 
 ---
 
 ## End-to-end checklist (v1)
 
-1. `getAddressesOrThrow(ChainId.ETHEREUM)` — factory, swapper, liquidityAdder.
-2. Use **`addresses.dataProvider`** for slot/bin/position reads (replaces a separate StateView deploy).
+1. `getAddressesOrThrow(ChainId.ETHEREUM)` — factory, simpleRouter, liquidityAdder, dataProvider.
+2. Use **`addresses.dataProvider`** for slot/bin/position reads.
 3. **Create pool** — `encodeCreatePoolCalldata` → factory; parse `PoolCreated` for `poolAddress`.
 4. **Add** — approve LiquidityAdder → `addLiquidityExactShares` with `PoolLiquidityDelta`.
-5. **Swap** — approve Swapper → `swapExactInput` with args from builder.
+5. **Swap** — approve SimpleRouter → `exactInputSingle` or multihop `exactInput` (params from builders + quoter).
 6. **Remove** — `removeLiquidity` on pool with `encodeRemoveLiquidityCalldata`.
 
 Same flow on v0, but router + `modifyLiquidity` for add/remove and bundled StateView.
@@ -423,7 +425,7 @@ Same flow on v0, but router + `modifyLiquidity` for add/remove and bundled State
 | **Mixed-decimal pools (18/6)** | Use moderate share sizes (e.g. `10_000_000n`), not `parseUnits("100", 18)`, when minting into empty bins — scaled balances are `uint104`. |
 | **Invalid bin index** | If you create `N` bins per side, valid indices are roughly `-N…-1` and `0…N-1`. Do not address bin `N`. |
 | **v1 lens** | Use `addresses.dataProvider` (`MetricOmmPoolDataProvider`); StateView is not deployed separately. |
-| **Approvals** | v0: pool (+ router for swaps). v1: liquidityAdder for adds, swapper for swaps, pool only for remove. |
+| **Approvals** | v0: pool (+ router for swaps). v1: liquidityAdder for adds, simpleRouter for swaps, pool only for remove. |
 | **Deterministic create tests** | Pass explicit `salt` in `CreatePoolFactoryParams`; otherwise each `encodeCreatePoolCalldata` differs. |
 | **Type-only `ChainId` entries** | v1 exports many chain IDs for typing; only Ethereum has `ADDRESSES`. Use `isChainSupported` / `getSupportedChainIds`. |
 
@@ -432,5 +434,5 @@ Same flow on v0, but router + `modifyLiquidity` for add/remove and bundled State
 ## Further reading
 
 - [v0/README.md](../v0/README.md) — Router, multi-chain addresses.
-- [v1/README.md](../v1/README.md) — mainnet address table, Swapper examples.
+- [v1/README.md](../v1/README.md) — deployment address table, SimpleRouter and SwapQuoter examples.
 - [Monorepo README](../../README.md) — development, publishing, ABI sync.
