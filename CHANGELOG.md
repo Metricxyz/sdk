@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-06-24
+
+> Compatible with `0.4.0` swap and quote APIs. Adds native ETH swap multicall helpers and Oracle route-to-swap conversion.
+>
+> Pinned upstream: **metric-periphery** `3e074d938da84eccee85f4c9dc2e9f27535af134` (core via periphery `lib/metric-core`).
+>
+> Packages: **@nradko/metric-omm-sdk-v1** `0.4.2`, **@nradko/metric-omm-sdk** `0.4.2`. **@nradko/metric-omm-sdk-v0** stays at `0.1.1`.
+
+### Added — SDK (v1)
+
+- **Native ETH swaps** — `prepareExactInputSingleFromNativeCalldata`, `prepareExactInputFromNativeCalldata`, `prepareExactInputSingleToNativeCalldata`, `prepareExactInputToNativeCalldata`, and exact-output variants; low-level `encodeMulticallCalldata`, `encodeRefundETHCalldata`, `encodeUnwrapWETH9Calldata`.
+- **Oracle route integration** — `prepareExactInputFromRoute` maps `POST /public/v1/evm/:chain_id/route` responses to `ExactInputSingleParams` or `ExactInputParams` (direct and one-hop routes).
+- **Tests** — native swap Hardhat E2E (`native-swap-e2e.test.ts`), native multicall unit tests, and route-response mapping tests.
+
+### Changed — SDK (v1)
+
+- Synced ABIs from pinned **metric-periphery** `3e074d938da84eccee85f4c9dc2e9f27535af134` (SimpleRouter and SwapQuoter updates for mixed native/WETH payments).
+- Expanded JSDoc on swap, multihop swap, and liquidity builder modules.
+
+### Changed — packaging
+
+- **Install lifecycle** — removed `prepare` and `postinstall` scripts so `npm install` runs no SDK scripts for consumers.
+- **Periphery checkout** — `@metric/periphery` is cloned via `init-submodules.mjs` (maintainer `setup:contracts` flow) instead of an npm git devDependency.
+- **Verify scripts** — skip redundant `npm ci` when `node_modules` already exists; v1 `verify` runs `init-submodules` before tests.
+
 ## [0.4.0] - 2026-06-18
 
 > **NOT backward compatible with `0.3.0`.** Swaps and quotes move from **MetricOmmPoolSwapper** to **MetricOmmSimpleRouter** + **MetricOmmSwapQuoter**. Bundled Ethereum and Base deployment addresses changed.

@@ -190,6 +190,12 @@ export {
   type BuildExactOutputSingleParams,
   type BuildExactInputParams,
   type BuildExactOutputParams,
+  prepareExactInputFromRoute,
+  type RouteType,
+  type RouteLegResponse,
+  type RouteResponse,
+  type PrepareExactInputFromRouteParams,
+  type PreparedExactInputFromRoute,
 } from "./router/index.js";
 
 // ============ Factory Functions ============

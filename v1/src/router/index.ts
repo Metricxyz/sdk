@@ -34,6 +34,15 @@ export {
 } from "./swap.js";
 
 export {
+  prepareExactInputFromRoute,
+  type RouteType,
+  type RouteLegResponse,
+  type RouteResponse,
+  type PrepareExactInputFromRouteParams,
+  type PreparedExactInputFromRoute,
+} from "./fromRoute.js";
+
+export {
   encodeMulticallCalldata,
   encodeRefundETHCalldata,
   encodeUnwrapWETH9Calldata,
