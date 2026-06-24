@@ -1,6 +1,16 @@
 /**
- * MetricAMM SDK - Liquidity
- * Unified liquidity calculations and position operations.
+ * Liquidity position builders and calldata encoders.
+ *
+ * **Add liquidity (recommended path):**
+ * 1. `buildModifyLiquidityArgsForAddition` / `ForUniformAddition` / `ForUniformAdditionWithTotalTokenAmount`
+ * 2. `buildAddLiquidityExactSharesParamsFromBinTargets` (optional convenience)
+ * 3. `encodeAddLiquidityExactSharesSelfCalldata` — target `addresses.liquidityAdder`
+ * 4. Approve token0 and token1 on the LiquidityAdder for `maxAmountToken0` / `maxAmountToken1`
+ *
+ * **Remove liquidity:** `buildModifyLiquidityArgsForRemoval` → `buildRemoveLiquidityPoolDelta`
+ * → `encodeRemoveLiquidityCalldata` — call the **pool** directly (no adder approval).
+ *
+ * Position identity is `(owner, salt)`; use the same `salt` for adds and removes.
  */
 
 import type { Address, PublicClient, Hex } from "viem";
@@ -40,19 +50,27 @@ function getLiquidityAdderFunction(name: string, inputCount: number) {
   return item;
 }
 
+/** High-level removal options (used by UI helpers). Prefer {@link BuildModifyLiquidityArgsForRemovalParams} in SDK code. */
 export interface RemoveLiquidityParams {
+  /** Percent of each selected bin's shares to burn (0–100). */
   percentageToRemove: number;
+  /** Explicit bin list; when omitted, scans `lowerBin`–`upperBin` for position shares. */
   bins?: number[];
   lowerBin?: number;
   upperBin?: number;
 }
 
+/** Per-bin removal: specify exactly one of `percentageToRemove` or `sharesToRemove`. */
 export interface BinRemovalSpec {
   bin: number;
   percentageToRemove?: number;
   sharesToRemove?: bigint;
 }
 
+/**
+ * Sentinel passed as `specAmount0` / `specAmount1` on removals — no minimum output enforced.
+ * Same value the pool uses for "accept any amount" on `modifyLiquidity` removes.
+ */
 export const NO_SLIPPAGE_LIMIT = MAX_INT128;
 
 type ModifyLiquidityParams = {
@@ -62,30 +80,39 @@ type ModifyLiquidityParams = {
   specAmount1: bigint;
 };
 
+/**
+ * Tuple for low-level `modifyLiquidity` on the pool:
+ * `[salt, deltas, specAmount0, specAmount1]`.
+ * Prefer LiquidityAdder encode helpers for additions.
+ */
 export type ModifyLiquidityArgs = readonly [bigint, LiquidityDelta[], bigint, bigint];
 
 export interface BuildModifyLiquidityArgsBase {
   publicClient: PublicClient;
-  /** MetricOmmPoolDataProvider address (`addresses.dataProvider` on mainnet). */
+  /** MetricOmmPoolDataProvider (`addresses.dataProvider`). */
   dataProviderAddress: Address;
   poolAddress: Address;
+  /** Extra headroom on spec amounts (percent); `0` = exact computed caps. */
   specAmountBufferPercent?: number;
 }
 
-/** Addition builders read pool immutables via `getImmutables()` — removal only needs the data provider lens. */
+/** Addition builders need the factory to read pool immutables (decimals, bin range). */
 export interface BuildModifyLiquidityArgsWithFactory extends BuildModifyLiquidityArgsBase {
   factoryAddress: Address;
 }
 
+/** Per-bin target amounts for {@link buildModifyLiquidityArgsForAddition}. */
 export interface BuildModifyLiquidityArgsForAdditionParams extends BuildModifyLiquidityArgsWithFactory {
   bins: LiquidityBinValueInput[];
-  /** Human-readable price (token1 per token0). Omit when using currentPriceX64. */
+  /** Human price token1/token0; omit when `currentPriceX64` is set. */
   currentPrice?: number;
-  /** On-chain Q64 price. Preferred over currentPrice when available from slot0 / oracle. */
+  /** Q64.64 price from slot0; preferred over `currentPrice`. */
   currentPriceX64?: bigint;
+  /** Position salt; default `0n`. Reuse across adds to the same position. */
   salt?: bigint;
 }
 
+/** Same value in every bin from `lowerBin` through `upperBin` inclusive. */
 export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildModifyLiquidityArgsWithFactory {
   amountInTokensPerBin: bigint;
   amountIsInToken0: boolean;
@@ -95,6 +122,7 @@ export interface BuildModifyLiquidityArgsForUniformAdditionParams extends BuildM
   salt?: bigint;
 }
 
+/** Split a total token budget across `bins` (optional `weights`); calibrates share scaling on-chain. */
 export interface BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams extends BuildModifyLiquidityArgsWithFactory {
   bins: number[];
   weights?: number[];
@@ -104,6 +132,7 @@ export interface BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountP
   salt?: bigint;
 }
 
+/** Remove the same percentage from all bins with liquidity (or from explicit `bins`). */
 export interface BuildModifyLiquidityArgsForPercentageRemovalParams extends BuildModifyLiquidityArgsBase {
   owner: Address;
   salt: bigint;
@@ -113,6 +142,7 @@ export interface BuildModifyLiquidityArgsForPercentageRemovalParams extends Buil
   upperBin?: number;
 }
 
+/** Granular per-bin removal specs. */
 export interface BuildModifyLiquidityArgsForRemovalParams extends BuildModifyLiquidityArgsBase {
   owner: Address;
   salt: bigint;
@@ -130,7 +160,10 @@ function resolvePriceE18(params: { currentPrice?: number; currentPriceX64?: bigi
 }
 
 /**
- * Prepare uniform liquidity distribution across a bin range.
+ * Uniform liquidity: same token amount in every bin from `lowerBin` to `upperBin`.
+ * Delegates to {@link buildModifyLiquidityArgsForAddition}.
+ *
+ * @returns `[salt, deltas, specAmount0, specAmount1]` — max token caps for the adder.
  */
 export async function buildModifyLiquidityArgsForUniformAddition({
   publicClient,
@@ -517,6 +550,11 @@ export async function buildModifyLiquidityArgsForAddition({
   return toModifyLiquidityArgs(computed);
 }
 
+/**
+ * Remove liquidity by explicit per-bin specs (percentage or absolute shares).
+ *
+ * `specAmount0` / `specAmount1` are set to {@link NO_SLIPPAGE_LIMIT} (accept any output).
+ */
 export async function buildModifyLiquidityArgsForRemoval(
   params: BuildModifyLiquidityArgsForRemovalParams,
 ): Promise<ModifyLiquidityArgs> {
@@ -598,6 +636,10 @@ export async function buildModifyLiquidityArgsForRemoval(
   return toModifyLiquidityArgs(computed);
 }
 
+/**
+ * Remove the same `percentageToRemove` from every bin that has position shares.
+ * When `bins` is omitted, discovers bins via `getPositionBinSharesRange(lowerBin, upperBin)`.
+ */
 export async function buildModifyLiquidityArgsForPercentageRemoval({
   publicClient,
   dataProviderAddress,
@@ -650,6 +692,7 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
   });
 }
 
+/** Convert positive `deltaShares` from a modify plan into `PoolLiquidityDelta` for the adder. */
 export function additionPlanToPoolLiquidityDelta(
   deltas: readonly LiquidityDelta[],
 ): PoolLiquidityDelta {
@@ -660,6 +703,7 @@ export function additionPlanToPoolLiquidityDelta(
   };
 }
 
+/** Convert negative `deltaShares` from a modify plan into burn `PoolLiquidityDelta` for `removeLiquidity`. */
 export function removalPlanToPoolLiquidityDelta(
   deltas: readonly LiquidityDelta[],
 ): PoolLiquidityDelta {
@@ -698,6 +742,19 @@ export function scaleWeightedPoolDeltasToFitCaps(params: {
   return { binIdxs: weights.binIdxs, shares };
 }
 
+/**
+ * Convenience wrapper: bin targets → adder-ready `{ salt, poolLiquidityDelta, maxAmountToken0, maxAmountToken1 }`.
+ *
+ * @example
+ * ```ts
+ * const add = await buildAddLiquidityExactSharesParamsFromBinTargets({
+ *   publicClient, factoryAddress, dataProviderAddress, poolAddress,
+ *   bins: [{ bin: 0, targetValueInToken: parseUnits("100", 6), targetValueInToken0: false }],
+ *   currentPriceX64: slot0.priceX64,
+ * });
+ * const data = encodeAddLiquidityExactSharesSelfCalldata({ pool: poolAddress, ...add });
+ * ```
+ */
 export async function buildAddLiquidityExactSharesParamsFromBinTargets(
   params: BuildModifyLiquidityArgsForAdditionParams,
 ): Promise<{
@@ -715,6 +772,11 @@ export async function buildAddLiquidityExactSharesParamsFromBinTargets(
   };
 }
 
+/**
+ * Encode `LiquidityAdder.addLiquidityExactShares(pool, salt, deltas, max0, max1, ext)`
+ * for `msg.sender` as position owner.
+ * Approve both pool tokens on the LiquidityAdder before sending.
+ */
 export function encodeAddLiquidityExactSharesSelfCalldata(params: {
   pool: Address;
   salt: bigint;
@@ -737,6 +799,10 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
   });
 }
 
+/**
+ * Same as {@link encodeAddLiquidityExactSharesSelfCalldata} but credits liquidity to `owner`
+ * (e.g. router or vault acting on behalf of a user).
+ */
 export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
   pool: Address;
   owner: Address;
@@ -761,6 +827,10 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
   });
 }
 
+/**
+ * Encode weighted add: `weightDeltas` are relative share weights; the adder scales to fit
+ * `maxAmountToken0` / `maxAmountToken1`. Use {@link scaleWeightedPoolDeltasToFitCaps} to pre-scale.
+ */
 export function encodeAddLiquidityWeightedSelfCalldata(params: {
   pool: Address;
   salt: bigint;
@@ -791,6 +861,7 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
   });
 }
 
+/** Weighted add with explicit `owner` (7-arg overload on LiquidityAdder). */
 export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   pool: Address;
   owner: Address;
@@ -823,6 +894,10 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   });
 }
 
+/**
+ * Encode `Pool.removeLiquidity(owner, salt, deltas, extensionData)`.
+ * Send to the **pool** contract; no token approval required (tokens are sent out).
+ */
 export function encodeRemoveLiquidityCalldata(params: {
   owner: Address;
   salt: bigint;
@@ -841,6 +916,7 @@ export function encodeRemoveLiquidityCalldata(params: {
   });
 }
 
+/** Build `{ salt, poolLiquidityDelta }` for {@link encodeRemoveLiquidityCalldata}. */
 export async function buildRemoveLiquidityPoolDelta(
   params: BuildModifyLiquidityArgsForRemovalParams,
 ): Promise<{ salt: bigint; poolLiquidityDelta: PoolLiquidityDelta }> {

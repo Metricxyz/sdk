@@ -82,4 +82,106 @@ describe("SimpleRouter calldata builders (v1)", () => {
     const calldata = sdk.prepareExactOutputCalldata(params);
     assert.ok(calldata.startsWith("0x"));
   });
+
+  it("encodes native exact-input single via multicall with msg.value", () => {
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const params: sdk.ExactInputSingleParams = {
+      pool: "0x0000000000000000000000000000000000000001",
+      tokenIn: weth,
+      tokenOut: "0x0000000000000000000000000000000000000003",
+      zeroForOne: true,
+      amountIn: 1_000_000_000_000_000_000n,
+      amountOutMinimum: 1_900_000n,
+      recipient: "0x0000000000000000000000000000000000000004",
+      deadline: 123n,
+      priceLimitX64: sdk.priceToQ64(0.99),
+    };
+
+    const prepared = sdk.prepareExactInputSingleFromNativeCalldata(params);
+    assert.ok(prepared.data.startsWith("0x"));
+    assert.equal(prepared.value, params.amountIn);
+  });
+
+  it("encodes native exact-input single with refundETH in multicall", () => {
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const params: sdk.ExactInputSingleParams = {
+      pool: "0x0000000000000000000000000000000000000001",
+      tokenIn: weth,
+      tokenOut: "0x0000000000000000000000000000000000000003",
+      zeroForOne: true,
+      amountIn: 1_000n,
+      amountOutMinimum: 0n,
+      recipient: "0x0000000000000000000000000000000000000004",
+      deadline: 123n,
+      priceLimitX64: 0n,
+    };
+    const msgValue = 2_000_000_000_000_000_000n;
+
+    const prepared = sdk.prepareExactInputSingleFromNativeCalldata(params, { msgValue });
+    assert.ok(prepared.data.startsWith("0x"));
+    assert.equal(prepared.value, msgValue);
+  });
+
+  it("encodes token-to-native exact-input single via multicall unwrap", () => {
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const router = "0x00000000000000000000000000000000000000aa";
+    const params: sdk.ExactInputSingleParams = {
+      pool: "0x0000000000000000000000000000000000000001",
+      tokenIn: "0x0000000000000000000000000000000000000003",
+      tokenOut: weth,
+      zeroForOne: false,
+      amountIn: 3_000n,
+      amountOutMinimum: 0n,
+      recipient: "0x0000000000000000000000000000000000000004",
+      deadline: 123n,
+      priceLimitX64: sdk.MAX_UINT128,
+    };
+
+    const prepared = sdk.prepareExactInputSingleToNativeCalldata(params, { simpleRouter: router });
+    assert.ok(prepared.data.startsWith("0x"));
+    assert.equal(prepared.value, undefined);
+  });
+
+  it("encodes native exact-input multihop via multicall with msg.value", () => {
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const params: sdk.ExactInputParams = {
+      tokens: [weth, "0x0000000000000000000000000000000000000003", "0x0000000000000000000000000000000000000004"],
+      pools: [
+        "0x0000000000000000000000000000000000000001",
+        "0x0000000000000000000000000000000000000005",
+      ],
+      extensionDatas: ["0x", "0x"],
+      zeroForOneBitMap: sdk.encodeZeroForOneBitMap([true, false]),
+      amountIn: 5_000n,
+      amountOutMinimum: 0n,
+      recipient: "0xcccccccccccccccccccccccccccccccccccccccc",
+      deadline: 123n,
+    };
+
+    const prepared = sdk.prepareExactInputFromNativeCalldata(params);
+    assert.ok(prepared.data.startsWith("0x"));
+    assert.equal(prepared.value, params.amountIn);
+  });
+
+  it("encodes multihop token-to-native via multicall unwrap", () => {
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const router = "0x00000000000000000000000000000000000000aa";
+    const params: sdk.ExactInputParams = {
+      tokens: ["0x0000000000000000000000000000000000000004", "0x0000000000000000000000000000000000000003", weth],
+      pools: [
+        "0x0000000000000000000000000000000000000005",
+        "0x0000000000000000000000000000000000000001",
+      ],
+      extensionDatas: ["0x", "0x"],
+      zeroForOneBitMap: sdk.encodeZeroForOneBitMap([false, true]),
+      amountIn: 4_000n,
+      amountOutMinimum: 0n,
+      recipient: "0xcccccccccccccccccccccccccccccccccccccccc",
+      deadline: 123n,
+    };
+
+    const prepared = sdk.prepareExactInputToNativeCalldata(params, { simpleRouter: router });
+    assert.ok(prepared.data.startsWith("0x"));
+  });
+
 });

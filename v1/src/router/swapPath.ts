@@ -1,6 +1,10 @@
 /**
- * MetricAMM SDK - SimpleRouter multihop swap helpers.
+ * SimpleRouter multihop swap helpers.
+ *
+ * Multihop swaps walk `pools` in order; intermediate tokens remain on the router between hops.
+ * For ERC-20 paths, approve the router for `tokenIn` once before sending the transaction.
  */
+
 import type { Address, Hex, PublicClient } from "viem";
 import { encodeFunctionData } from "viem";
 import { quoteLiveExactIn, quoteLiveExactOut } from "../quoter/quotePath.js";
@@ -10,10 +14,18 @@ import { ceilDiv, toSlippageBps } from "./swap.js";
 
 const BPS_BASE = 10_000n;
 
+/**
+ * Arguments for `MetricOmmSimpleRouter.exactInput` (multihop exact input).
+ * `tokens` and `zeroForOneBitMap` are usually produced by {@link buildExactInputParams}.
+ */
 export type ExactInputParams = {
+  /** Path tokens, length `pools.length + 1`. */
   tokens: Address[];
+  /** One pool per hop, in swap order. */
   pools: Address[];
+  /** Extension calldata per hop; use `0x` when a pool has no extension. */
   extensionDatas: Hex[];
+  /** Bit `i` set when hop `i` is token0 → token1. */
   zeroForOneBitMap: bigint;
   amountIn: bigint;
   amountOutMinimum: bigint;
@@ -21,6 +33,7 @@ export type ExactInputParams = {
   deadline: bigint;
 };
 
+/** Arguments for `MetricOmmSimpleRouter.exactOutput` (multihop exact output). */
 export type ExactOutputParams = {
   tokens: Address[];
   pools: Address[];
@@ -32,10 +45,12 @@ export type ExactOutputParams = {
   deadline: bigint;
 };
 
+/** Inputs for {@link buildExactInputParams}. */
 export interface BuildExactInputParams {
   publicClient: PublicClient;
   tokenIn: Address;
   tokenOut: Address;
+  /** Ordered pool addresses connecting `tokenIn` → `tokenOut`. */
   pools: readonly Address[];
   extensionDatas?: readonly Hex[];
   recipient: Address;
@@ -43,8 +58,10 @@ export interface BuildExactInputParams {
   slippagePercent: number;
   deadline: bigint;
   quoterAddress?: Address;
+  wrappedNative?: Address;
 }
 
+/** Inputs for {@link buildExactOutputParams}. */
 export interface BuildExactOutputParams {
   publicClient: PublicClient;
   tokenIn: Address;
@@ -56,6 +73,7 @@ export interface BuildExactOutputParams {
   slippagePercent: number;
   deadline: bigint;
   quoterAddress?: Address;
+  wrappedNative?: Address;
 }
 
 function toExactInputStruct(params: ExactInputParams) {
@@ -84,6 +102,29 @@ function toExactOutputStruct(params: ExactOutputParams) {
   };
 }
 
+/**
+ * Build multihop exact-input params: resolves path, quotes output, applies slippage.
+ *
+ * @example
+ * ```ts
+ * const pathParams = await buildExactInputParams({
+ *   publicClient,
+ *   tokenIn: tokenA,
+ *   tokenOut: tokenC,
+ *   pools: [poolAB, poolBC],
+ *   recipient: account,
+ *   amountIn: parseUnits("1", 18),
+ *   slippagePercent: 0.5,
+ *   deadline,
+ *   quoterAddress: addresses.quoter,
+ * });
+ * await walletClient.sendTransaction({
+ *   to: addresses.simpleRouter,
+ *   data: encodeExactInputCalldata(pathParams),
+ *   account,
+ * });
+ * ```
+ */
 export async function buildExactInputParams(
   params: BuildExactInputParams,
 ): Promise<ExactInputParams> {
@@ -121,6 +162,7 @@ export async function buildExactInputParams(
   };
 }
 
+/** Build multihop exact-output params with live quote and slippage on `amountInMaximum`. */
 export async function buildExactOutputParams(
   params: BuildExactOutputParams,
 ): Promise<ExactOutputParams> {
@@ -158,6 +200,7 @@ export async function buildExactOutputParams(
   };
 }
 
+/** Encode `exactInput` multihop calldata. */
 export function encodeExactInputCalldata(params: ExactInputParams): Hex {
   return encodeFunctionData({
     abi: SIMPLE_ROUTER_ABI,
@@ -166,8 +209,10 @@ export function encodeExactInputCalldata(params: ExactInputParams): Hex {
   });
 }
 
+/** Alias for {@link encodeExactInputCalldata}. */
 export const prepareExactInputCalldata = encodeExactInputCalldata;
 
+/** Encode `exactOutput` multihop calldata. */
 export function encodeExactOutputCalldata(params: ExactOutputParams): Hex {
   return encodeFunctionData({
     abi: SIMPLE_ROUTER_ABI,
@@ -176,6 +221,7 @@ export function encodeExactOutputCalldata(params: ExactOutputParams): Hex {
   });
 }
 
+/** Alias for {@link encodeExactOutputCalldata}. */
 export const prepareExactOutputCalldata = encodeExactOutputCalldata;
 
 export { encodeZeroForOneBitMap } from "../swap/path.js";

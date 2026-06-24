@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `dccbda7970da36d55a86108e3dbcce1e794c9634` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `3e074d938da84eccee85f4c9dc2e9f27535af134` (core via periphery `lib/metric-core`).
 
 ## Installation
 
