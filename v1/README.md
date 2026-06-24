@@ -109,6 +109,64 @@ await walletClient.sendTransaction({
 
 Approve the **SimpleRouter** for input tokens (ERC-20 path). Swap allowlist extensions gate the **router contract address**, not the end-user EOA.
 
+### Native ETH
+
+Pay with native ETH (router wraps to WETH) or receive ETH (swap to router, then `unwrapWETH9`). Helpers return `{ data, value? }` for `walletClient.sendTransaction`.
+
+```typescript
+import {
+  buildExactInputSingleParams,
+  prepareExactInputSingleFromNativeCalldata,
+  prepareExactInputSingleToNativeCalldata,
+} from "@nradko/metric-omm-sdk-v1";
+
+// ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
+const params = await buildExactInputSingleParams({ /* … */, quoterAddress });
+const { data, value } = prepareExactInputSingleFromNativeCalldata(params);
+await walletClient.sendTransaction({ to: addresses.simpleRouter, data, value, account });
+
+// ERC-20 → ETH: tokenOut = wrappedNative, then unwrap via multicall:
+const { data } = prepareExactInputSingleToNativeCalldata(params, { simpleRouter: addresses.simpleRouter });
+await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account });
+```
+
+Multihop: `prepareExactInputFromNativeCalldata` / `prepareExactInputToNativeCalldata`. Mixed native + WETH: pass `msgValue` on the `*FromNative*` helpers and approve the router for `amountIn - msgValue` WETH.
+
+### Oracle route → swap
+
+When routing comes from the Metric Oracle API (`POST /public/v1/evm/:chain_id/route`), convert the JSON response into swap params without re-quoting:
+
+```typescript
+import {
+  prepareExactInputFromRoute,
+  encodeExactInputSingleCalldata,
+  encodeExactInputCalldata,
+} from "@nradko/metric-omm-sdk-v1";
+
+const route = await fetch(`${oracleBase}/public/v1/evm/${chainId}/route`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ tokenIn, tokenOut, amountIn: amountIn.toString() }),
+}).then((r) => r.json());
+
+const prepared = await prepareExactInputFromRoute({
+  publicClient,
+  route,
+  recipient: account,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
+  slippagePercent: 0.5,
+});
+
+const data =
+  prepared.kind === "single"
+    ? encodeExactInputSingleCalldata(prepared.params)
+    : encodeExactInputCalldata(prepared.params);
+
+await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account });
+```
+
+Pair with `prepareExactInputSingleFromNativeCalldata` when `tokenIn` is native ETH (route `tokenIn` should be wrapped native).
+
 ## Quotes (SwapQuoter)
 
 Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` when `addresses.quoter` is unset.
