@@ -533,7 +533,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     const immutables = await sdk.getPoolImmutables(publicClient, factory.address, pool.address);
     const weth = await viem.deployContract("MockWETH9", []);
-    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
+      weth.address,
+      factory.address,
+    ]);
     await token0.write.approve([simpleRouter.address, parseUnits("1000000", 18)]);
     await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 
@@ -737,7 +740,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
 
     const weth = await viem.deployContract("MockWETH9", []);
-    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+    const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
+      weth.address,
+      factory.address,
+    ]);
     await token0.write.approve([simpleRouter.address, parseUnits("1000000", 18)]);
     await token1.write.approve([simpleRouter.address, parseUnits("1000000", 6)]);
 

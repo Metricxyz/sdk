@@ -5,9 +5,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
-import { erc20Abi, parseUnits, type Address } from "viem";
+import { parseUnits, type Address } from "viem";
 import * as sdk from "../src/index.js";
 import { POOL_ABI } from "../src/constants.js";
+import { addLiquidityToPool } from "./shared/poolLiquidity.js";
+import { erc20Balance, executeExactInputSingle, executeExactOutputSingle } from "./shared/swapTestHelpers.js";
 import {
   approveTokensForLiquidityAdder,
   approveTokensForSimpleRouter,
@@ -31,29 +33,6 @@ type PathTestEnv = {
   quoterAddress: Address;
 };
 
-async function addLiquidity(
-  env: MetricTestEnv,
-  deployer: any,
-  pool: Address,
-  salt: bigint,
-): Promise<void> {
-  const addDeltas: sdk.PoolLiquidityDelta = {
-    binIdxs: [-2n, -1n, 0n, 1n, 2n],
-    shares: [5_000_000n, 5_000_000n, 10_000_000n, 5_000_000n, 5_000_000n],
-  };
-  const hash = await deployer.sendTransaction({
-    to: env.liquidityAdder.address,
-    data: sdk.encodeAddLiquidityExactSharesSelfCalldata({
-      pool,
-      salt,
-      deltas: addDeltas,
-      maxAmountToken0: sdk.NO_SLIPPAGE_LIMIT,
-      maxAmountToken1: sdk.NO_SLIPPAGE_LIMIT,
-    }),
-  });
-  assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
-}
-
 async function setupTwoPoolPathEnv(viem: any, deployer: any): Promise<PathTestEnv> {
   const env = await deployMetricTestEnv(viem, deployer);
   const max0 = parseUnits("1000000", 18);
@@ -64,8 +43,8 @@ async function setupTwoPoolPathEnv(viem: any, deployer: any): Promise<PathTestEn
   const poolA = await createPoolViaFactory(env, deployer, { salt: SALT_POOL_A });
   const poolB = await createPoolViaFactory(env, deployer, { salt: SALT_POOL_B });
 
-  await addLiquidity(env, deployer, poolA, 1n);
-  await addLiquidity(env, deployer, poolB, 2n);
+  await addLiquidityToPool(env, deployer, poolA, 1n);
+  await addLiquidityToPool(env, deployer, poolB, 2n);
 
   return {
     env,
@@ -94,36 +73,7 @@ async function token0Balance(
   token0: Address,
   account: Address,
 ): Promise<bigint> {
-  return (await publicClient.readContract({
-    address: token0,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: [account],
-  })) as bigint;
-}
-
-async function executeExactInputSingle(
-  env: MetricTestEnv,
-  deployer: any,
-  params: sdk.ExactInputSingleParams,
-): Promise<void> {
-  const hash = await deployer.sendTransaction({
-    to: env.simpleRouter.address,
-    data: sdk.encodeExactInputSingleCalldata(params),
-  });
-  assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
-}
-
-async function executeExactOutputSingle(
-  env: MetricTestEnv,
-  deployer: any,
-  params: sdk.ExactOutputSingleParams,
-): Promise<void> {
-  const hash = await deployer.sendTransaction({
-    to: env.simpleRouter.address,
-    data: sdk.encodeExactOutputSingleCalldata(params),
-  });
-  assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
+  return erc20Balance(publicClient, token0, account);
 }
 
 describe("two-hop path quote and swap", async () => {

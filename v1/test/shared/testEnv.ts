@@ -48,7 +48,10 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
   const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
-  const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [weth.address]);
+  const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
+    weth.address,
+    factory.address,
+  ]);
   const quoter = await viem.deployContract("MetricOmmSwapQuoter", []);
 
   return {

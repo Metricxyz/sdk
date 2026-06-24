@@ -11,6 +11,17 @@ export const MetricOmmSwapQuoterAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "uint128",
+        name: "amount",
+        type: "uint128",
+      },
+    ],
+    name: "AmountTooLarge",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "HypotheticalQuoteDidNotRevert",
     type: "error",
@@ -76,6 +87,27 @@ export const MetricOmmSwapQuoterAbi = [
       },
     ],
     name: "InvalidPriceLimitForDirection",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+    ],
+    name: "InvalidPriceLimitForDirection",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidSwapDeltas",
     type: "error",
   },
   {
@@ -183,7 +215,8 @@ export const MetricOmmSwapQuoterAbi = [
             type: "uint128[]",
           },
         ],
-        internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactInputParams",
+        internalType:
+          "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactInputParams",
         name: "params",
         type: "tuple",
       },
@@ -192,12 +225,12 @@ export const MetricOmmSwapQuoterAbi = [
     outputs: [
       {
         internalType: "uint256",
-        name: "",
+        name: "totalIn",
         type: "uint256",
       },
       {
         internalType: "uint256",
-        name: "",
+        name: "totalOut",
         type: "uint256",
       },
     ],
@@ -347,7 +380,8 @@ export const MetricOmmSwapQuoterAbi = [
             type: "uint128[]",
           },
         ],
-        internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactOutputParams",
+        internalType:
+          "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactOutputParams",
         name: "params",
         type: "tuple",
       },

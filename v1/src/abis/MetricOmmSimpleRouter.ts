@@ -6,6 +6,11 @@ export const MetricOmmSimpleRouterAbi = [
         name: "weth",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "factory",
+        type: "address",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -19,6 +24,17 @@ export const MetricOmmSimpleRouterAbi = [
       },
     ],
     name: "AddressEmptyCode",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint128",
+        name: "amount",
+        type: "uint128",
+      },
+    ],
+    name: "AmountTooLarge",
     type: "error",
   },
   {
@@ -128,6 +144,11 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "InvalidFactory",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "uint8",
@@ -193,6 +214,17 @@ export const MetricOmmSimpleRouterAbi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+    ],
+    name: "InvalidPool",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "bool",
         name: "zeroForOne",
         type: "bool",
@@ -204,6 +236,32 @@ export const MetricOmmSimpleRouterAbi = [
       },
     ],
     name: "InvalidPriceLimitForDirection",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+    ],
+    name: "InvalidPriceLimitForDirection",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidSwapDeltas",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidSwapDeltas",
     type: "error",
   },
   {

@@ -54,7 +54,7 @@
     "type": "git",
     "url": "https://github.com/Metric-OMM/metric-sdk.git"
   },
-  "metricPeripheryRef": "dccbda7970da36d55a86108e3dbcce1e794c9634",
+  "metricPeripheryRef": "3e074d938da84eccee85f4c9dc2e9f27535af134",
   "dependencies": {
     "viem": "^2.x"
   },
