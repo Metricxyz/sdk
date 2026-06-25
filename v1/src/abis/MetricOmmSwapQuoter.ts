@@ -215,8 +215,7 @@ export const MetricOmmSwapQuoterAbi = [
             type: "uint128[]",
           },
         ],
-        internalType:
-          "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactInputParams",
+        internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactInputParams",
         name: "params",
         type: "tuple",
       },
@@ -380,8 +379,7 @@ export const MetricOmmSwapQuoterAbi = [
             type: "uint128[]",
           },
         ],
-        internalType:
-          "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactOutputParams",
+        internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactOutputParams",
         name: "params",
         type: "tuple",
       },

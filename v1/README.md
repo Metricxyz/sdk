@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `3e074d938da84eccee85f4c9dc2e9f27535af134` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `e161cb0b1b301395c631197f3c7d5c205a8b4d48` (core via periphery `lib/metric-core`).
 
 ## Installation
 
@@ -111,26 +111,32 @@ Approve the **SimpleRouter** for input tokens (ERC-20 path). Swap allowlist exte
 
 ### Native ETH
 
-Pay with native ETH (router wraps to WETH) or receive ETH (swap to router, then `unwrapWETH9`). Helpers return `{ data, value? }` for `walletClient.sendTransaction`.
+**Exact input + native payment:** use `prepareExactInputSingleSupportingNativePaymentCalldata` / `prepareExactInputSupportingNativePaymentCalldata` (multicall + `refundETH`). Set `msg.value` on the transaction yourself.
+
+**Exact output + native payment:** use `prepareExactOutputSingleSupportingNativePaymentCalldata` / `prepareExactOutputSupportingNativePaymentCalldata` (multicall + `refundETH`). Set `msg.value` on the transaction yourself.
+
+**ETH output (unwrap):** use `prepareExactInputSingleAndUnwrapCalldata` / `prepareExactInputAndUnwrapCalldata` (or exact-output variants).
 
 ```typescript
 import {
   buildExactInputSingleParams,
-  prepareExactInputSingleFromNativeCalldata,
-  prepareExactInputSingleToNativeCalldata,
+  prepareExactInputSingleSupportingNativePaymentCalldata,
+  prepareExactInputSingleAndUnwrapCalldata,
 } from "@nradko/metric-omm-sdk-v1";
 
 // ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
 const params = await buildExactInputSingleParams({ /* … */, quoterAddress });
-const { data, value } = prepareExactInputSingleFromNativeCalldata(params);
-await walletClient.sendTransaction({ to: addresses.simpleRouter, data, value, account });
+const swapData = prepareExactInputSingleSupportingNativePaymentCalldata(params);
+await walletClient.sendTransaction({ to: addresses.simpleRouter, data: swapData, value: params.amountIn, account });
 
 // ERC-20 → ETH: tokenOut = wrappedNative, then unwrap via multicall:
-const { data } = prepareExactInputSingleToNativeCalldata(params, { simpleRouter: addresses.simpleRouter });
-await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account });
+const unwrapData = prepareExactInputSingleAndUnwrapCalldata(params, addresses.simpleRouter);
+await walletClient.sendTransaction({ to: addresses.simpleRouter, data: unwrapData, account });
 ```
 
-Multihop: `prepareExactInputFromNativeCalldata` / `prepareExactInputToNativeCalldata`. Mixed native + WETH: pass `msgValue` on the `*FromNative*` helpers and approve the router for `amountIn - msgValue` WETH.
+**Exact input + native payment:** pass any `msg.value` ≤ `amountIn`; the router uses native ETH first and pulls the rest from wrappedNative (approve the router). Unused native ETH is refunded.
+
+**Exact output + native payment:** pass any `msg.value`; if it is less than the `amountIn` calculated during the swap, the remainder is charged from WETH (reverts if insufficient). Unused native ETH is refunded.
 
 ### Oracle route → swap
 
@@ -165,7 +171,7 @@ const data =
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account });
 ```
 
-Pair with `prepareExactInputSingleFromNativeCalldata` when `tokenIn` is native ETH (route `tokenIn` should be wrapped native).
+Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.value` when `tokenIn` is native ETH (route `tokenIn` should be wrapped native).
 
 ## Quotes (SwapQuoter)
 

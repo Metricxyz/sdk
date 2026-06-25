@@ -1,10 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getAddress, type PublicClient } from "viem";
-import {
-  prepareExactInputFromRoute,
-  type RouteResponse,
-} from "../src/router/fromRoute.js";
+import { prepareExactInputFromRoute, type RouteResponse } from "../src/router/fromRoute.js";
 import { encodeExactInputCalldata, encodeExactInputSingleCalldata } from "../src/router/index.js";
 
 const tokenA = "0x0000000000000000000000000000000000000001";
@@ -14,7 +11,9 @@ const poolAB = "0x00000000000000000000000000000000000000aa";
 const poolBC = "0x00000000000000000000000000000000000000bb";
 const recipient = "0xcccccccccccccccccccccccccccccccccccccccc";
 
-function mockPublicClient(token0ByPool: Record<string, { token0: string; token1: string }>): PublicClient {
+function mockPublicClient(
+  token0ByPool: Record<string, { token0: string; token1: string }>,
+): PublicClient {
   return {
     readContract: async ({ address, functionName }: { address: string; functionName: string }) => {
       if (functionName !== "getImmutables") {

@@ -34,7 +34,7 @@ export {
 } from "./swap.js";
 
 export {
-  prepareExactInputFromRoute,
+  routeToExactInputParams as prepareExactInputFromRoute,
   type RouteType,
   type RouteLegResponse,
   type RouteResponse,
@@ -46,14 +46,15 @@ export {
   encodeMulticallCalldata,
   encodeRefundETHCalldata,
   encodeUnwrapWETH9Calldata,
-  prepareExactInputFromNativeCalldata,
-  prepareExactInputSingleFromNativeCalldata,
-  prepareExactInputSingleToNativeCalldata,
-  prepareExactInputToNativeCalldata,
-  prepareExactOutputFromNativeCalldata,
-  prepareExactOutputSingleFromNativeCalldata,
-  prepareExactOutputSingleToNativeCalldata,
-  prepareExactOutputToNativeCalldata,
-  type NativeEthOutputInputOptions,
-  type PreparedSwapTransaction,
+} from "./utils.js";
+
+export {
+  prepareExactInputSingleAndUnwrapCalldata,
+  prepareExactInputAndUnwrapCalldata,
+  prepareExactInputSingleSupportingNativePaymentCalldata,
+  prepareExactInputSupportingNativePaymentCalldata,
+  prepareExactOutputSupportingNativePaymentCalldata,
+  prepareExactOutputSingleSupportingNativePaymentCalldata,
+  prepareExactOutputSingleAndUnwrapCalldata,
+  prepareExactOutputAndUnwrapCalldata,
 } from "./nativeSwap.js";
