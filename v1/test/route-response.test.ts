@@ -1,7 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getAddress, type PublicClient } from "viem";
-import { prepareExactInputFromRoute, type RouteResponse } from "../src/router/fromRoute.js";
+import {
+  routeToExactInputParams,
+  type RouteResponse,
+} from "../src/router/fromRoute.js";
 import { encodeExactInputCalldata, encodeExactInputSingleCalldata } from "../src/router/index.js";
 
 const tokenA = "0x0000000000000000000000000000000000000001";
@@ -34,33 +37,39 @@ describe("prepareExactInputFromRoute", () => {
       tokenIn: tokenA,
       tokenOut: tokenB,
       amountIn: "1000000",
-      amountOut: "997500",
+      expectedAmountOut: "997500",
       effectivePriceX64: "1",
-      priceImpactE6: "2500",
-      routeType: "direct",
-      intermediaryToken: null,
-      legs: [
+      priceImpactBestRoute: "2500",
+      candidatesConsidered: 3,
+      routes: [
         {
-          poolAddress: poolAB,
-          pair: "A/B",
-          tokenIn: tokenA,
-          tokenOut: tokenB,
+          routeType: "direct",
           amountIn: "1000000",
-          amountOut: "997500",
+          expectedAmountOut: "997500",
           effectivePriceX64: "1",
           priceImpactE6: "2500",
-          priceLimitX64: "0",
+          legs: [
+            {
+              poolAddress: poolAB,
+              pair: "A/B",
+              tokenIn: tokenA,
+              tokenOut: tokenB,
+              amountIn: "1000000",
+              amountOut: "997500",
+              effectivePriceX64: "1",
+              priceImpactE6: "2500",
+              priceLimitX64: "0",
+            },
+          ],
         },
       ],
-      serverTs: 1718640000,
-      candidatesConsidered: 3,
     };
 
     const publicClient = mockPublicClient({
       [poolAB.toLowerCase()]: { token0: tokenA, token1: tokenB },
     });
 
-    const prepared = await prepareExactInputFromRoute({
+    const prepared = await routeToExactInputParams({
       publicClient,
       route,
       recipient,
@@ -86,37 +95,43 @@ describe("prepareExactInputFromRoute", () => {
       tokenIn: tokenA,
       tokenOut: tokenC,
       amountIn: "1000000",
-      amountOut: "990000",
+      expectedAmountOut: "990000",
       effectivePriceX64: "1",
-      priceImpactE6: "10000",
-      routeType: "oneHop",
-      intermediaryToken: tokenB,
-      legs: [
+      priceImpactBestRoute: "10000",
+      candidatesConsidered: 5,
+      routes: [
         {
-          poolAddress: poolAB,
-          pair: "A/B",
-          tokenIn: tokenA,
-          tokenOut: tokenB,
+          routeType: "one_hop",
           amountIn: "1000000",
-          amountOut: "995000",
+          expectedAmountOut: "990000",
           effectivePriceX64: "1",
-          priceImpactE6: "5000",
-          priceLimitX64: "0",
-        },
-        {
-          poolAddress: poolBC,
-          pair: "B/C",
-          tokenIn: tokenB,
-          tokenOut: tokenC,
-          amountIn: "995000",
-          amountOut: "990000",
-          effectivePriceX64: "1",
-          priceImpactE6: "5000",
-          priceLimitX64: "0",
+          priceImpactE6: "10000",
+          legs: [
+            {
+              poolAddress: poolAB,
+              pair: "A/B",
+              tokenIn: tokenA,
+              tokenOut: tokenB,
+              amountIn: "1000000",
+              amountOut: "995000",
+              effectivePriceX64: "1",
+              priceImpactE6: "5000",
+              priceLimitX64: "0",
+            },
+            {
+              poolAddress: poolBC,
+              pair: "B/C",
+              tokenIn: tokenB,
+              tokenOut: tokenC,
+              amountIn: "995000",
+              amountOut: "990000",
+              effectivePriceX64: "1",
+              priceImpactE6: "5000",
+              priceLimitX64: "0",
+            },
+          ],
         },
       ],
-      serverTs: 1718640000,
-      candidatesConsidered: 5,
     };
 
     const publicClient = mockPublicClient({
@@ -124,7 +139,7 @@ describe("prepareExactInputFromRoute", () => {
       [poolBC.toLowerCase()]: { token0: tokenB, token1: tokenC },
     });
 
-    const prepared = await prepareExactInputFromRoute({
+    const prepared = await routeToExactInputParams({
       publicClient,
       route,
       recipient,
@@ -148,37 +163,43 @@ describe("prepareExactInputFromRoute", () => {
       tokenIn: tokenA,
       tokenOut: tokenC,
       amountIn: "1",
-      amountOut: "1",
+      expectedAmountOut: "1",
       effectivePriceX64: "1",
-      priceImpactE6: "0",
-      routeType: "oneHop",
-      intermediaryToken: tokenB,
-      legs: [
+      priceImpactBestRoute: "0",
+      candidatesConsidered: 1,
+      routes: [
         {
-          poolAddress: poolAB,
-          pair: "A/B",
-          tokenIn: tokenA,
-          tokenOut: tokenB,
+          routeType: "one_hop",
           amountIn: "1",
-          amountOut: "1",
+          expectedAmountOut: "1",
           effectivePriceX64: "1",
           priceImpactE6: "0",
-          priceLimitX64: "0",
-        },
-        {
-          poolAddress: poolBC,
-          pair: "B/C",
-          tokenIn: tokenC,
-          tokenOut: tokenC,
-          amountIn: "1",
-          amountOut: "1",
-          effectivePriceX64: "1",
-          priceImpactE6: "0",
-          priceLimitX64: "0",
+          legs: [
+            {
+              poolAddress: poolAB,
+              pair: "A/B",
+              tokenIn: tokenA,
+              tokenOut: tokenB,
+              amountIn: "1",
+              amountOut: "1",
+              effectivePriceX64: "1",
+              priceImpactE6: "0",
+              priceLimitX64: "0",
+            },
+            {
+              poolAddress: poolBC,
+              pair: "B/C",
+              tokenIn: tokenC,
+              tokenOut: tokenC,
+              amountIn: "1",
+              amountOut: "1",
+              effectivePriceX64: "1",
+              priceImpactE6: "0",
+              priceLimitX64: "0",
+            },
+          ],
         },
       ],
-      serverTs: 1,
-      candidatesConsidered: 1,
     };
 
     const publicClient = mockPublicClient({
@@ -188,7 +209,7 @@ describe("prepareExactInputFromRoute", () => {
 
     await assert.rejects(
       () =>
-        prepareExactInputFromRoute({
+        routeToExactInputParams({
           publicClient,
           route,
           recipient,
@@ -196,6 +217,76 @@ describe("prepareExactInputFromRoute", () => {
           slippagePercent: 0,
         }),
       /does not connect/,
+    );
+  });
+
+  it("rejects split routes", async () => {
+    const route: RouteResponse = {
+      tokenIn: tokenA,
+      tokenOut: tokenB,
+      amountIn: "1000000",
+      expectedAmountOut: "997500",
+      effectivePriceX64: "1",
+      priceImpactBestRoute: "2500",
+      candidatesConsidered: 3,
+      routes: [
+        {
+          routeType: "direct",
+          amountIn: "500000",
+          expectedAmountOut: "498750",
+          effectivePriceX64: "1",
+          priceImpactE6: "2500",
+          legs: [
+            {
+              poolAddress: poolAB,
+              pair: "A/B",
+              tokenIn: tokenA,
+              tokenOut: tokenB,
+              amountIn: "500000",
+              amountOut: "498750",
+              effectivePriceX64: "1",
+              priceImpactE6: "2500",
+              priceLimitX64: "0",
+            },
+          ],
+        },
+        {
+          routeType: "direct",
+          amountIn: "500000",
+          expectedAmountOut: "498750",
+          effectivePriceX64: "1",
+          priceImpactE6: "2500",
+          legs: [
+            {
+              poolAddress: poolAB,
+              pair: "A/B",
+              tokenIn: tokenA,
+              tokenOut: tokenB,
+              amountIn: "500000",
+              amountOut: "498750",
+              effectivePriceX64: "1",
+              priceImpactE6: "2500",
+              priceLimitX64: "0",
+            },
+          ],
+        },
+      ],
+    };
+
+    const publicClient = mockPublicClient({
+      [poolAB.toLowerCase()]: { token0: tokenA, token1: tokenB },
+    });
+
+    await assert.rejects(
+      () =>
+        routeToExactInputParams({
+          publicClient,
+          route,
+          recipient,
+          deadline: 1n,
+          slippagePercent: 0,
+        }),
+      /split across multiple routes/,
     );
   });
 });

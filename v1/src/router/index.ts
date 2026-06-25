@@ -37,6 +37,7 @@ export {
   routeToExactInputParams as prepareExactInputFromRoute,
   type RouteType,
   type RouteLegResponse,
+  type RouteOptionResponse,
   type RouteResponse,
   type PrepareExactInputFromRouteParams,
   type PreparedExactInputFromRoute,
