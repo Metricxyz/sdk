@@ -139,7 +139,7 @@ function amountOutMinimumFromRoute(amountOut: bigint, slippagePercent: number): 
  *     : encodeExactInputCalldata(prepared.params);
  * ```
  */
-export async function prepareExactInputFromRoute(
+export async function routeToExactInputParams(
   params: PrepareExactInputFromRouteParams,
 ): Promise<PreparedExactInputFromRoute> {
   const { route, publicClient, recipient, deadline, slippagePercent, extensionDatas } = params;
@@ -151,8 +151,12 @@ export async function prepareExactInputFromRoute(
   const amountOutMinimum = amountOutMinimumFromRoute(quotedAmountOut, slippagePercent);
 
   const pools = validateRouteLegs(route, tokenIn, tokenOut);
-  const { tokens, zeroForOnes, extensionDatas: resolvedExtensionDatas, zeroForOneBitMap } =
-    await resolveSwapPath(publicClient, tokenIn, tokenOut, pools, extensionDatas);
+  const {
+    tokens,
+    zeroForOnes,
+    extensionDatas: resolvedExtensionDatas,
+    zeroForOneBitMap,
+  } = await resolveSwapPath(publicClient, tokenIn, tokenOut, pools, extensionDatas);
 
   if (pools.length === 1) {
     const leg = route.legs[0]!;

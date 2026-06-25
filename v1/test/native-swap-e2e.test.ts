@@ -85,7 +85,11 @@ async function approveRouterForTokens(
   });
 }
 
-async function setupNativeSwapEnv(viem: any, deployer: any, ethRecipient: Address): Promise<NativeSwapTestEnv> {
+async function setupNativeSwapEnv(
+  viem: any,
+  deployer: any,
+  ethRecipient: Address,
+): Promise<NativeSwapTestEnv> {
   const env = await deployMetricTestEnv(viem, deployer);
   const swapToken1 = await viem.deployContract("MockERC20", ["Swap Token 1", "STKN1", 18]);
   const token2 = await viem.deployContract("MockERC20", ["Token 2", "TKN2", 18]);
@@ -98,9 +102,17 @@ async function setupNativeSwapEnv(viem: any, deployer: any, ethRecipient: Addres
     parseUnits("1000000", 6),
   );
 
-  const oracleWethSwapToken1 = await deployOracleForPair(viem, env.weth.address, swapToken1.address);
+  const oracleWethSwapToken1 = await deployOracleForPair(
+    viem,
+    env.weth.address,
+    swapToken1.address,
+  );
   const oracleWethToken1 = await deployOracleForPair(viem, env.weth.address, env.token1.address);
-  const oracleSwapToken1Token2 = await deployOracleForPair(viem, swapToken1.address, token2.address);
+  const oracleSwapToken1Token2 = await deployOracleForPair(
+    viem,
+    swapToken1.address,
+    token2.address,
+  );
 
   const poolToken0Token1 = await createPoolViaFactory(env, deployer, {
     salt: SALT_POOL_TOKEN0_TOKEN1,
@@ -130,9 +142,17 @@ async function setupNativeSwapEnv(viem: any, deployer: any, ethRecipient: Addres
     SALT_POOL_SWAP_TOKEN1_TOKEN2,
   );
 
-  await seedPoolLiquidity(env, deployer, poolToken0Token1, env.token0.address, env.token1.address, 1n, {
-    extraTokens,
-  });
+  await seedPoolLiquidity(
+    env,
+    deployer,
+    poolToken0Token1,
+    env.token0.address,
+    env.token1.address,
+    1n,
+    {
+      extraTokens,
+    },
+  );
   await seedPoolLiquidity(
     env,
     deployer,
@@ -145,9 +165,17 @@ async function setupNativeSwapEnv(viem: any, deployer: any, ethRecipient: Addres
   await seedPoolLiquidity(env, deployer, poolWethToken1, env.weth.address, env.token1.address, 3n, {
     extraTokens,
   });
-  await seedPoolLiquidity(env, deployer, poolSwapToken1Token2, swapToken1.address, token2.address, 4n, {
-    extraTokens,
-  });
+  await seedPoolLiquidity(
+    env,
+    deployer,
+    poolSwapToken1Token2,
+    swapToken1.address,
+    token2.address,
+    4n,
+    {
+      extraTokens,
+    },
+  );
 
   await approveRouterForTokens(env, deployer, swapToken1, token2);
 
@@ -193,11 +221,11 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const { data, value } = sdk.prepareExactInputSingleFromNativeCalldata(params);
+    const data = sdk.prepareExactInputSingleSupportingNativePaymentCalldata(params);
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
-      value,
+      value: amountIn,
     });
     assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
 
@@ -225,10 +253,7 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const { data } = sdk.prepareExactInputSingleToNativeCalldata(params, {
-      simpleRouter: env.simpleRouter.address,
-      ethRecipient,
-    });
+    const data = sdk.prepareExactInputSingleAndUnwrapCalldata(params, env.simpleRouter.address);
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
@@ -266,11 +291,11 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const { data, value } = sdk.prepareExactInputFromNativeCalldata(pathParams);
+    const data = sdk.prepareExactInputSupportingNativePaymentCalldata(pathParams);
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
-      value,
+      value: amountIn,
     });
     assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
 
@@ -298,10 +323,7 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const { data } = sdk.prepareExactInputToNativeCalldata(pathParams, {
-      simpleRouter: env.simpleRouter.address,
-      ethRecipient,
-    });
+    const data = sdk.prepareExactInputAndUnwrapCalldata(pathParams, env.simpleRouter.address);
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,

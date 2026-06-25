@@ -160,7 +160,7 @@ function toExactOutputSingleStruct(params: ExactOutputSingleParams) {
  * Build single-hop exact-input swap params with live quote and slippage.
  *
  * Resolves `zeroForOne`, quotes `amountOut`, and sets `amountOutMinimum`.
- * For native ETH input, pair with `prepareExactInputSingleFromNativeCalldata` after building
+ * For native ETH input, use `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.value` on the transaction.
  * (params will contain WETH as `tokenIn`).
  *
  * @example
