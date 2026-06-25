@@ -11,13 +11,27 @@ import type { ExactInputSingleParams } from "./swap.js";
 
 const BPS_BASE = 10_000n;
 
+/** Oracle route response (`RouteResponse`). */
+export type RouteResponse = {
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  expectedAmountOut: string;
+  effectivePriceX64: string;
+  priceImpactBestRoute: string;
+  candidatesConsidered: number;
+  routes: RouteOptionResponse[];
+};
+
+
 /** Wire `routeType` from the Oracle route endpoint. */
-export type RouteType = "direct" | "oneHop";
+export type RouteType = "direct" | "one_hop";
 
 /** One hop in an Oracle route response (`RouteLegResponse`). */
 export type RouteLegResponse = {
   poolAddress: string;
   pair: string;
+  zeroForOne?: boolean;
   tokenIn: string;
   tokenOut: string;
   amountIn: string;
@@ -27,27 +41,24 @@ export type RouteLegResponse = {
   priceLimitX64: string;
 };
 
-/** Oracle route response (`RouteResponse`). */
-export type RouteResponse = {
-  tokenIn: string;
-  tokenOut: string;
+/** One execution path in an Oracle route response (`RouteOptionResponse`). */
+export type RouteOptionResponse = {
+  routeType: RouteType;
   amountIn: string;
-  amountOut: string;
+  expectedAmountOut: string;
   effectivePriceX64: string;
   priceImpactE6: string;
-  routeType: RouteType;
-  intermediaryToken?: string | null;
   legs: RouteLegResponse[];
-  serverTs: number;
-  candidatesConsidered: number;
 };
+
+
 
 export type PrepareExactInputFromRouteParams = {
   publicClient: PublicClient;
   route: RouteResponse;
   recipient: Address;
   deadline: bigint;
-  /** Human-readable slippage tolerance applied to `route.amountOut`, e.g. `0.5` = 0.5%. */
+  /** Human-readable slippage tolerance applied to the selected route's `expectedAmountOut`, e.g. `0.5` = 0.5%. */
   slippagePercent: number;
   extensionDatas?: readonly Hex[];
 };
@@ -79,14 +90,28 @@ function parseAmount(value: string, field: string): bigint {
   }
 }
 
-function validateRouteLegs(route: RouteResponse, tokenIn: Address, tokenOut: Address): Address[] {
-  if (route.legs.length === 0) {
-    throw new Error("route.legs must not be empty");
+function selectRouteOption(route: RouteResponse): RouteOptionResponse {
+  if (route.routes.length === 0) {
+    throw new Error("route.routes must not be empty");
+  }
+  if (route.routes.length > 1) {
+    throw new Error("route was split across multiple routes; re-request with maxRoutes=1");
+  }
+  return route.routes[0]!;
+}
+
+function validateRouteLegs(
+  legs: RouteLegResponse[],
+  tokenIn: Address,
+  tokenOut: Address,
+): Address[] {
+  if (legs.length === 0) {
+    throw new Error("routes[0].legs must not be empty");
   }
 
   const pools: Address[] = [];
-  for (let i = 0; i < route.legs.length; i++) {
-    const leg = route.legs[i]!;
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i]!;
     const legTokenIn = parseAddress(leg.tokenIn, `legs[${i}].tokenIn`);
     const legTokenOut = parseAddress(leg.tokenOut, `legs[${i}].tokenOut`);
     pools.push(parseAddress(leg.poolAddress, `legs[${i}].poolAddress`));
@@ -94,13 +119,13 @@ function validateRouteLegs(route: RouteResponse, tokenIn: Address, tokenOut: Add
     if (i === 0 && legTokenIn !== tokenIn) {
       throw new Error(`legs[0].tokenIn (${legTokenIn}) does not match route.tokenIn (${tokenIn})`);
     }
-    if (i === route.legs.length - 1 && legTokenOut !== tokenOut) {
+    if (i === legs.length - 1 && legTokenOut !== tokenOut) {
       throw new Error(
         `legs[${i}].tokenOut (${legTokenOut}) does not match route.tokenOut (${tokenOut})`,
       );
     }
     if (i > 0) {
-      const prevLegTokenOut = parseAddress(route.legs[i - 1]!.tokenOut, `legs[${i - 1}].tokenOut`);
+      const prevLegTokenOut = parseAddress(legs[i - 1]!.tokenOut, `legs[${i - 1}].tokenOut`);
       if (legTokenIn !== prevLegTokenOut) {
         throw new Error(
           `legs[${i}].tokenIn (${legTokenIn}) does not connect to legs[${i - 1}].tokenOut (${prevLegTokenOut})`,
@@ -120,7 +145,7 @@ function amountOutMinimumFromRoute(amountOut: bigint, slippagePercent: number): 
 /**
  * Convert an Oracle `/route` response into SimpleRouter exact-input swap params.
  *
- * Resolves swap direction on-chain, applies slippage to the quoted `amountOut`, and
+ * Resolves swap direction on-chain, applies slippage to the quoted `expectedAmountOut`, and
  * returns params ready for `encodeExactInputSingleCalldata` or `encodeExactInputCalldata`.
  *
  * @example
@@ -147,10 +172,11 @@ export async function routeToExactInputParams(
   const tokenIn = parseAddress(route.tokenIn, "tokenIn");
   const tokenOut = parseAddress(route.tokenOut, "tokenOut");
   const amountIn = parseAmount(route.amountIn, "amountIn");
-  const quotedAmountOut = parseAmount(route.amountOut, "amountOut");
+  const option = selectRouteOption(route);
+  const quotedAmountOut = parseAmount(option.expectedAmountOut, "routes[0].expectedAmountOut");
   const amountOutMinimum = amountOutMinimumFromRoute(quotedAmountOut, slippagePercent);
 
-  const pools = validateRouteLegs(route, tokenIn, tokenOut);
+  const pools = validateRouteLegs(option.legs, tokenIn, tokenOut);
   const {
     tokens,
     zeroForOnes,
@@ -159,7 +185,7 @@ export async function routeToExactInputParams(
   } = await resolveSwapPath(publicClient, tokenIn, tokenOut, pools, extensionDatas);
 
   if (pools.length === 1) {
-    const leg = route.legs[0]!;
+    const leg = option.legs[0]!;
     return {
       kind: "single",
       params: {
