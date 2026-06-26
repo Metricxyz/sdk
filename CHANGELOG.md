@@ -7,11 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed — SDK (v1) (breaking)
+## [0.4.3] - 2026-06-25
+
+> Breaking vs `0.4.2` on native ETH helpers and route API types. Updates deployment addresses and removes the separate StateView lens.
+>
+> Pinned upstream: **metric-periphery** `e161cb0b1b301395c631197f3c7d5c205a8b4d48` (core via periphery `lib/metric-core`).
+>
+> Packages: **@nradko/metric-omm-sdk-v1** `0.4.3`, **@nradko/metric-omm-sdk** `0.4.3`. **@nradko/metric-omm-sdk-v0** stays at `0.1.1`.
+
+### Added — SDK (v1)
+
+- **Native ETH exact-output** — `prepareExactOutputSingleSupportingNativePaymentCalldata`, `prepareExactOutputSupportingNativePaymentCalldata`, `prepareExactOutputSingleAndUnwrapCalldata`, and `prepareExactOutputAndUnwrapCalldata`.
+- **Route API exact-out** — `prepareExactOutputFromRoute` maps `exact_out` `POST /public/v1/evm/:chain_id/route` responses to `ExactOutputSingleParams` or `ExactOutputParams`.
+- **Route API types** — `TradeType`, nested `routes[]` on `RouteResponse`, and `RouteOptionResponse` aligned with the current wire contract.
+
+### Breaking — SDK (v1)
 
 - **Native ETH helper rename** — `prepareExactInputSingleFromNativeCalldata` → `prepareExactInputSingleSupportingNativePaymentCalldata`, `prepareExactInputFromNativeCalldata` → `prepareExactInputSupportingNativePaymentCalldata`, `prepareExactInputSingleToNativeCalldata` → `prepareExactInputSingleAndUnwrapCalldata`, `prepareExactInputToNativeCalldata` → `prepareExactInputAndUnwrapCalldata`, and exact-output variants (`prepareExactOutput*SupportingNativePaymentCalldata` / `prepareExactOutput*AndUnwrapCalldata`).
-- **Return type** — native-payment helpers return `Hex` calldata only; removed `PreparedSwapTransaction` and bundled `value` — set `msg.value` on the transaction yourself.
-- **Unwrap recipient** — removed `ethRecipient` option; ETH is sent to `params.recipient`.
+- **Native ETH return type** — helpers return `Hex` calldata only; removed `PreparedSwapTransaction` and bundled `value` — set `msg.value` on the transaction yourself.
+- **Native ETH unwrap recipient** — removed `ethRecipient` option; ETH is sent to `params.recipient`.
+- **Route API response shape** — top-level `expectedAmountOut` removed; use `amountOut`. Paths live under `routes[]`; each option carries `tradeType`, `amountIn`, and `amountOut`.
+- **ChainAddresses** — `stateView` removed; use `dataProvider` for all pool reads (`slot0`, bins, position shares).
+- **Removed exports** — `MetricOmmPoolStateViewAbi`, `getPositionBinSharesFromStateView`.
+- **Bundled deployment addresses** — LiquidityAdder, DataProvider, SimpleRouter, SwapQuoter, and all four extensions updated on Ethereum mainnet and Base.
+
+### Changed — SDK (v1)
+
+- **Router utils** — `encodeMulticallCalldata`, `encodeRefundETHCalldata`, and `encodeUnwrapWETH9Calldata` live in `router/utils.ts` (re-exported from the package root).
+- **Route API mapping** — `prepareExactInputFromRoute` reads from `routes[0]`; rejects split routes and partial fills; validates `tradeType` per direction.
+- **SwapQuoter address** — `addresses.quoter` is no longer a zero placeholder.
 
 ## [0.4.2] - 2026-06-24
 

@@ -38,7 +38,7 @@ const addresses = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 const slot0 = await v1.getSlot0(publicClient, addresses.dataProvider, poolAddress);
 ```
 
-See [v1/README.md](./v1/README.md) for SimpleRouter swaps (including native ETH and Oracle route integration), SwapQuoter quotes, LiquidityAdder flows, and deployment addresses.
+See [v1/README.md](./v1/README.md) for SimpleRouter swaps (including native ETH and route API integration), SwapQuoter quotes, LiquidityAdder flows, and deployment addresses.
 
 ## Quick start (v0 — Router / modifyLiquidity)
 

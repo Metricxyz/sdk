@@ -103,7 +103,7 @@ function parseAmount(value: string, field: string): bigint {
     if (error instanceof Error && error.message.includes("must be non-negative")) {
       throw error;
     }
-    throw new Error(`invalid ${field}: ${value}`);
+    throw new Error(`invalid ${field}: ${value}`, { cause: error });
   }
 }
 
@@ -117,7 +117,11 @@ function selectRouteOption(route: RouteResponse): RouteOptionResponse {
   return route.routes[0]!;
 }
 
-function assertTradeType(route: RouteResponse, option: RouteOptionResponse, tradeType: TradeType): void {
+function assertTradeType(
+  route: RouteResponse,
+  option: RouteOptionResponse,
+  tradeType: TradeType,
+): void {
   if (route.tradeType !== tradeType) {
     throw new Error(
       `route tradeType must be ${tradeType}; use ${
@@ -265,7 +269,7 @@ export async function routeToExactOutputParams(
   const amountOut = parseAmount(option.amountOut, "routes[0].amountOut");
   if (amountOut !== requestedAmountOut) {
     throw new Error(
-      "routes[0].amountOut does not match request amountOut;",
+      "routes[0].amountOut does not match request amountOut; partial fill is not supported",
     );
   }
   const quotedAmountIn = parseAmount(option.amountIn, "routes[0].amountIn");

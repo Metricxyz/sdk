@@ -424,7 +424,7 @@ Same flow on v0, but router + `modifyLiquidity` for add/remove and bundled State
 | ----- | -------- |
 | **Mixed-decimal pools (18/6)** | Use moderate share sizes (e.g. `10_000_000n`), not `parseUnits("100", 18)`, when minting into empty bins — scaled balances are `uint104`. |
 | **Invalid bin index** | If you create `N` bins per side, valid indices are roughly `-N…-1` and `0…N-1`. Do not address bin `N`. |
-| **v1 lens** | Use `addresses.dataProvider` (`MetricOmmPoolDataProvider`); StateView is not deployed separately. |
+| **v1 lens** | Use `addresses.dataProvider` (`MetricOmmPoolDataProvider`) for all pool reads. |
 | **Approvals** | v0: pool (+ router for swaps). v1: liquidityAdder for adds, simpleRouter for swaps, pool only for remove. |
 | **Deterministic create tests** | Pass explicit `salt` in `CreatePoolFactoryParams`; otherwise each `encodeCreatePoolCalldata` differs. |
 | **Type-only `ChainId` entries** | v1 exports many chain IDs for typing; only Ethereum has `ADDRESSES`. Use `isChainSupported` / `getSupportedChainIds`. |

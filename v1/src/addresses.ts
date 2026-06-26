@@ -3,7 +3,7 @@
  *
  * Ethereum mainnet and Base use the same protocol deployment addresses (CREATE2).
  * Pool state reads (slot0, bins, position shares) and depth/quote views use dataProvider
- * (MetricOmmPoolDataProvider — the single deployed lens per factory; includes StateView reads).
+ * (MetricOmmPoolDataProvider — the single deployed lens per factory).
  */
 
 import type { Address } from "viem";
