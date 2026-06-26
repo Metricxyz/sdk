@@ -1,6 +1,6 @@
 /**
  * MetricAMM SDK - DataProvider read functions
- * Batch reads via MetricOmmPoolDataProvider (mainnet lens; inherits StateView reads).
+ * Batch reads via MetricOmmPoolDataProvider.
  */
 
 import type { Address, PublicClient } from "viem";
@@ -341,6 +341,3 @@ export async function getPriceProvider(
     args: [poolAddress],
   })) as Address;
 }
-
-/** @deprecated Use getPositionBinSharesFromDataProvider */
-export const getPositionBinSharesFromStateView = getPositionBinSharesFromDataProvider;

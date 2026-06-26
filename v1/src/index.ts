@@ -47,7 +47,6 @@ export {
   MetricOmmPoolAbi,
   MetricOmmPoolDataProviderAbi,
   MetricOmmSwapQuoterAbi,
-  MetricOmmPoolStateViewAbi,
   MetricOmmSimpleRouterAbi,
   MetricOmmPoolLiquidityAdderAbi,
   MetricOmmPoolFactoryAbi,
@@ -95,7 +94,6 @@ export {
   getBinStatesScaled,
   getBinTotalShares,
   getPositionBinSharesFromDataProvider,
-  getPositionBinSharesFromStateView,
   toPositionBinKey,
   getPositionBinSharesRange,
   getPriceProvider,
@@ -190,12 +188,16 @@ export {
   type BuildExactInputParams,
   type BuildExactOutputParams,
   prepareExactInputFromRoute,
+  prepareExactOutputFromRoute,
+  type TradeType,
   type RouteType,
   type RouteLegResponse,
   type RouteOptionResponse,
   type RouteResponse,
   type PrepareExactInputFromRouteParams,
+  type PrepareExactOutputFromRouteParams,
   type PreparedExactInputFromRoute,
+  type PreparedExactOutputFromRoute,
 } from "./router/index.js";
 
 // ============ Factory Functions ============

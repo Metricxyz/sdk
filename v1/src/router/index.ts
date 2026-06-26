@@ -35,12 +35,16 @@ export {
 
 export {
   routeToExactInputParams as prepareExactInputFromRoute,
+  routeToExactOutputParams as prepareExactOutputFromRoute,
+  type TradeType,
   type RouteType,
   type RouteLegResponse,
   type RouteOptionResponse,
   type RouteResponse,
   type PrepareExactInputFromRouteParams,
+  type PrepareExactOutputFromRouteParams,
   type PreparedExactInputFromRoute,
+  type PreparedExactOutputFromRoute,
 } from "./fromRoute.js";
 
 export {

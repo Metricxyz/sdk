@@ -41,7 +41,6 @@ const config: HardhatUserConfig = {
       "@metric/periphery/lib/metric-core/test/mocks/TestCaller.sol",
       "@metric/periphery/lib/metric-core/contracts/interfaces/IPriceProvider/IPriceProvider.sol",
       "@metric/periphery/contracts/lens/MetricOmmPoolDataProvider.sol",
-      "@metric/periphery/contracts/common/MetricOmmPoolStateView.sol",
       "@metric/periphery/contracts/lens/MetricOmmSwapQuoter.sol",
       "@metric/periphery/contracts/MetricOmmSimpleRouter.sol",
       "@metric/periphery/contracts/MetricOmmPoolLiquidityAdder.sol",

@@ -95,7 +95,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
     console.log("Added liquidity via prepared payload:");
     console.log("  Transaction hash:", hash);
 
-    // Verify position shares via StateView
+    // Verify position shares via DataProvider
     const positionShares = await sdk.getPositionShares(
       publicClient,
       dataProvider.address,

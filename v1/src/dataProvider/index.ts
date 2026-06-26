@@ -10,7 +10,6 @@ export {
   getBinStatesScaled,
   getBinTotalShares,
   getPositionBinSharesFromDataProvider,
-  getPositionBinSharesFromStateView,
   toPositionBinKey,
   getPositionBinSharesRange,
   getPriceProvider,
