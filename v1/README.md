@@ -24,19 +24,18 @@ Protocol contracts use the **same addresses** on Ethereum mainnet and Base (CREA
 | -------- | ------- |
 | MetricOmmPoolFactory | `0x567C7205107257650dC73a73d87b879a45F5b6F6` |
 | MetricOmmPoolDeployer | `0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4` |
-| MetricOmmPoolLiquidityAdder | `0x323B95ABcE8b3025829980bb19d1Fd819808FCB2` |
-| MetricOmmPoolDataProvider | `0x5A100da447833D94b8e50AeD1916D7488D15D3fc` |
-| MetricOmmSimpleRouter | `0x18f85056444452E718cD680A08f219B2347FE672` |
-| DepositAllowlistExtension | `0x088B0CCBdb17531132173a30428f66c1d5A73794` |
-| SwapAllowlistExtension | `0x952D844e166E6FAaF73a5e56F0fB0C54543a0f69` |
-| OracleValueStopLossExtension | `0x9694959a452283d86eBF4EF4eB5651dEAa1eCec1` |
-| PriceVelocityGuardExtension | `0xa53E5db6c18Ce258b3090F1470c5fE7f2e0215Fc` |
+| MetricOmmPoolLiquidityAdder | `0xA49acb20f33e4FB340f41d949fd7E4c48A242579` |
+| MetricOmmPoolDataProvider | `0x803Cb583c1FbE97e9cA7899bE77cC110A78B8737` |
+| MetricOmmSimpleRouter | `0x146D72ad62957F62ABCC14985aBFCC32a785F996` |
+| MetricOmmSwapQuoter | `0x8A45A0239DE0C8f438392f2E5AFcbee316E64965` |
+| DepositAllowlistExtension | `0xEd246C7B6963E20aa4fCa4912Af8E2Bff6Ca5f4D` |
+| SwapAllowlistExtension | `0x54BF5ba3c5C6C513722a54771b2F2A609e2e3A75` |
+| OracleValueStopLossExtension | `0x6063a740034E85d34cC55Bc7069BC7b7cdE888bf` |
+| PriceVelocityGuardExtension | `0xda4c0860d9fa8d254e425d485BD9C09BD2b051F7` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | WETH (Base) | `0x4200000000000000000000000000000000000006` |
 
-`addresses.quoter` is a zero placeholder until a public SwapQuoter deployment is wired in this SDK release. Pass `quoterAddress` to quote helpers or set the bundled address when available.
-
-`MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param).
+`MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param). There is no separate StateView deployment — use `dataProvider` for all lens reads.
 
 ```typescript
 import { getAddressesOrThrow, ChainId, isChainSupported } from "@nradko/metric-omm-sdk-v1";
@@ -138,35 +137,56 @@ await walletClient.sendTransaction({ to: addresses.simpleRouter, data: unwrapDat
 
 **Exact output + native payment:** pass any `msg.value`; if it is less than the `amountIn` calculated during the swap, the remainder is charged from WETH (reverts if insufficient). Unused native ETH is refunded.
 
-### Oracle route → swap
+### Route API → swap
 
-When routing comes from the Metric Oracle API (`POST /public/v1/evm/:chain_id/route`), convert the JSON response into swap params without re-quoting:
+When routing comes from `POST /public/v1/evm/:chain_id/route`, convert the JSON response into swap params without re-quoting. Request `maxRoutes: 1` for single-path execution (split routes are rejected by the SDK mappers).
 
 ```typescript
 import {
   prepareExactInputFromRoute,
+  prepareExactOutputFromRoute,
   encodeExactInputSingleCalldata,
   encodeExactInputCalldata,
+  encodeExactOutputSingleCalldata,
+  encodeExactOutputCalldata,
 } from "@nradko/metric-omm-sdk-v1";
 
-const route = await fetch(`${oracleBase}/public/v1/evm/${chainId}/route`, {
+const route = await fetch(`${routeApiBase}/public/v1/evm/${chainId}/route`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ tokenIn, tokenOut, amountIn: amountIn.toString() }),
+  body: JSON.stringify({
+    tokenIn,
+    tokenOut,
+    amountIn: amountIn.toString(),
+    maxRoutes: 1,
+  }),
 }).then((r) => r.json());
 
-const prepared = await prepareExactInputFromRoute({
-  publicClient,
-  route,
-  recipient: account,
-  deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
-  slippagePercent: 0.5,
-});
+const prepared =
+  route.tradeType === "exact_out"
+    ? await prepareExactOutputFromRoute({
+        publicClient,
+        route,
+        recipient: account,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
+        slippagePercent: 0.5,
+      })
+    : await prepareExactInputFromRoute({
+        publicClient,
+        route,
+        recipient: account,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
+        slippagePercent: 0.5,
+      });
 
 const data =
   prepared.kind === "single"
-    ? encodeExactInputSingleCalldata(prepared.params)
-    : encodeExactInputCalldata(prepared.params);
+    ? route.tradeType === "exact_out"
+      ? encodeExactOutputSingleCalldata(prepared.params)
+      : encodeExactInputSingleCalldata(prepared.params)
+    : route.tradeType === "exact_out"
+      ? encodeExactOutputCalldata(prepared.params)
+      : encodeExactInputCalldata(prepared.params);
 
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account });
 ```
@@ -175,7 +195,7 @@ Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.
 
 ## Quotes (SwapQuoter)
 
-Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` when `addresses.quoter` is unset.
+Live quotes simulate the quoter contract (eth_call). Use `addresses.quoter` or pass `quoterAddress` to override.
 
 ```typescript
 import { quoteLiveExactInSingle, quoteLiveExactIn } from "@nradko/metric-omm-sdk-v1";

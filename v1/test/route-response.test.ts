@@ -40,7 +40,8 @@ function mockPublicClient(
 
 function leg(
   tradeType: RouteLegResponse["tradeType"],
-  overrides: Partial<RouteLegResponse> & Pick<RouteLegResponse, "poolAddress" | "tokenIn" | "tokenOut" | "amountIn" | "amountOut">,
+  overrides: Partial<RouteLegResponse> &
+    Pick<RouteLegResponse, "poolAddress" | "tokenIn" | "tokenOut" | "amountIn" | "amountOut">,
 ): RouteLegResponse {
   return {
     tradeType,
