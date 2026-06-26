@@ -5,7 +5,6 @@
 export { MetricOmmPoolAbi } from "./MetricOmmPool.js";
 export { MetricOmmPoolDataProviderAbi } from "./MetricOmmPoolDataProvider.js";
 export { MetricOmmSwapQuoterAbi } from "./MetricOmmSwapQuoter.js";
-export { MetricOmmPoolStateViewAbi } from "./MetricOmmPoolStateView.js";
 export { MetricOmmSimpleRouterAbi } from "./MetricOmmSimpleRouter.js";
 export { MetricOmmPoolLiquidityAdderAbi } from "./MetricOmmPoolLiquidityAdder.js";
 export { MetricOmmPoolFactoryAbi } from "./MetricOmmPoolFactory.js";

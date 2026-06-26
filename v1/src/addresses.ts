@@ -3,7 +3,7 @@
  *
  * Ethereum mainnet and Base use the same protocol deployment addresses (CREATE2).
  * Pool state reads (slot0, bins, position shares) and depth/quote views use dataProvider
- * (MetricOmmPoolDataProvider — the single deployed lens per factory).
+ * (MetricOmmPoolDataProvider — the single deployed lens per factory; includes StateView reads).
  */
 
 import type { Address } from "viem";
@@ -38,8 +38,6 @@ export interface ChainAddresses {
   liquidityAdder: Address;
   /** MetricOmmPoolDataProvider (pool reads, swap depth, revert quotes). */
   dataProvider: Address;
-  /** MetricOmmPoolStateView (raw pool storage reads). */
-  stateView: Address;
   /** MetricOmmSimpleRouter (single- and multi-hop ERC-20 swaps). */
   simpleRouter: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
@@ -62,16 +60,15 @@ export interface ChainAddresses {
 const PROTOCOL_ADDRESSES = {
   factory: "0x567C7205107257650dC73a73d87b879a45F5b6F6",
   poolDeployer: "0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4",
-  liquidityAdder: "0x323B95ABcE8b3025829980bb19d1Fd819808FCB2",
-  dataProvider: "0x5A100da447833D94b8e50AeD1916D7488D15D3fc",
-  stateView: "0xb40F8B0cfBB6a01c3232c6D063B1F87d1C0bE40f",
-  simpleRouter: "0x18f85056444452E718cD680A08f219B2347FE672",
-  quoter: "0x0000000000000000000000000000000000000000",
+  liquidityAdder: "0xA49acb20f33e4FB340f41d949fd7E4c48A242579",
+  dataProvider: "0x803Cb583c1FbE97e9cA7899bE77cC110A78B8737",
+  simpleRouter: "0x146D72ad62957F62ABCC14985aBFCC32a785F996",
+  quoter: "0x8A45A0239DE0C8f438392f2E5AFcbee316E64965",
   extensions: {
-    depositAllowlistExtension: "0x088B0CCBdb17531132173a30428f66c1d5A73794",
-    swapAllowlistExtension: "0x952D844e166E6FAaF73a5e56F0fB0C54543a0f69",
-    oracleValueStopLossExtension: "0x9694959a452283d86eBF4EF4eB5651dEAa1eCec1",
-    priceVelocityGuardExtension: "0xa53E5db6c18Ce258b3090F1470c5fE7f2e0215Fc",
+    depositAllowlistExtension: "0xEd246C7B6963E20aa4fCa4912Af8E2Bff6Ca5f4D",
+    swapAllowlistExtension: "0x54BF5ba3c5C6C513722a54771b2F2A609e2e3A75",
+    oracleValueStopLossExtension: "0x6063a740034E85d34cC55Bc7069BC7b7cdE888bf",
+    priceVelocityGuardExtension: "0xda4c0860d9fa8d254e425d485BD9C09BD2b051F7",
   },
 } as const satisfies Omit<ChainAddresses, "wrappedNative">;
 

@@ -2,9 +2,9 @@
  * SDK Integration Tests
  *
  * Tests SDK functions against actual deployed contracts to ensure:
- * 1. All read functions work correctly with StateView
+ * 1. All read functions work correctly with DataProvider
  * 2. All write functions execute successfully
- * 3. Data consistency between direct pool calls and StateView calls
+ * 3. Data consistency between direct pool calls and DataProvider calls
  */
 
 import assert from "node:assert/strict";
@@ -143,7 +143,7 @@ describe("SDK Integration Tests", async function () {
     };
   }
 
-  describe("StateView Read Functions", () => {
+  describe("DataProvider Read Functions", () => {
     it("should read slot0 data", async () => {
       const { pool, dataProvider, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
@@ -264,7 +264,7 @@ describe("SDK Integration Tests", async function () {
       }
     });
 
-    it("should verify position shares via StateView using prepared payload", async () => {
+    it("should verify position shares via DataProvider using prepared payload", async () => {
       const { pool, dataProvider, liquidityAdder, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 

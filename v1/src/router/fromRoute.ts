@@ -1,37 +1,28 @@
 /**
- * Map Oracle API `/public/v1/evm/:chain_id/route` responses to SimpleRouter swap params.
+ * Map route API POST /public/v1/evm/:chain_id/route responses to SimpleRouter swap params.
  */
 
 import type { Address, Hex, PublicClient } from "viem";
 import { getAddress } from "viem";
 import { resolveSwapPath } from "../swap/path.js";
-import { toSlippageBps } from "./swap.js";
-import type { ExactInputParams } from "./swapPath.js";
-import type { ExactInputSingleParams } from "./swap.js";
+import { ceilDiv, toSlippageBps } from "./swap.js";
+import type { ExactInputParams, ExactOutputParams } from "./swapPath.js";
+import type { ExactInputSingleParams, ExactOutputSingleParams } from "./swap.js";
 
 const BPS_BASE = 10_000n;
 
-/** Oracle route response (`RouteResponse`). */
-export type RouteResponse = {
-  tokenIn: string;
-  tokenOut: string;
-  amountIn: string;
-  expectedAmountOut: string;
-  effectivePriceX64: string;
-  priceImpactBestRoute: string;
-  candidatesConsidered: number;
-  routes: RouteOptionResponse[];
-};
+/** Wire tradeType from the route API. */
+export type TradeType = "exact_in" | "exact_out";
 
-
-/** Wire `routeType` from the Oracle route endpoint. */
+/** Wire routeType from the route API. */
 export type RouteType = "direct" | "one_hop";
 
-/** One hop in an Oracle route response (`RouteLegResponse`). */
+/** One hop in a route API response (RouteLegResponse). */
 export type RouteLegResponse = {
+  tradeType: TradeType;
   poolAddress: string;
   pair: string;
-  zeroForOne?: boolean;
+  zeroForOne: boolean;
   tokenIn: string;
   tokenOut: string;
   amountIn: string;
@@ -41,24 +32,46 @@ export type RouteLegResponse = {
   priceLimitX64: string;
 };
 
-/** One execution path in an Oracle route response (`RouteOptionResponse`). */
+/** One execution path in a route API response (RouteOptionResponse). */
 export type RouteOptionResponse = {
+  tradeType: TradeType;
   routeType: RouteType;
   amountIn: string;
-  expectedAmountOut: string;
+  amountOut: string;
   effectivePriceX64: string;
   priceImpactE6: string;
   legs: RouteLegResponse[];
 };
 
-
+/** Route API response (RouteResponse). */
+export type RouteResponse = {
+  tokenIn: string;
+  tokenOut: string;
+  tradeType: TradeType;
+  amountIn: string;
+  amountOut: string;
+  effectivePriceX64: string;
+  priceImpactBestRoute: string;
+  candidatesConsidered: number;
+  routes: RouteOptionResponse[];
+};
 
 export type PrepareExactInputFromRouteParams = {
   publicClient: PublicClient;
   route: RouteResponse;
   recipient: Address;
   deadline: bigint;
-  /** Human-readable slippage tolerance applied to the selected route's `expectedAmountOut`, e.g. `0.5` = 0.5%. */
+  /** Human-readable slippage tolerance applied to the selected route's `amountOut`, e.g. `0.5` = 0.5%. */
+  slippagePercent: number;
+  extensionDatas?: readonly Hex[];
+};
+
+export type PrepareExactOutputFromRouteParams = {
+  publicClient: PublicClient;
+  route: RouteResponse;
+  recipient: Address;
+  deadline: bigint;
+  /** Human-readable slippage tolerance applied to the selected route's `amountIn`, e.g. `0.5` = 0.5%. */
   slippagePercent: number;
   extensionDatas?: readonly Hex[];
 };
@@ -66,6 +79,10 @@ export type PrepareExactInputFromRouteParams = {
 export type PreparedExactInputFromRoute =
   | { kind: "single"; params: ExactInputSingleParams }
   | { kind: "multihop"; params: ExactInputParams };
+
+export type PreparedExactOutputFromRoute =
+  | { kind: "single"; params: ExactOutputSingleParams }
+  | { kind: "multihop"; params: ExactOutputParams };
 
 function parseAddress(value: string, field: string): Address {
   try {
@@ -98,6 +115,19 @@ function selectRouteOption(route: RouteResponse): RouteOptionResponse {
     throw new Error("route was split across multiple routes; re-request with maxRoutes=1");
   }
   return route.routes[0]!;
+}
+
+function assertTradeType(route: RouteResponse, option: RouteOptionResponse, tradeType: TradeType): void {
+  if (route.tradeType !== tradeType) {
+    throw new Error(
+      `route tradeType must be ${tradeType}; use ${
+        tradeType === "exact_in" ? "prepareExactOutputFromRoute" : "prepareExactInputFromRoute"
+      } for ${tradeType === "exact_in" ? "exact_out" : "exact_in"}`,
+    );
+  }
+  if (option.tradeType !== tradeType) {
+    throw new Error(`routes[0].tradeType must be ${tradeType}`);
+  }
 }
 
 function validateRouteLegs(
@@ -142,27 +172,16 @@ function amountOutMinimumFromRoute(amountOut: bigint, slippagePercent: number): 
   return (amountOut * (BPS_BASE - slippageBps)) / BPS_BASE;
 }
 
+function amountInMaximumFromRoute(amountIn: bigint, slippagePercent: number): bigint {
+  const slippageBps = toSlippageBps(slippagePercent);
+  return ceilDiv(amountIn * (BPS_BASE + slippageBps), BPS_BASE);
+}
+
 /**
- * Convert an Oracle `/route` response into SimpleRouter exact-input swap params.
+ * Convert a route API exact-in response into SimpleRouter exact-input swap params.
  *
- * Resolves swap direction on-chain, applies slippage to the quoted `expectedAmountOut`, and
+ * Resolves swap direction on-chain, applies slippage to the quoted `amountOut`, and
  * returns params ready for `encodeExactInputSingleCalldata` or `encodeExactInputCalldata`.
- *
- * @example
- * ```ts
- * const route = await fetchRouteFromOracle(...);
- * const prepared = await prepareExactInputFromRoute({
- *   publicClient,
- *   route,
- *   recipient: account,
- *   deadline,
- *   slippagePercent: 0.5,
- * });
- * const data =
- *   prepared.kind === "single"
- *     ? encodeExactInputSingleCalldata(prepared.params)
- *     : encodeExactInputCalldata(prepared.params);
- * ```
  */
 export async function routeToExactInputParams(
   params: PrepareExactInputFromRouteParams,
@@ -171,9 +190,17 @@ export async function routeToExactInputParams(
 
   const tokenIn = parseAddress(route.tokenIn, "tokenIn");
   const tokenOut = parseAddress(route.tokenOut, "tokenOut");
-  const amountIn = parseAmount(route.amountIn, "amountIn");
   const option = selectRouteOption(route);
-  const quotedAmountOut = parseAmount(option.expectedAmountOut, "routes[0].expectedAmountOut");
+  assertTradeType(route, option, "exact_in");
+
+  const requestedAmountIn = parseAmount(route.amountIn, "amountIn");
+  const amountIn = parseAmount(option.amountIn, "routes[0].amountIn");
+  if (amountIn !== requestedAmountIn) {
+    throw new Error(
+      "routes[0].amountIn does not match request amountIn; partial fill is not supported",
+    );
+  }
+  const quotedAmountOut = parseAmount(option.amountOut, "routes[0].amountOut");
   const amountOutMinimum = amountOutMinimumFromRoute(quotedAmountOut, slippagePercent);
 
   const pools = validateRouteLegs(option.legs, tokenIn, tokenOut);
@@ -212,6 +239,74 @@ export async function routeToExactInputParams(
       zeroForOneBitMap,
       amountIn,
       amountOutMinimum,
+      recipient,
+      deadline,
+    },
+  };
+}
+
+/**
+ * Convert a route API exact-out response into SimpleRouter exact-output swap params.
+ *
+ * Resolves swap direction on-chain, applies slippage to the quoted `amountIn`, and
+ * returns params ready for `encodeExactOutputSingleCalldata` or `encodeExactOutputCalldata`.
+ */
+export async function routeToExactOutputParams(
+  params: PrepareExactOutputFromRouteParams,
+): Promise<PreparedExactOutputFromRoute> {
+  const { route, publicClient, recipient, deadline, slippagePercent, extensionDatas } = params;
+
+  const tokenIn = parseAddress(route.tokenIn, "tokenIn");
+  const tokenOut = parseAddress(route.tokenOut, "tokenOut");
+  const option = selectRouteOption(route);
+  assertTradeType(route, option, "exact_out");
+
+  const requestedAmountOut = parseAmount(route.amountOut, "amountOut");
+  const amountOut = parseAmount(option.amountOut, "routes[0].amountOut");
+  if (amountOut !== requestedAmountOut) {
+    throw new Error(
+      "routes[0].amountOut does not match request amountOut;",
+    );
+  }
+  const quotedAmountIn = parseAmount(option.amountIn, "routes[0].amountIn");
+  const amountInMaximum = amountInMaximumFromRoute(quotedAmountIn, slippagePercent);
+
+  const pools = validateRouteLegs(option.legs, tokenIn, tokenOut);
+  const {
+    tokens,
+    zeroForOnes,
+    extensionDatas: resolvedExtensionDatas,
+    zeroForOneBitMap,
+  } = await resolveSwapPath(publicClient, tokenIn, tokenOut, pools, extensionDatas);
+
+  if (pools.length === 1) {
+    const leg = option.legs[0]!;
+    return {
+      kind: "single",
+      params: {
+        pool: pools[0]!,
+        tokenIn,
+        tokenOut,
+        zeroForOne: zeroForOnes[0]!,
+        amountOut,
+        amountInMaximum,
+        recipient,
+        deadline,
+        priceLimitX64: parseAmount(leg.priceLimitX64, "legs[0].priceLimitX64"),
+        extensionData: resolvedExtensionDatas[0],
+      },
+    };
+  }
+
+  return {
+    kind: "multihop",
+    params: {
+      tokens,
+      pools,
+      extensionDatas: resolvedExtensionDatas,
+      zeroForOneBitMap,
+      amountOut,
+      amountInMaximum,
       recipient,
       deadline,
     },
