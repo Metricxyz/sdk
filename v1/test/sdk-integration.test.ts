@@ -22,8 +22,8 @@ import {
   buildExactInputSingleTestParams,
 } from "./shared/testEnv.js";
 
-import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
-import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("SDK Integration Tests", async function () {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;

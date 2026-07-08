@@ -8,7 +8,7 @@
  */
 
 import { describe, it } from "node:test";
-import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+import { deployLinkedPoolDeployer, testBidAskPriceQ64FromMid } from "./shared/testEnv.js";
 import assert from "node:assert";
 import { network } from "hardhat";
 import { zeroAddress } from "viem";
@@ -29,7 +29,7 @@ describe("Factory Deployment Flow", async () => {
     const oneToOnePrice = 1n << 64n;
     const priceProvider = await viem.deployContract("MockOracle", []);
     await priceProvider.write.setTokens([token0.address, token1.address]);
-    await priceProvider.write.setBidAndAskPrice([oneToOnePrice, oneToOnePrice]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(oneToOnePrice)]);
 
     // Deploy factory first
     const factory = await viem.deployContract("MetricOmmPoolFactory", [

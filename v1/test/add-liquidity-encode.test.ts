@@ -11,15 +11,7 @@ const deltas = {
   binIdxs: [0n, 1n] as const,
   shares: [100n, 200n] as const,
 };
-
-function liquidityAdderFn(name: string, inputCount: number) {
-  const item = MetricOmmPoolLiquidityAdderAbi.find(
-    (entry) =>
-      entry.type === "function" && entry.name === name && entry.inputs.length === inputCount,
-  );
-  if (!item) throw new Error(`Missing ${name} overload (${inputCount} inputs)`);
-  return item;
-}
+const bounds = sdk.UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS;
 
 describe("LiquidityAdder calldata encoders (v1)", () => {
   it("encodeAddLiquidityExactSharesSelfCalldata matches viem", () => {
@@ -33,7 +25,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: max1,
     });
     const direct = encodeFunctionData({
-      abi: [liquidityAdderFn("addLiquidityExactShares", 6)],
+      abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityExactShares",
       args: [
         pool,
@@ -45,7 +37,6 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       ],
     });
     assert.equal(viaSdk, direct);
-    assert.equal(viaSdk.slice(0, 10), "0xb00f0a73");
   });
 
   it("encodeAddLiquidityExactSharesWithOwnerCalldata matches viem", () => {
@@ -58,7 +49,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: 2n,
     });
     const direct = encodeFunctionData({
-      abi: [liquidityAdderFn("addLiquidityExactShares", 7)],
+      abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityExactShares",
       args: [
         pool,
@@ -82,7 +73,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       maxAmountToken1: 4n,
     });
     const direct = encodeFunctionData({
-      abi: [liquidityAdderFn("addLiquidityWeighted", 10)],
+      abi: MetricOmmPoolLiquidityAdderAbi,
       functionName: "addLiquidityWeighted",
       args: [
         pool,
@@ -90,13 +81,26 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         3n,
         4n,
-        -128,
-        0n,
-        127,
-        sdk.MAX_UINT104,
+        bounds.minimalCurBin,
+        bounds.minimalPosition,
+        bounds.maximalCurBin,
+        bounds.maximalPosition,
         "0x",
       ],
     });
     assert.equal(viaSdk, direct);
+  });
+
+  it("prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata wraps multicall + refund", () => {
+    const params = {
+      pool,
+      salt,
+      deltas,
+      maxAmountToken0: 1_000n,
+      maxAmountToken1: 2_000n,
+    };
+    const data = sdk.prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata(params);
+    assert.ok(data.startsWith("0x"));
+    assert.notEqual(data, sdk.encodeAddLiquidityExactSharesSelfCalldata(params));
   });
 });

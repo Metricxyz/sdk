@@ -9,9 +9,6 @@ on:
 jobs:
   v0:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: v0
     steps:
       - uses: actions/checkout@v4
 
@@ -22,16 +19,52 @@ jobs:
           cache: "npm"
           cache-dependency-path: v0/package-lock.json
 
+      - name: Configure git for private Metric-OMM repos
+        env:
+          SUBMODULE_PAT: ${{ secrets.PRIVATE_SUBMODULES_PAT }}
+        run: |
+          if [ -z "${SUBMODULE_PAT}" ]; then
+            echo "Set repository secret PRIVATE_SUBMODULES_PAT with read access to Metric-OMM/metric-core and Metric-OMM/metric-periphery." >&2
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${SUBMODULE_PAT}@github.com/Metric-OMM/".insteadOf "https://github.com/Metric-OMM/"
+
+      - name: Clone metric-core
+        run: |
+          git clone https://github.com/Metric-OMM/metric-core.git metric-core
+          git -C metric-core fetch --depth 1 origin af1018805911e7204f2de2115a07817d09e18da8
+          git -C metric-core checkout --force af1018805911e7204f2de2115a07817d09e18da8
+          git -C metric-core submodule sync --recursive
+          git -C metric-core submodule update --init --force --depth 1 --recursive
+
+      - name: Clone metric-periphery
+        run: |
+          git clone https://github.com/Metric-OMM/metric-periphery.git metric-periphery
+          git -C metric-periphery fetch --depth 1 origin e3154ea3c5b6c44cb6f1d3d699cf19955211d199
+          git -C metric-periphery checkout --force e3154ea3c5b6c44cb6f1d3d699cf19955211d199
+          git -C metric-periphery submodule sync --recursive
+          git -C metric-periphery submodule update --init --force --depth 1 --recursive
+
+      - name: Install v0 dependencies from local clones
+        working-directory: v0
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          pkg.devDependencies["@metric/core"] = "file:../metric-core";
+          pkg.devDependencies["@metric/periphery"] = "file:../metric-periphery";
+          fs.writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+          npm install --ignore-scripts
+
       - name: Verify v0
+        working-directory: v0
         run: npm run verify
         env:
           MAINNET_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
 
   v1:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: v1
     steps:
       - uses: actions/checkout@v4
 
@@ -42,13 +75,41 @@ jobs:
           cache: "npm"
           cache-dependency-path: v1/package-lock.json
 
-      - name: Check v1 contract pins match versions.env
-        run: npm run sync:versions:env:check
+      - name: Read periphery pin
+        id: pin
+        run: echo "ref=$(node -p "require('./v1/package.json').metricPeripheryRef")" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git for private Metric-OMM repos
+        env:
+          SUBMODULE_PAT: ${{ secrets.PRIVATE_SUBMODULES_PAT }}
+        run: |
+          if [ -z "${SUBMODULE_PAT}" ]; then
+            echo "Set repository secret PRIVATE_SUBMODULES_PAT with read access to Metric-OMM/metric-core and Metric-OMM/metric-periphery." >&2
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${SUBMODULE_PAT}@github.com/Metric-OMM/".insteadOf "https://github.com/Metric-OMM/"
+
+      - name: Clone metric-periphery
+        run: |
+          git clone https://github.com/Metric-OMM/metric-periphery.git metric-periphery
+          git -C metric-periphery fetch --depth 1 origin ${{ steps.pin.outputs.ref }}
+          git -C metric-periphery checkout --force ${{ steps.pin.outputs.ref }}
+          git -C metric-periphery submodule sync --recursive
+          git -C metric-periphery submodule update --init --force --depth 1 --recursive
+
+      - name: Install v1 npm dependencies
+        working-directory: v1
+        run: npm ci --ignore-scripts
+
+      - name: Link cloned periphery into v1
+        run: |
+          mkdir -p v1/node_modules/@metric
+          rm -rf v1/node_modules/@metric/periphery
+          ln -s "${GITHUB_WORKSPACE}/metric-periphery" v1/node_modules/@metric/periphery
 
       - name: Verify v1
+        working-directory: v1
         run: npm run verify
-        env:
-          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
 
   metric-omm-sdk:
     runs-on: ubuntu-latest

@@ -7,7 +7,7 @@ import {
   encodeMulticallCalldata,
   encodeRefundETHCalldata,
   encodeUnwrapWETH9Calldata,
-} from "./utils.js";
+} from "../peripheryPayments/index.js";
 
 function withRouterRecipient<T extends { recipient: Address }>(
   params: T,

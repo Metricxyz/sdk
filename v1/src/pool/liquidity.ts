@@ -4,8 +4,14 @@
  * **Add liquidity (recommended path):**
  * 1. `buildModifyLiquidityArgsForAddition` / `ForUniformAddition` / `ForUniformAdditionWithTotalTokenAmount`
  * 2. `buildAddLiquidityExactSharesParamsFromBinTargets` (optional convenience)
- * 3. `encodeAddLiquidityExactSharesSelfCalldata` — target `addresses.liquidityAdder`
+ * 3. `encodeAddLiquidityExactSharesSelfCalldata` or `encodeAddLiquidityExactSharesWithOwnerCalldata`
+ *    — target `addresses.liquidityAdder`
  * 4. Approve token0 and token1 on the LiquidityAdder for `maxAmountToken0` / `maxAmountToken1`
+ *
+ * **Self vs WithOwner encoders:**
+ * - `*SelfCalldata` — credits liquidity to **`msg.sender`** (the transaction sender owns the position).
+ * - `*WithOwnerCalldata` — credits liquidity to **`owner`** (e.g. router, vault, or relayer paying on behalf of a user).
+ *   The caller still supplies tokens and must approve the LiquidityAdder; only the position owner differs.
  *
  * **Remove liquidity:** `buildModifyLiquidityArgsForRemoval` → `buildRemoveLiquidityPoolDelta`
  * → `encodeRemoveLiquidityCalldata` — call the **pool** directly (no adder approval).
@@ -772,10 +778,26 @@ export async function buildAddLiquidityExactSharesParamsFromBinTargets(
   };
 }
 
+/** Cursor bounds that disable weighted-add cursor checks (matches on-chain test helpers). */
+export const UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS = {
+  minimalCurBin: -128,
+  minimalPosition: 0n,
+  maximalCurBin: 127,
+  maximalPosition: MAX_UINT104,
+} as const;
+
+export type LiquidityCursorBounds = {
+  minimalCurBin: number;
+  minimalPosition: bigint;
+  maximalCurBin: number;
+  maximalPosition: bigint;
+};
+
 /**
- * Encode `LiquidityAdder.addLiquidityExactShares(pool, salt, deltas, max0, max1, ext)`
- * for `msg.sender` as position owner.
- * Approve both pool tokens on the LiquidityAdder before sending.
+ * Encode `LiquidityAdder.addLiquidityExactShares` for the transaction sender.
+ *
+ * Creates or increases the position `(msg.sender, salt)` — liquidity is credited to whoever
+ * sends the transaction. Approve both pool tokens on the LiquidityAdder before sending.
  */
 export function encodeAddLiquidityExactSharesSelfCalldata(params: {
   pool: Address;
@@ -800,8 +822,11 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
 }
 
 /**
- * Same as {@link encodeAddLiquidityExactSharesSelfCalldata} but credits liquidity to `owner`
- * (e.g. router or vault acting on behalf of a user).
+ * Encode `LiquidityAdder.addLiquidityExactShares` for an explicit position owner.
+ *
+ * Creates or increases the position `(owner, salt)` while `msg.sender` pays for the deposit
+ * (e.g. router, vault, or meta-transaction relayer acting on behalf of `owner`).
+ * Approve both pool tokens on the LiquidityAdder before sending.
  */
 export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
   pool: Address;
@@ -828,8 +853,11 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
 }
 
 /**
- * Encode weighted add: `weightDeltas` are relative share weights; the adder scales to fit
+ * Encode weighted add for the transaction sender.
+ *
+ * `weightDeltas` are relative share weights; the adder scales to fit
  * `maxAmountToken0` / `maxAmountToken1`. Use {@link scaleWeightedPoolDeltasToFitCaps} to pre-scale.
+ * Creates or increases the position `(msg.sender, salt)`.
  */
 export function encodeAddLiquidityWeightedSelfCalldata(params: {
   pool: Address;
@@ -852,16 +880,21 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? -128,
-      params.minimalPosition ?? 0n,
-      params.maximalCurBin ?? 127,
-      params.maximalPosition ?? MAX_UINT104,
+      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
+      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
+      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
+      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
 }
 
-/** Weighted add with explicit `owner` (7-arg overload on LiquidityAdder). */
+/**
+ * Encode weighted add for an explicit position owner.
+ *
+ * Same as {@link encodeAddLiquidityWeightedSelfCalldata} but credits liquidity to `(owner, salt)`
+ * while `msg.sender` pays for the deposit.
+ */
 export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   pool: Address;
   owner: Address;
@@ -885,10 +918,10 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? -128,
-      params.minimalPosition ?? 0n,
-      params.maximalCurBin ?? 127,
-      params.maximalPosition ?? MAX_UINT104,
+      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
+      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
+      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
+      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });

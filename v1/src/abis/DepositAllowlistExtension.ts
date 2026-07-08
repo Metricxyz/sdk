@@ -83,6 +83,25 @@ export const DepositAllowlistExtensionAbi = [
         type: "address",
       },
       {
+        indexed: false,
+        internalType: "bool",
+        name: "allowed",
+        type: "bool",
+      },
+    ],
+    name: "AllowAllDepositorsSet",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
         indexed: true,
         internalType: "address",
         name: "depositor",
@@ -319,6 +338,25 @@ export const DepositAllowlistExtensionAbi = [
         name: "pool",
         type: "address",
       },
+    ],
+    name: "allowAllDepositors",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
       {
         internalType: "address",
         name: "depositor",
@@ -543,6 +581,24 @@ export const DepositAllowlistExtensionAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool_",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "allowed",
+        type: "bool",
+      },
+    ],
+    name: "setAllowAllDepositors",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {

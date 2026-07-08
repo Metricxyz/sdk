@@ -63,6 +63,22 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "initialScaledAmount0PerShareE18",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "initialScaledAmount1PerShareE18",
+        type: "uint256",
+      },
+    ],
+    name: "InitialScaledAmountExceedsUint128",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "InvalidAdmin",
     type: "error",
