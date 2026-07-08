@@ -1,4 +1,4 @@
-/** SimpleRouter multicall and PeripheryPayments calldata encoders. */
+/** MetricOmmSimpleRouter multicall and PeripheryPayments calldata encoders. */
 
 import type { Address, Hex } from "viem";
 import { encodeFunctionData } from "viem";

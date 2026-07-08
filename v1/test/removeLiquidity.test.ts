@@ -7,7 +7,7 @@ import {
   encodeAddLiquidityCalldata,
   encodeRemoveLiquidityCalldataFromArgs,
 } from "./shared/liquidityTx.js";
-import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+import { deployLinkedPoolDeployer, testBidAskPriceQ64 } from "./shared/testEnv.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 describe("SDK Remove Liquidity", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -21,15 +21,15 @@ describe("SDK Remove Liquidity", async () => {
 
     const priceProvider = await viem.deployContract("MockOracle", []);
     await priceProvider.write.setTokens([token0.address, token1.address]);
-    const midPriceX64 = sdk.priceToQ64(1);
-    await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
     const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
+    const weth = await viem.deployContract("MockWETH9", []);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
 
     const params: sdk.CreatePoolFactoryParams = {
       token0: token0.address,

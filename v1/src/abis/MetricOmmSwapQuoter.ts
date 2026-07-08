@@ -90,22 +90,6 @@ export const MetricOmmSwapQuoterAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-    ],
-    name: "InvalidPriceLimitForDirection",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "InvalidSwapDeltas",
     type: "error",

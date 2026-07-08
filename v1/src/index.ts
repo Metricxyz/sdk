@@ -130,6 +130,25 @@ export {
   type BinRemovalSpec,
 } from "./pool/liquidity.js";
 
+export {
+  prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,
+  prepareAddLiquidityExactSharesWithOwnerSupportingNativePaymentCalldata,
+  prepareAddLiquidityWeightedSelfSupportingNativePaymentCalldata,
+  prepareAddLiquidityWeightedWithOwnerSupportingNativePaymentCalldata,
+  UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS,
+  type LiquidityCursorBounds,
+  prepareLiquidityCursorBounds,
+  computeLiquidityCursorBounds,
+  cursorMovementToPositionDelta,
+} from "./pool/index.js";
+
+// ============ PeripheryPayments ============
+export {
+  encodeMulticallCalldata,
+  encodeRefundETHCalldata,
+  encodeUnwrapWETH9Calldata,
+} from "./peripheryPayments/index.js";
+
 // ============ Quoter Functions ============
 export {
   quoteLiveExactInSingle,
@@ -168,9 +187,6 @@ export {
   prepareExactOutputSingleCalldata,
   prepareExactInputCalldata,
   prepareExactOutputCalldata,
-  encodeMulticallCalldata,
-  encodeRefundETHCalldata,
-  encodeUnwrapWETH9Calldata,
   prepareExactInputSingleAndUnwrapCalldata,
   prepareExactInputAndUnwrapCalldata,
   prepareExactInputSingleSupportingNativePaymentCalldata,

@@ -29,6 +29,17 @@ export type MetricTestEnv = {
   quoter: any;
 };
 
+/** Pool swaps require bid < ask (strict). Returns a tight Q64 spread around `midPrice`. */
+export function testBidAskPriceQ64(midPrice: number = 1): readonly [bigint, bigint] {
+  const mid = sdk.priceToQ64(midPrice);
+  return [mid - 1n, mid + 1n];
+}
+
+/** Same as {@link testBidAskPriceQ64} when mid is already in Q64. */
+export function testBidAskPriceQ64FromMid(midQ64: bigint): readonly [bigint, bigint] {
+  return [midQ64 - 1n, midQ64 + 1n];
+}
+
 export async function deployMetricTestEnv(viem: any, deployer: any): Promise<MetricTestEnv> {
   const publicClient = await viem.getPublicClient();
 
@@ -38,8 +49,7 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
 
   const priceProvider = await viem.deployContract("MockOracle", []);
   await priceProvider.write.setTokens([token0.address, token1.address]);
-  const midPriceX64 = sdk.priceToQ64(1);
-  await priceProvider.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
+  await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
   const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
   const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
@@ -47,7 +57,7 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
 
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
-  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
+  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
   const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
     weth.address,
     factory.address,

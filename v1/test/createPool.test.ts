@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { network } from "hardhat";
 import * as sdk from "../src/index.js";
 
-import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+import { deployLinkedPoolDeployer, testBidAskPriceQ64 } from "./shared/testEnv.js";
 
 describe("SDK createPool", async () => {
   const { viem, networkHelpers } = (await network.connect("hardhat")) as any;
@@ -19,8 +19,7 @@ describe("SDK createPool", async () => {
     // Deploy price oracle
     const priceProvider = await viem.deployContract("MockOracle", []);
     await priceProvider.write.setTokens([token0.address, token1.address]);
-    const q64Price = sdk.priceToQ64(1.0);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
     // Deploy factory first
     const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);

@@ -38,7 +38,7 @@ export interface ChainAddresses {
   liquidityAdder: Address;
   /** MetricOmmPoolDataProvider (pool reads, swap depth, revert quotes). */
   dataProvider: Address;
-  /** MetricOmmSimpleRouter (single- and multi-hop ERC-20 swaps). */
+  /** MetricOmmSimpleRouter (single- and multi-hop swaps). */
   simpleRouter: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
   quoter: Address;
@@ -58,21 +58,21 @@ export interface ChainAddresses {
 
 /** Shared protocol deployment (Ethereum + Base). */
 const PROTOCOL_ADDRESSES = {
-  factory: "0x567C7205107257650dC73a73d87b879a45F5b6F6",
-  poolDeployer: "0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4",
-  liquidityAdder: "0xA49acb20f33e4FB340f41d949fd7E4c48A242579",
-  dataProvider: "0x803Cb583c1FbE97e9cA7899bE77cC110A78B8737",
-  simpleRouter: "0x146D72ad62957F62ABCC14985aBFCC32a785F996",
-  quoter: "0x8A45A0239DE0C8f438392f2E5AFcbee316E64965",
+  factory: "0xf98aD80FE666B9a23075CdF64aF5971802844Fd8",
+  poolDeployer: "0xf93e1ea4516E99A4Ee81D4979C8D3C8Ab636e397",
+  liquidityAdder: "0xdd615506d83e2d94f30aaf17e846330164ab599e",
+  dataProvider: "0x7dc8eD16661A5003D9708B55f768484f9E963AdB",
+  simpleRouter: "0xa4d4be6a6b6d9f6532cacfe61fc666ef2f9997ed",
+  quoter: "0xfa13b57b570B43c8b9A61ba8D2C1781aB064f617",
   extensions: {
-    depositAllowlistExtension: "0xEd246C7B6963E20aa4fCa4912Af8E2Bff6Ca5f4D",
-    swapAllowlistExtension: "0x54BF5ba3c5C6C513722a54771b2F2A609e2e3A75",
-    oracleValueStopLossExtension: "0x6063a740034E85d34cC55Bc7069BC7b7cdE888bf",
-    priceVelocityGuardExtension: "0xda4c0860d9fa8d254e425d485BD9C09BD2b051F7",
+    depositAllowlistExtension: "0xC93BdA96021650DBfCEab6470c5329a0F391C160",
+    swapAllowlistExtension: "0x50c58A0bf9711Ae091c3aF5C3eab49544062662e",
+    oracleValueStopLossExtension: "0x34822E3D4265a8E42284Ce9807A1a804b7552838",
+    priceVelocityGuardExtension: "0x07A5c4821cd84a9A6162a6b1f756aA458B7616E3",
   },
 } as const satisfies Omit<ChainAddresses, "wrappedNative">;
 
-/** Extensions-era deployment — Ethereum mainnet and Base (Jun 2026). */
+/** Periphery deployment — Ethereum mainnet and Base (CREATE2, same protocol addresses). */
 export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
     ...PROTOCOL_ADDRESSES,

@@ -1,6 +1,6 @@
 {
   "name": "@nradko/metric-omm-sdk",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Metric AMM SDK — combined v0 and v1 namespaces",
   "engines": {
     "node": ">=22"
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@nradko/metric-omm-sdk-v0": "0.1.1",
-    "@nradko/metric-omm-sdk-v1": "=0.4.3"
+    "@nradko/metric-omm-sdk-v1": "=0.4.4"
   },
   "peerDependencies": {
     "viem": "^2.x"

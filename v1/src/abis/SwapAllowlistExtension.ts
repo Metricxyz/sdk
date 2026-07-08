@@ -83,6 +83,25 @@ export const SwapAllowlistExtensionAbi = [
         type: "address",
       },
       {
+        indexed: false,
+        internalType: "bool",
+        name: "allowed",
+        type: "bool",
+      },
+    ],
+    name: "AllowAllSwappersSet",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
         indexed: true,
         internalType: "address",
         name: "swapper",
@@ -319,6 +338,25 @@ export const SwapAllowlistExtensionAbi = [
         name: "pool",
         type: "address",
       },
+    ],
+    name: "allowAllSwappers",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
       {
         internalType: "address",
         name: "swapper",
@@ -543,6 +581,24 @@ export const SwapAllowlistExtensionAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool_",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "allowed",
+        type: "bool",
+      },
+    ],
+    name: "setAllowAllSwappers",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {

@@ -84,16 +84,6 @@ npm run verify   # full publish gate for that package
 
 Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env). Refresh with `npm run sync:versions:env` inside `v1/`.
 
-### Optional v1 fork tests
-
-```bash
-cd v1
-export ETHEREUM_RPC_URL=https://...
-npm test
-```
-
-Fork suite is skipped when no RPC URL is set.
-
 ## Publishing
 
 Publish from **inside each package** with `npm publish`. `prepublishOnly` runs that package’s `verify` script only.
