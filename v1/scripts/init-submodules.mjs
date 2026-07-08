@@ -53,6 +53,13 @@ function ensurePeripheryCheckout(ref) {
     return;
   }
 
+  // CI links a pre-cloned checkout; don't overwrite that tree via fetch/clone.
+  if (process.env.CI === "true" && existsSync(peripheryDir)) {
+    throw new Error(
+      `@metric/periphery at ${peripheryDir} is not at ${ref}. Re-clone or fix the CI link.`,
+    );
+  }
+
   if (existsSync(peripheryDir)) {
     console.log(`Updating @metric/periphery to ${ref}`);
     git(peripheryDir, ["fetch", "origin", ref]);

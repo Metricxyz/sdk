@@ -3,13 +3,17 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, type Address, getContract } from "viem";
 import * as sdk from "../src/index.js";
-import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+import {
+  deployLinkedPoolDeployer,
+  testBidAskPriceQ64,
+  testBidAskPriceQ64FromMid,
+} from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
-import MockOracleArtifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockOracle.sol/MockOracle.json";
-import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
+import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
+import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
 import { MetricOmmPoolDataProviderAbi } from "../src/abis/MetricOmmPoolDataProvider.js";
-import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");
@@ -51,7 +55,10 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
       client: { public: publicClient, wallet: deployer },
     });
 
-    const liquidityAdderDeployment = await viem.deployContract("MetricOmmPoolLiquidityAdder", []);
+    const wethDeployment = await viem.deployContract("MockWETH9", []);
+    const liquidityAdderDeployment = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      wethDeployment.address,
+    ]);
     const liquidityAdder = liquidityAdderDeployment.address;
 
     const priceProviderDeployment = await viem.deployContract("MockOracle", []);
@@ -62,8 +69,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     });
 
     await priceProvider.write.setTokens([token0.address, token1.address]);
-    const q64Price = sdk.priceToQ64(1.0);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
     const createHash = await deployer.sendTransaction({
       to: factory.address,
@@ -306,7 +312,9 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
 
                 // Set the oracle price for this test
                 const q64Price = sdk.priceToQ64(price);
-                await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+                await priceProvider.write.setBidAndAskPrice([
+                  ...testBidAskPriceQ64FromMid(q64Price),
+                ]);
 
                 // Optionally seed the pool at current bin with a tiny mint
                 if (state === "seeded") {

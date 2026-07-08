@@ -39,6 +39,8 @@ export {
   encodeAddLiquidityWeightedSelfCalldata,
   encodeAddLiquidityWeightedWithOwnerCalldata,
   encodeRemoveLiquidityCalldata,
+  UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS,
+  type LiquidityCursorBounds,
   getPositionShares,
   getPositionSharesForBins,
   NO_SLIPPAGE_LIMIT,
@@ -52,3 +54,16 @@ export {
   type RemoveLiquidityParams,
   type BinRemovalSpec,
 } from "./liquidity.js";
+
+export {
+  prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,
+  prepareAddLiquidityExactSharesWithOwnerSupportingNativePaymentCalldata,
+  prepareAddLiquidityWeightedSelfSupportingNativePaymentCalldata,
+  prepareAddLiquidityWeightedWithOwnerSupportingNativePaymentCalldata,
+} from "./nativeLiquidity.js";
+
+export {
+  prepareLiquidityCursorBounds,
+  computeLiquidityCursorBounds,
+  cursorMovementToPositionDelta,
+} from "./cursorBounds.js";

@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `e161cb0b1b301395c631197f3c7d5c205a8b4d48` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `d210a84daf694c52a591d371ceb9b82cece0f79f` (core via periphery `lib/metric-core`).
 
 ## Installation
 
@@ -22,16 +22,16 @@ Protocol contracts use the **same addresses** on Ethereum mainnet and Base (CREA
 
 | Contract | Address |
 | -------- | ------- |
-| MetricOmmPoolFactory | `0x567C7205107257650dC73a73d87b879a45F5b6F6` |
-| MetricOmmPoolDeployer | `0xBe34D0cEb6CF1acbf55dEf35E4dC3e17BDfb6AE4` |
-| MetricOmmPoolLiquidityAdder | `0xA49acb20f33e4FB340f41d949fd7E4c48A242579` |
-| MetricOmmPoolDataProvider | `0x803Cb583c1FbE97e9cA7899bE77cC110A78B8737` |
-| MetricOmmSimpleRouter | `0x146D72ad62957F62ABCC14985aBFCC32a785F996` |
-| MetricOmmSwapQuoter | `0x8A45A0239DE0C8f438392f2E5AFcbee316E64965` |
-| DepositAllowlistExtension | `0xEd246C7B6963E20aa4fCa4912Af8E2Bff6Ca5f4D` |
-| SwapAllowlistExtension | `0x54BF5ba3c5C6C513722a54771b2F2A609e2e3A75` |
-| OracleValueStopLossExtension | `0x6063a740034E85d34cC55Bc7069BC7b7cdE888bf` |
-| PriceVelocityGuardExtension | `0xda4c0860d9fa8d254e425d485BD9C09BD2b051F7` |
+| MetricOmmPoolFactory | `0xf98aD80FE666B9a23075CdF64aF5971802844Fd8` |
+| MetricOmmPoolDeployer | `0xf93e1ea4516E99A4Ee81D4979C8D3C8Ab636e397` |
+| MetricOmmPoolLiquidityAdder | `0xdd615506d83e2d94f30aaf17e846330164ab599e` |
+| MetricOmmPoolDataProvider | `0x7dc8eD16661A5003D9708B55f768484f9E963AdB` |
+| MetricOmmSimpleRouter | `0xa4d4be6a6b6d9f6532cacfe61fc666ef2f9997ed` |
+| MetricOmmSwapQuoter | `0xfa13b57b570B43c8b9A61ba8D2C1781aB064f617` |
+| DepositAllowlistExtension | `0xC93BdA96021650DBfCEab6470c5329a0F391C160` |
+| SwapAllowlistExtension | `0x50c58A0bf9711Ae091c3aF5C3eab49544062662e` |
+| OracleValueStopLossExtension | `0x34822E3D4265a8E42284Ce9807A1a804b7552838` |
+| PriceVelocityGuardExtension | `0x07A5c4821cd84a9A6162a6b1f756aA458B7616E3` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | WETH (Base) | `0x4200000000000000000000000000000000000006` |
 
@@ -45,7 +45,7 @@ const a = getAddressesOrThrow(ChainId.ETHEREUM);
 // isChainSupported(ChainId.ARBITRUM) === false — use DeployedChainId / getSupportedChainIds()
 ```
 
-ChainId lists future chain IDs for typing; **Ethereum mainnet and Base** have entries in ADDRESSES for this release.
+`ChainId` lists future chain IDs for typing; **Ethereum mainnet and Base** have entries in `ADDRESSES` for this release.
 
 ## Swaps (SimpleRouter)
 
@@ -70,7 +70,7 @@ const params = await buildExactInputSingleParams({
   amountIn: 1_000_000_000_000_000_000n,
   slippagePercent: 0.5,
   deadline: BigInt(Math.floor(Date.now() / 1000) + 1200),
-  quoterAddress, // required until addresses.quoter is set
+  quoterAddress, // pass deployed MetricOmmSwapQuoter address
 });
 
 await walletClient.writeContract({
@@ -195,7 +195,7 @@ Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.
 
 ## Quotes (SwapQuoter)
 
-Live quotes simulate the quoter contract (eth_call). Use `addresses.quoter` or pass `quoterAddress` to override.
+Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` with the deployed **MetricOmmSwapQuoter** address.
 
 ```typescript
 import { quoteLiveExactInSingle, quoteLiveExactIn } from "@nradko/metric-omm-sdk-v1";
@@ -223,10 +223,41 @@ const path = await quoteLiveExactIn({
 
 Hypothetical quotes: `quoteHypotheticalExactInputSingle`, `quoteHypotheticalExactInput`, and exact-output variants with per-pool bid/ask prices.
 
-## Liquidity
+## Liquidity (LiquidityAdder)
 
-- **Add (EOA):** approve **LiquidityAdder**, then `addLiquidityExactShares` / `addLiquidityWeighted` on the adder (see `encodeAddLiquidity*` helpers).
-- **Remove:** `removeLiquidity` on the pool — build deltas with `buildModifyLiquidityArgsForRemoval` / `encodeRemoveLiquidityCalldata`.
+- **Add (EOA):** approve **LiquidityAdder** (`addresses.liquidityAdder`), then `addLiquidityExactShares` / `addLiquidityWeighted` on the adder (see `encodeAddLiquidity*` helpers).
+- **Remove:** `removeLiquidity` on the pool — build deltas with `buildModifyLiquidityArgsForRemoval` / `encodeRemoveLiquidityCalldata`. There is no native-ETH remove path.
+
+### Native ETH (add only)
+
+Same multicall pattern as SimpleRouter: `prepareAddLiquidity*SupportingNativePaymentCalldata` wraps `[addLiquidity…, refundETH]`. Set `msg.value` for the WETH pool leg; unused ETH is refunded.
+
+```typescript
+import {
+  prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,
+  getAddressesOrThrow,
+  ChainId,
+} from "@nradko/metric-omm-sdk-v1";
+
+const { liquidityAdder } = getAddressesOrThrow(ChainId.ETHEREUM);
+
+const data = prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata({
+  pool,
+  salt,
+  deltas,
+  maxAmountToken0,
+  maxAmountToken1,
+});
+
+await walletClient.sendTransaction({
+  to: liquidityAdder,
+  data,
+  value: ethAmount,
+  account,
+});
+```
+
+Weighted adds: `prepareAddLiquidityWeightedSelfSupportingNativePaymentCalldata` / `prepareAddLiquidityWeightedWithOwnerSupportingNativePaymentCalldata`.
 
 ## Extensions
 
@@ -294,5 +325,3 @@ npm ci
 npm run setup:contracts
 npm test
 ```
-
-Fork tests: set `ETHEREUM_RPC_URL` (optional `ETHEREUM_FORK_BLOCK_NUMBER`).

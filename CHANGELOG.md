@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-07-08
+
+> Native ETH liquidity adds and weighted-add cursor-bound helpers. New CREATE2 deployment addresses on Ethereum and Base.
+>
+> Pinned upstream: **metric-periphery** `d210a84daf694c52a591d371ceb9b82cece0f79f`.
+>
+> Packages: **@nradko/metric-omm-sdk-v1** `0.4.4`, **@nradko/metric-omm-sdk** `0.4.4`. **@nradko/metric-omm-sdk-v0** stays at `0.1.1`.
+
+### Added — SDK (v1)
+
+- **Native ETH liquidity add (add only)** — `prepareAddLiquidity*SupportingNativePaymentCalldata` multicalls `[addLiquidity…, refundETH]` on LiquidityAdder. Set `msg.value` for the WETH pool leg; surplus ETH is refunded. Self variants credit `(msg.sender, salt)`; WithOwner variants credit `(owner, salt)`. No native-ETH remove path.
+
+- **Liquidity cursor bounds** — weighted adds (`encodeAddLiquidityWeighted*`) require `minimalCurBin`, `minimalPosition`, `maximalCurBin`, `maximalPosition`. The pool **cursor** is its current price position: `(curBinIdx, curPosInBin)` from `slot0`. LiquidityAdder checks at execution that the cursor is still inside these bounds.
+  - **Use case:** you quote or plan a weighted add off-chain while the cursor is at A; before your tx lands, swaps can move the cursor. Bounds let you allow a small tolerated drift (e.g. `maximalCursorMovement: 0.25` = ±25% of `MAX_UINT104` positions, summed across bins) instead of disabling the check entirely.
+  - **Prepare:** `prepareLiquidityCursorBounds({ publicClient, pool, maximalCursorMovement })` reads the live cursor and returns bounds to spread into `encodeAddLiquidityWeighted*`. Pure helpers: `computeLiquidityCursorBounds`, `cursorMovementToPositionDelta`. Use `UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS` to skip the check.
+
+### Changed — SDK (v1)
+
+- Bundled Ethereum/Base deployment addresses updated.
+- `encodeMulticallCalldata` / `encodeRefundETHCalldata` / `encodeUnwrapWETH9Calldata` moved to `peripheryPayments/` (shared by router and liquidity).
+
 ## [0.4.3] - 2026-06-25
 
 > Breaking vs `0.4.2` on native ETH helpers and route API types. Updates deployment addresses and removes the separate StateView lens.

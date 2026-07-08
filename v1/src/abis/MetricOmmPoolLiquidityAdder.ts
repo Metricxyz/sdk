@@ -1,8 +1,25 @@
 export const MetricOmmPoolLiquidityAdderAbi = [
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: "address",
+        name: "weth",
+        type: "address",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "target",
+        type: "address",
+      },
+    ],
+    name: "AddressEmptyCode",
+    type: "error",
   },
   {
     inputs: [],
@@ -47,7 +64,54 @@ export const MetricOmmPoolLiquidityAdderAbi = [
   },
   {
     inputs: [],
+    name: "ETHTransferFailed",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "EmptyLiquidityDelta",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "FailedCall",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "required",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "available",
+        type: "uint256",
+      },
+    ],
+    name: "InsufficientToken",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "required",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "available",
+        type: "uint256",
+      },
+    ],
+    name: "InsufficientWETH",
     type: "error",
   },
   {
@@ -74,6 +138,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
   {
     inputs: [],
     name: "InvalidPositionOwner",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidWETH",
     type: "error",
   },
   {
@@ -121,6 +190,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
       },
     ],
     name: "MaxAmountExceeded",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotWETH",
     type: "error",
   },
   {
@@ -228,7 +302,7 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -289,7 +363,7 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -370,7 +444,7 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -456,7 +530,7 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -481,5 +555,76 @@ export const MetricOmmPoolLiquidityAdderAbi = [
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes[]",
+        name: "data",
+        type: "bytes[]",
+      },
+    ],
+    name: "multicall",
+    outputs: [
+      {
+        internalType: "bytes[]",
+        name: "results",
+        type: "bytes[]",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "refundETH",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "amountMinimum",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+    ],
+    name: "sweepToken",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "amountMinimum",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+    ],
+    name: "unwrapWETH9",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    stateMutability: "payable",
+    type: "receive",
   },
 ] as const;

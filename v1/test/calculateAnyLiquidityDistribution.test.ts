@@ -3,13 +3,17 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, getContract, type Address } from "viem";
 import * as sdk from "../src/index.js";
-import { deployLinkedPoolDeployer } from "./shared/testEnv.js";
+import {
+  deployLinkedPoolDeployer,
+  testBidAskPriceQ64,
+  testBidAskPriceQ64FromMid,
+} from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
-import MockOracleArtifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockOracle.sol/MockOracle.json";
-import MockERC20Artifact from "../artifacts/@metric/periphery/lib/metric-core/test/mocks/MockERC20.sol/MockERC20.json";
+import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
+import MockERC20Artifact from "../artifacts/@metric/core/test/mocks/MockERC20.sol/MockERC20.json";
 import { MetricOmmPoolDataProviderAbi } from "../src/abis/MetricOmmPoolDataProvider.js";
-import MetricOmmPoolArtifact from "../artifacts/@metric/periphery/lib/metric-core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
+import MetricOmmPoolArtifact from "../artifacts/@metric/core/contracts/MetricOmmPool.sol/MetricOmmPool.json";
 
 describe("buildModifyLiquidityArgsForAddition", async function () {
   const { viem, networkHelpers } = await network.connect("hardhat");
@@ -89,7 +93,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       client: { public: publicClient, wallet: deployer },
     });
 
-    const liquidityAdder = (await viem.deployContract("MetricOmmPoolLiquidityAdder", [])).address;
+    const wethDeployment = await viem.deployContract("MockWETH9", []);
+    const liquidityAdder = (
+      await viem.deployContract("MetricOmmPoolLiquidityAdder", [wethDeployment.address])
+    ).address;
 
     const priceProviderDeployment = await viem.deployContract("MockOracle", []);
     const priceProvider = getContract({
@@ -100,7 +107,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     await priceProvider.write.setTokens([token0.address, token1.address]);
     const q64Price = sdk.priceToQ64(1);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(q64Price)]);
 
     const createHash = await deployer.sendTransaction({
       to: factory.address,
@@ -336,7 +343,9 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
                 } = fixture;
 
                 const q64Price = sdk.priceToQ64(price);
-                await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+                await priceProvider.write.setBidAndAskPrice([
+                  ...testBidAskPriceQ64FromMid(q64Price),
+                ]);
 
                 if (state === "seeded") {
                   const seedParams: sdk.CalculateAnyLiquidityParams = {
@@ -428,7 +437,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     const price = 2000;
     const q64Price = sdk.priceToQ64(price);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(q64Price)]);
 
     const bins: sdk.LiquidityBinValueInput[] = [
       {
@@ -518,7 +527,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     await priceProvider.write.setTokens([token0.address, token1.address]);
     const q64Price = sdk.priceToQ64(1);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(q64Price)]);
 
     const seedHash = await deployer.sendTransaction({
       to: liquidityAdder,
@@ -700,7 +709,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     await priceProvider.write.setTokens([token0.address, token1.address]);
     const q64Price = sdk.priceToQ64(1);
-    await priceProvider.write.setBidAndAskPrice([q64Price, q64Price]);
+    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(q64Price)]);
 
     const seedHash = await deployer.sendTransaction({
       to: liquidityAdder,

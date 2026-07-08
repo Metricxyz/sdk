@@ -3,6 +3,7 @@ import { getAddress, parseUnits, type Address, type Hex } from "viem";
 import * as sdk from "../../src/index.js";
 import { getPoolAddressFromCreateReceipt } from "./getPoolAddressFromCreateReceipt.js";
 import type { MetricTestEnv } from "./testEnv.js";
+import { testBidAskPriceQ64 } from "./testEnv.js";
 
 export function sortTokens(tokenA: Address, tokenB: Address): [Address, Address] {
   return getAddress(tokenA) < getAddress(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA];
@@ -47,8 +48,7 @@ export async function deployOracleForPair(viem: any, tokenA: Address, tokenB: Ad
   const oracle = await viem.deployContract("MockOracle", []);
   const [token0, token1] = sortTokens(tokenA, tokenB);
   await oracle.write.setTokens([token0, token1]);
-  const midPriceX64 = sdk.priceToQ64(1);
-  await oracle.write.setBidAndAskPrice([midPriceX64, midPriceX64]);
+  await oracle.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
   return oracle;
 }
 
