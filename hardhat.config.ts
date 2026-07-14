@@ -155,6 +155,12 @@ const config: HardhatUserConfig = {
       url: configVariable("MONAD_RPC_URL"),
       accounts: [configVariable("ADMIN_KEY")],
     },
+    robinhood: {
+      type: "http",
+      chainType: "generic",
+      url: configVariable("ROBINHOOD_RPC_URL"),
+      accounts: [configVariable("ADMIN_KEY")],
+    },
   },
   ignition: {
     strategyConfig: {
