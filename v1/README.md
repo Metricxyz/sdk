@@ -16,24 +16,26 @@ Or via the combined package:
 import { v1 } from "@nradko/metric-omm-sdk";
 ```
 
-## Ethereum mainnet and Base addresses
+## Ethereum, Base, Robinhood, and HyperEVM addresses
 
-Protocol contracts use the **same addresses** on Ethereum mainnet and Base (CREATE2). Wrapped native differs per chain (WETH).
+Protocol contracts use the **same addresses** on Ethereum, Base, Robinhood (4663), and HyperEVM (CREATE2). Wrapped native differs per chain.
 
 | Contract | Address |
 | -------- | ------- |
-| MetricOmmPoolFactory | `0xf98aD80FE666B9a23075CdF64aF5971802844Fd8` |
-| MetricOmmPoolDeployer | `0xf93e1ea4516E99A4Ee81D4979C8D3C8Ab636e397` |
-| MetricOmmPoolLiquidityAdder | `0xdd615506d83e2d94f30aaf17e846330164ab599e` |
-| MetricOmmPoolDataProvider | `0x7dc8eD16661A5003D9708B55f768484f9E963AdB` |
-| MetricOmmSimpleRouter | `0xa4d4be6a6b6d9f6532cacfe61fc666ef2f9997ed` |
-| MetricOmmSwapQuoter | `0xfa13b57b570B43c8b9A61ba8D2C1781aB064f617` |
-| DepositAllowlistExtension | `0xC93BdA96021650DBfCEab6470c5329a0F391C160` |
-| SwapAllowlistExtension | `0x50c58A0bf9711Ae091c3aF5C3eab49544062662e` |
-| OracleValueStopLossExtension | `0x34822E3D4265a8E42284Ce9807A1a804b7552838` |
-| PriceVelocityGuardExtension | `0x07A5c4821cd84a9A6162a6b1f756aA458B7616E3` |
+| MetricOmmPoolFactory | `0x622911384e7973439b8be305f5e3Fc3c5736EDe4` |
+| MetricOmmPoolDeployer | `0x47D5C9df5e3419217471A9D12D932Dbed7B0B7f1` |
+| MetricOmmPoolLiquidityAdder | `0x9aA238a8319D20F6D8C3bcca45CA2F5e27C1e00f` |
+| MetricOmmPoolDataProvider | `0x19f85Eb0a450b429C9a700bE867CF284e7e685eC` |
+| MetricOmmSimpleRouter | `0x292DecA668291262341f92B840830f78dB35b6E5` |
+| MetricOmmSwapQuoter | `0xaB6C48D981B943F62A23bb4EB2db125182E6753c` |
+| DepositAllowlistExtension | `0x2229c48864d9aC877d23591fE99C3718Ef992F66` |
+| SwapAllowlistExtension | `0xAC6BA2d77279a7B26db57Be6f8bF234932547eEd` |
+| OracleValueStopLossExtension | `0x7D5D12aa06A025Fa37410F522F166070bA998e11` |
+| PriceVelocityGuardExtension | `0x225c402B55c63d081821aA9260179C0d35e25091` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | WETH (Base) | `0x4200000000000000000000000000000000000006` |
+| WETH (Robinhood) | `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73` |
+| WHYPE (HyperEVM) | `0x5555555555555555555555555555555555555555` |
 
 `MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param). There is no separate StateView deployment — use `dataProvider` for all lens reads.
 
@@ -42,10 +44,11 @@ import { getAddressesOrThrow, ChainId, isChainSupported } from "@nradko/metric-o
 
 const a = getAddressesOrThrow(ChainId.ETHEREUM);
 // getAddressesOrThrow(ChainId.BASE) — same protocol addresses as Ethereum
+// getAddressesOrThrow(ChainId.ROBINHOOD) / ChainId.HYPEREVM — same protocol addresses
 // isChainSupported(ChainId.ARBITRUM) === false — use DeployedChainId / getSupportedChainIds()
 ```
 
-`ChainId` lists future chain IDs for typing; **Ethereum mainnet and Base** have entries in `ADDRESSES` for this release.
+`ChainId` lists future chain IDs for typing; **Ethereum, Base, Robinhood, and HyperEVM** have entries in `ADDRESSES` for this release.
 
 ## Swaps (SimpleRouter)
 

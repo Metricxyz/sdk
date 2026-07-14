@@ -8,7 +8,7 @@ This directory holds **three independent npm packages**. They share no root tool
 | -------- | ------ | ----------- |
 | `@nradko/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
 | `@nradko/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
-| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base |
+| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base + Robinhood + HyperEVM |
 
 ## Installation
 

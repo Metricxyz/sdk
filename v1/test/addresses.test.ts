@@ -11,19 +11,30 @@ import {
 } from "../src/addresses.js";
 
 describe("v1 addresses", () => {
-  it("Ethereum and Base are deployed in this release", () => {
-    assert.deepEqual(getSupportedChainIds(), [ChainId.ETHEREUM, ChainId.BASE]);
+  it("Ethereum, Base, Robinhood, and HyperEVM are deployed in this release", () => {
+    assert.deepEqual(getSupportedChainIds(), [
+      ChainId.ETHEREUM,
+      ChainId.BASE,
+      ChainId.ROBINHOOD,
+      ChainId.HYPEREVM,
+    ]);
     assert.equal(isChainSupported(ChainId.ETHEREUM), true);
     assert.equal(isChainSupported(ChainId.BASE), true);
+    assert.equal(isChainSupported(ChainId.ROBINHOOD), true);
+    assert.equal(isChainSupported(ChainId.HYPEREVM), true);
     assert.equal(isChainSupported(ChainId.ARBITRUM), false);
     assert.equal(getAddresses(ChainId.ARBITRUM), undefined);
   });
 
-  it("Ethereum and Base share protocol addresses", () => {
+  it("deployed chains share protocol addresses", () => {
     const eth = ADDRESSES[ChainId.ETHEREUM];
     const base = ADDRESSES[ChainId.BASE];
+    const robinhood = ADDRESSES[ChainId.ROBINHOOD];
+    const hyper = ADDRESSES[ChainId.HYPEREVM];
 
     assert.equal(eth.factory, base.factory);
+    assert.equal(eth.factory, robinhood.factory);
+    assert.equal(eth.factory, hyper.factory);
     assert.equal(eth.simpleRouter, base.simpleRouter);
     assert.equal(eth.quoter, base.quoter);
     assert.equal(
@@ -32,21 +43,24 @@ describe("v1 addresses", () => {
     );
 
     assert.notEqual(eth.wrappedNative, base.wrappedNative);
+    assert.notEqual(eth.wrappedNative, robinhood.wrappedNative);
+    assert.notEqual(eth.wrappedNative, hyper.wrappedNative);
   });
 
-  it("getAddressesOrThrow returns bundled deployment for Ethereum and Base", () => {
-    const eth = getAddressesOrThrow(ChainId.ETHEREUM);
-    assert.equal(eth.factory, ADDRESSES[ChainId.ETHEREUM].factory);
-    assert.equal(eth.dataProvider, ADDRESSES[ChainId.ETHEREUM].dataProvider);
-    assert.equal(eth.simpleRouter, ADDRESSES[ChainId.ETHEREUM].simpleRouter);
-    assert.equal(isChainDeployed(ChainId.ETHEREUM), true);
-
-    const base = getAddressesOrThrow(ChainId.BASE);
-    assert.equal(base.factory, ADDRESSES[ChainId.BASE].factory);
-    assert.equal(isChainDeployed(ChainId.BASE), true);
+  it("getAddressesOrThrow returns bundled deployment for configured chains", () => {
+    for (const chainId of getSupportedChainIds()) {
+      const addresses = getAddressesOrThrow(chainId);
+      assert.equal(addresses.factory, ADDRESSES[chainId].factory);
+      assert.equal(addresses.dataProvider, ADDRESSES[chainId].dataProvider);
+      assert.equal(addresses.simpleRouter, ADDRESSES[chainId].simpleRouter);
+      assert.equal(isChainDeployed(chainId), true);
+    }
   });
 
   it("getAddressesOrThrow rejects unsupported chains", () => {
-    assert.throws(() => getAddressesOrThrow(ChainId.ARBITRUM), /Ethereum and Base are configured/);
+    assert.throws(
+      () => getAddressesOrThrow(ChainId.ARBITRUM),
+      /Ethereum, Base, Robinhood, and HyperEVM are configured/,
+    );
   });
 });
