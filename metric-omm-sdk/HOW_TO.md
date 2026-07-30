@@ -1,4 +1,4 @@
-# How to use `@nradko/metric-omm-sdk`
+# How to use `@metric.xyz/metric-omm-sdk`
 
 This guide is for **application developers** integrating swaps and liquidity. You do not need to read the Solidity repos; follow the version that matches the contracts already deployed on your chain.
 
@@ -6,14 +6,14 @@ This guide is for **application developers** integrating swaps and liquidity. Yo
 
 | Install | What you get |
 | -------- | ------------- |
-| `@nradko/metric-omm-sdk` | **Combined** — `v0` and `v1` namespaces in one dependency |
-| `@nradko/metric-omm-sdk-v0` | Legacy Router + `modifyLiquidity` API only |
-| `@nradko/metric-omm-sdk-v1` | Current SimpleRouter + SwapQuoter + LiquidityAdder API only |
+| `@metric.xyz/metric-omm-sdk` | **Combined** — `v0` and `v1` namespaces in one dependency |
+| `@metric.xyz/metric-omm-sdk-v0` | Legacy Router + `modifyLiquidity` API only |
+| `@metric.xyz/metric-omm-sdk-v1` | Current SimpleRouter + SwapQuoter + LiquidityAdder API only |
 
 All packages require **viem** `^2.x` and **Node ≥ 22**.
 
 ```bash
-npm install @nradko/metric-omm-sdk viem
+npm install @metric.xyz/metric-omm-sdk viem
 ```
 
 > **Naming:** npm uses **`v0`** and **`v1`**. v0 targets older deployments; v1 targets the newer Ethereum deployment.
@@ -25,7 +25,7 @@ npm install @nradko/metric-omm-sdk viem
 The wrapper re-exports both APIs as namespaces so you can depend once and import explicitly:
 
 ```typescript
-import { v0, v1 } from "@nradko/metric-omm-sdk";
+import { v0, v1 } from "@metric.xyz/metric-omm-sdk";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -41,7 +41,7 @@ const ethV1 = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 You can also install a single version package and import from the root:
 
 ```typescript
-import { buildArgsAndExpectedAmountsForSwapExactInput } from "@nradko/metric-omm-sdk-v1";
+import { buildArgsAndExpectedAmountsForSwapExactInput } from "@metric.xyz/metric-omm-sdk-v1";
 ```
 
 **Do not mix v0 and v1 helpers for the same pool.** Factory address, swap router, and liquidity entrypoints differ. Use one namespace end-to-end for create / read / add / remove / swap.
@@ -51,8 +51,8 @@ import { buildArgsAndExpectedAmountsForSwapExactInput } from "@nradko/metric-omm
 Each version exposes committed ABIs:
 
 ```typescript
-import { MetricOmmSimpleRouterAbi, MetricOmmSwapQuoterAbi } from "@nradko/metric-omm-sdk-v1/abis";
-import { MetricOmmSwapRouterAbi } from "@nradko/metric-omm-sdk-v0/abis";
+import { MetricOmmSimpleRouterAbi, MetricOmmSwapQuoterAbi } from "@metric.xyz/metric-omm-sdk-v1/abis";
+import { MetricOmmSwapRouterAbi } from "@metric.xyz/metric-omm-sdk-v0/abis";
 ```
 
 Via the combined package, import from the underlying package name (re-export of `/abis` is not on the wrapper root).
@@ -115,7 +115,7 @@ v0 uses `encodeModifyLiquidityCalldata` with the legacy tuple `(salt, deltas[], 
 ## Setup: clients and addresses
 
 ```typescript
-import { v1 } from "@nradko/metric-omm-sdk";
+import { v1 } from "@metric.xyz/metric-omm-sdk";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mainnet } from "viem/chains";
@@ -146,7 +146,7 @@ Both versions: `encodeCreatePoolCalldata(params)` → `factory.createPool`, or `
 ### v0 params (drift / percent fees)
 
 ```typescript
-import { v0 } from "@nradko/metric-omm-sdk";
+import { v0 } from "@metric.xyz/metric-omm-sdk";
 
 const params: v0.CreatePoolFactoryParams = {
   token0,
@@ -172,7 +172,7 @@ const data = v0.encodeCreatePoolCalldata(params);
 ### v1 params (E6 / E8 admin fees)
 
 ```typescript
-import { v1 } from "@nradko/metric-omm-sdk";
+import { v1 } from "@metric.xyz/metric-omm-sdk";
 
 const params: v1.CreatePoolFactoryParams = {
   token0,
@@ -348,7 +348,7 @@ await walletClient.writeContract({
 ### v0 — Router
 
 ```typescript
-import { MetricOmmSwapRouterAbi } from "@nradko/metric-omm-sdk-v0/abis";
+import { MetricOmmSwapRouterAbi } from "@metric.xyz/metric-omm-sdk-v0/abis";
 
 const { args, expectedInput, expectedOutput } =
   await v0.buildArgsAndExpectedAmountsForSwapExactInput({
@@ -376,7 +376,7 @@ Quote without tx: `v0.quoteSwap`, `quoteExpectedAmountsForSwapExactInput`.
 ### v1 — SimpleRouter
 
 ```typescript
-import { MetricOmmSimpleRouterAbi } from "@nradko/metric-omm-sdk-v1/abis";
+import { MetricOmmSimpleRouterAbi } from "@metric.xyz/metric-omm-sdk-v1/abis";
 
 const params = await v1.buildExactInputSingleParams({
   publicClient,

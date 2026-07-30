@@ -1,5 +1,5 @@
 {
-  "name": "@nradko/metric-omm-sdk-v0",
+  "name": "@metric.xyz/metric-omm-sdk-v0",
   "version": "0.1.2",
   "description": "Metric AMM SDK — v0 contracts (main branch: Router, modifyLiquidity)",
   "type": "module",

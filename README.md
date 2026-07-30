@@ -6,29 +6,29 @@ This directory holds **three independent npm packages**. They share no root tool
 
 | Package | Folder | Description |
 | -------- | ------ | ----------- |
-| `@nradko/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
-| `@nradko/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
-| `@nradko/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base + Robinhood + HyperEVM |
+| `@metric.xyz/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
+| `@metric.xyz/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
+| `@metric.xyz/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base + Robinhood + HyperEVM |
 
 ## Installation
 
 **Combined (recommended when you need both APIs):**
 
 ```bash
-npm install @nradko/metric-omm-sdk viem
+npm install @metric.xyz/metric-omm-sdk viem
 ```
 
 **Version-specific:**
 
 ```bash
-npm install @nradko/metric-omm-sdk-v1 viem
-npm install @nradko/metric-omm-sdk-v0 viem
+npm install @metric.xyz/metric-omm-sdk-v1 viem
+npm install @metric.xyz/metric-omm-sdk-v0 viem
 ```
 
 ## Quick start (v1 — current Ethereum deployment)
 
 ```typescript
-import { v1 } from "@nradko/metric-omm-sdk";
+import { v1 } from "@metric.xyz/metric-omm-sdk";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -43,7 +43,7 @@ See [v1/README.md](./v1/README.md) for SimpleRouter swaps (including native ETH 
 ## Quick start (v0 — Router / modifyLiquidity)
 
 ```typescript
-import { v0 } from "@nradko/metric-omm-sdk";
+import { v0 } from "@metric.xyz/metric-omm-sdk";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -80,7 +80,7 @@ npm run verify   # full publish gate for that package
 
 **v0** and **v1** pin different `@metric/core` / `@metric/periphery` commits and each has its own `package-lock.json`, `node_modules`, ESLint, and Prettier config.
 
-**metric-omm-sdk** depends on **published** `@nradko/metric-omm-sdk-v0` and `@nradko/metric-omm-sdk-v1` from npm (exact versions in `package.json`), not local siblings.
+**metric-omm-sdk** depends on **published** `@metric.xyz/metric-omm-sdk-v0` and `@metric.xyz/metric-omm-sdk-v1` from npm (exact versions in `package.json`), not local siblings.
 
 Contract pins for **v1** match [`dev_metric-deploy/versions.env`](../dev_metric-deploy/versions.env). Refresh with `npm run sync:versions:env` inside `v1/`.
 
@@ -107,7 +107,7 @@ npm publish --access public
 ### Combined wrapper
 
 1. Publish v0 and v1 first.
-2. In `metric-omm-sdk/package.json`, set `@nradko/metric-omm-sdk-v0` and `@nradko/metric-omm-sdk-v1` to the exact versions you published.
+2. In `metric-omm-sdk/package.json`, set `@metric.xyz/metric-omm-sdk-v0` and `@metric.xyz/metric-omm-sdk-v1` to the exact versions you published.
 3. `npm ci` in `metric-omm-sdk/`, then `npm publish --access public`.
 
 `verify` on the wrapper fails if dependencies use `file:` links or are missing.

@@ -9,10 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.5] - 2026-07-14
 
-> New CREATE2 deployment addresses on Ethereum, Base, Robinhood, and HyperEVM. v0 adds Robinhood to the multi-chain address registry.
->
-> Pinned upstream: **metric-periphery** `d210a84daf694c52a591d371ceb9b82cece0f79f` (v1 unchanged).
->
+> New V1 deployment addresses on Ethereum, Base, Robinhood, and HyperEVM.
+> V0 adds Robinhood deployment.
+
 > Packages: **@nradko/metric-omm-sdk-v1** `0.4.5`, **@nradko/metric-omm-sdk** `0.4.5`, **@nradko/metric-omm-sdk-v0** `0.1.2`.
 
 ### Added — SDK (v0)

@@ -1,4 +1,4 @@
-# @nradko/metric-omm-sdk-v1
+# @metric.xyz/metric-omm-sdk-v1
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
@@ -7,13 +7,13 @@ Pinned **metric-periphery** `d210a84daf694c52a591d371ceb9b82cece0f79f` (core via
 ## Installation
 
 ```bash
-npm install @nradko/metric-omm-sdk-v1 viem
+npm install @metric.xyz/metric-omm-sdk-v1 viem
 ```
 
 Or via the combined package:
 
 ```typescript
-import { v1 } from "@nradko/metric-omm-sdk";
+import { v1 } from "@metric.xyz/metric-omm-sdk";
 ```
 
 ## Ethereum, Base, Robinhood, and HyperEVM addresses
@@ -40,7 +40,7 @@ Protocol contracts use the **same addresses** on Ethereum, Base, Robinhood (4663
 `MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param). There is no separate StateView deployment — use `dataProvider` for all lens reads.
 
 ```typescript
-import { getAddressesOrThrow, ChainId, isChainSupported } from "@nradko/metric-omm-sdk-v1";
+import { getAddressesOrThrow, ChainId, isChainSupported } from "@metric.xyz/metric-omm-sdk-v1";
 
 const a = getAddressesOrThrow(ChainId.ETHEREUM);
 // getAddressesOrThrow(ChainId.BASE) — same protocol addresses as Ethereum
@@ -59,8 +59,8 @@ import {
   buildExactInputSingleParams,
   getAddressesOrThrow,
   ChainId,
-} from "@nradko/metric-omm-sdk-v1";
-import { MetricOmmSimpleRouterAbi } from "@nradko/metric-omm-sdk-v1/abis";
+} from "@metric.xyz/metric-omm-sdk-v1";
+import { MetricOmmSimpleRouterAbi } from "@metric.xyz/metric-omm-sdk-v1/abis";
 
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 
@@ -88,7 +88,7 @@ await walletClient.writeContract({
 ### Multihop
 
 ```typescript
-import { buildExactInputParams, encodeExactInputCalldata } from "@nradko/metric-omm-sdk-v1";
+import { buildExactInputParams, encodeExactInputCalldata } from "@metric.xyz/metric-omm-sdk-v1";
 
 const pathParams = await buildExactInputParams({
   publicClient,
@@ -124,7 +124,7 @@ import {
   buildExactInputSingleParams,
   prepareExactInputSingleSupportingNativePaymentCalldata,
   prepareExactInputSingleAndUnwrapCalldata,
-} from "@nradko/metric-omm-sdk-v1";
+} from "@metric.xyz/metric-omm-sdk-v1";
 
 // ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
 const params = await buildExactInputSingleParams({ /* … */, quoterAddress });
@@ -152,7 +152,7 @@ import {
   encodeExactInputCalldata,
   encodeExactOutputSingleCalldata,
   encodeExactOutputCalldata,
-} from "@nradko/metric-omm-sdk-v1";
+} from "@metric.xyz/metric-omm-sdk-v1";
 
 const route = await fetch(`${routeApiBase}/public/v1/evm/${chainId}/route`, {
   method: "POST",
@@ -201,7 +201,7 @@ Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.
 Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` with the deployed **MetricOmmSwapQuoter** address.
 
 ```typescript
-import { quoteLiveExactInSingle, quoteLiveExactIn } from "@nradko/metric-omm-sdk-v1";
+import { quoteLiveExactInSingle, quoteLiveExactIn } from "@metric.xyz/metric-omm-sdk-v1";
 
 const single = await quoteLiveExactInSingle({
   publicClient,
@@ -240,7 +240,7 @@ import {
   prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,
   getAddressesOrThrow,
   ChainId,
-} from "@nradko/metric-omm-sdk-v1";
+} from "@metric.xyz/metric-omm-sdk-v1";
 
 const { liquidityAdder } = getAddressesOrThrow(ChainId.ETHEREUM);
 
@@ -273,7 +273,7 @@ See extension admin encoders (`encodeSetAllowedToDepositCalldata`, `encodeSetAll
 For providers-oracle price feeds, register pools before attributed reads:
 
 ```typescript
-import { getPoolOracleStatus, registerPool } from "@nradko/metric-omm-sdk-v1";
+import { getPoolOracleStatus, registerPool } from "@metric.xyz/metric-omm-sdk-v1";
 
 const status = await getPoolOracleStatus(publicClient, oracleAddress, feedId, poolAddress);
 await registerPool({ publicClient, walletClient, oracleAddress, feedId, pool: poolAddress, factory, account });
@@ -282,7 +282,7 @@ await registerPool({ publicClient, walletClient, oracleAddress, feedId, pool: po
 ## Pool reads
 
 ```typescript
-import { getPoolImmutables, getPoolState, getSlot0, getAddressesOrThrow, ChainId } from "@nradko/metric-omm-sdk-v1";
+import { getPoolImmutables, getPoolState, getSlot0, getAddressesOrThrow, ChainId } from "@metric.xyz/metric-omm-sdk-v1";
 
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 const imm = await getPoolImmutables(publicClient, addresses.factory, poolAddress);
@@ -304,7 +304,7 @@ import {
   PriceVelocityGuardExtensionAbi,
   OracleValueStopLossExtensionAbi,
   OracleProviderAbi,
-} from "@nradko/metric-omm-sdk-v1/abis";
+} from "@metric.xyz/metric-omm-sdk-v1/abis";
 ```
 
 Regenerate from pinned contracts:

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Lint, format, typecheck, and test for @nradko/metric-omm-sdk-v1.
+ * Lint, format, typecheck, and test for @metric.xyz/metric-omm-sdk-v1.
  */
 
 import { spawnSync } from "node:child_process";

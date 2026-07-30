@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Lint, format, typecheck, and build for @nradko/metric-omm-sdk (published v0/v1 deps only).
+ * Lint, format, typecheck, and build for @metric.xyz/metric-omm-sdk (published v0/v1 deps only).
  */
 
 import { spawnSync } from "node:child_process";
@@ -24,7 +24,7 @@ function run(command, args) {
 
 function assertPublishedDependencies() {
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-  for (const name of ["@nradko/metric-omm-sdk-v0", "@nradko/metric-omm-sdk-v1"]) {
+  for (const name of ["@metric.xyz/metric-omm-sdk-v0", "@metric.xyz/metric-omm-sdk-v1"]) {
     const spec = pkg.dependencies?.[name];
     if (typeof spec === "string" && spec.startsWith("file:")) {
       throw new Error(

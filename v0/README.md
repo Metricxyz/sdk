@@ -1,4 +1,4 @@
-# @nradko/metric-omm-sdk-v0
+# @metric.xyz/metric-omm-sdk-v0
 
 TypeScript SDK for **v0** Metric OMM contracts: **MetricOmmSwapRouter**, pool **`modifyLiquidity`**, and multi-chain deployed addresses.
 
@@ -7,13 +7,13 @@ Pinned to `metric-core@af10188` and `metric-periphery@e3154ea` (see `package.jso
 ## Installation
 
 ```bash
-npm install @nradko/metric-omm-sdk-v0 viem
+npm install @metric.xyz/metric-omm-sdk-v0 viem
 ```
 
 Or via the combined package:
 
 ```typescript
-import { v0 } from "@nradko/metric-omm-sdk";
+import { v0 } from "@metric.xyz/metric-omm-sdk";
 ```
 
 ## Addresses
@@ -21,7 +21,7 @@ import { v0 } from "@nradko/metric-omm-sdk";
 Multi-chain factory, deployer, state view (CREATE2), and per-chain router addresses are in `ADDRESSES` / `getAddressesOrThrow(chainId)`.
 
 ```typescript
-import { ADDRESSES, ChainId, getAddressesOrThrow } from "@nradko/metric-omm-sdk-v0";
+import { ADDRESSES, ChainId, getAddressesOrThrow } from "@metric.xyz/metric-omm-sdk-v0";
 
 const eth = getAddressesOrThrow(ChainId.ETHEREUM);
 // eth.factory, eth.poolDeployer, eth.stateView, eth.router, ...
@@ -34,8 +34,8 @@ import {
   buildArgsAndExpectedAmountsForSwapExactInput,
   getAddressesOrThrow,
   ChainId,
-} from "@nradko/metric-omm-sdk-v0";
-import { MetricOmmSwapRouterAbi } from "@nradko/metric-omm-sdk-v0/abis";
+} from "@metric.xyz/metric-omm-sdk-v0";
+import { MetricOmmSwapRouterAbi } from "@metric.xyz/metric-omm-sdk-v0/abis";
 
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 
@@ -65,7 +65,7 @@ await walletClient.writeContract({
 import {
   buildModifyLiquidityArgsForUniformAddition,
   encodeModifyLiquidityCalldata,
-} from "@nradko/metric-omm-sdk-v0";
+} from "@metric.xyz/metric-omm-sdk-v0";
 
 const modifyArgs = await buildModifyLiquidityArgsForUniformAddition({ /* ... */ });
 const data = encodeModifyLiquidityCalldata(modifyArgs);
