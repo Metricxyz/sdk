@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-08-04
+
+> OracleValueStopLoss helpers for front ends: detect whether any pool bin is stop-loss breached and estimate when trading may resume via watermark decay.
+>
+> Packages: **@metric.xyz/metric-omm-sdk-v1** `0.4.6`, **@metric.xyz/metric-omm-sdk** `0.4.6`. **@metric.xyz/metric-omm-sdk-v0** unchanged.
+
+### Added — SDK (v1)
+
+- **Oracle stop-loss any-bin status** — `getOracleStopLossAnyBinStatus` loads config, bin balances, and current high watermarks, then evaluates breaches for every non-empty bin in `[lowestBin, highestBin]`. Returns `isAnyBinStopLossBreached`, per-bin directional flags (`blocksZeroForOne` / `blocksOneForZero`), and `secondsUntil*Resumes` decay estimates. Pure helpers: `evaluateOracleStopLoss`, `computeOracleStopLossMetrics`, `isStopLossMetricBreached`, `secondsUntilStopLossClears`, `decayedHighWatermark`, `stopLossThreshold`. Callers supply oracle bid/ask (must match the pool price provider at the same block). A swap is blocked only if a bin on its path is breached — use per-bin flags for path-aware UI, not only the any-bin boolean.
+
 ## [0.4.5] - 2026-07-14
 
 > New V1 deployment addresses on Ethereum, Base, Robinhood, and HyperEVM.

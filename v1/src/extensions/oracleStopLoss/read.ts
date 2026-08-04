@@ -7,10 +7,7 @@ import type { Abi, Address, PublicClient } from "viem";
 import { MetricOmmPoolAbi } from "../../abis/MetricOmmPool.js";
 import { MetricOmmPoolDataProviderAbi } from "../../abis/MetricOmmPoolDataProvider.js";
 import { OracleValueStopLossExtensionAbi } from "../../abis/OracleValueStopLossExtension.js";
-import {
-  decodeBinStatesBytes32,
-  decodeBinTotalSharesBatch,
-} from "../../utils/poolState.js";
+import { decodeBinStatesBytes32, decodeBinTotalSharesBatch } from "../../utils/poolState.js";
 import { evaluateOracleStopLoss, type OracleStopLossEvaluation } from "./evaluate.js";
 
 export interface OracleStopLossConfig {
@@ -159,9 +156,18 @@ export async function getOracleStopLossAnyBinStatus(
     highestBin: number | bigint;
   };
   const config = parseConfig(
-    bootstrap[1] as unknown as readonly [number | bigint, number | bigint, number | bigint, boolean],
+    bootstrap[1] as unknown as readonly [
+      number | bigint,
+      number | bigint,
+      number | bigint,
+      boolean,
+    ],
   );
-  const slot0 = bootstrap[2] as unknown as readonly [number | bigint, number | bigint, ...unknown[]];
+  const slot0 = bootstrap[2] as unknown as readonly [
+    number | bigint,
+    number | bigint,
+    ...unknown[],
+  ];
 
   const lowestBin = Number(immutables.lowestBin);
   const highestBin = Number(immutables.highestBin);
