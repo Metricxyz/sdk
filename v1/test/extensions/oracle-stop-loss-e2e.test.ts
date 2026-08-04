@@ -66,10 +66,7 @@ describe("OracleValueStopLossExtension E2E", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
   const [deployer, trader] = await viem.getWalletClients();
 
-  async function setupPool(options?: {
-    drawdownE6?: number;
-    adminSpreadFeeE6?: number;
-  }): Promise<{
+  async function setupPool(options?: { drawdownE6?: number; adminSpreadFeeE6?: number }): Promise<{
     env: MetricTestEnv;
     pool: Address;
     stopLoss: Address;

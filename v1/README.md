@@ -268,6 +268,37 @@ Pools support up to seven **extensions** (periphery contracts) configured at cre
 
 See extension admin encoders (`encodeSetAllowedToDepositCalldata`, `encodeSetAllowedToSwapCalldata`, …) and [HOW_TO.md](../metric-omm-sdk/HOW_TO.md) for pool-creation examples.
 
+### Oracle stop-loss status
+
+For pools with **OracleValueStopLossExtension**, check whether any non-empty bin is currently halt-breached and when decay may clear it:
+
+```typescript
+import {
+  getAddressesOrThrow,
+  ChainId,
+  getOracleStopLossAnyBinStatus,
+} from "@metric.xyz/metric-omm-sdk-v1";
+
+const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
+
+// bid/ask must match the pool oracle at this block (e.g. from the pool price provider).
+const status = await getOracleStopLossAnyBinStatus({
+  publicClient,
+  extension: addresses.oracleValueStopLossExtension,
+  dataProvider: addresses.dataProvider,
+  pool: poolAddress,
+  bidPriceX64,
+  askPriceX64,
+});
+
+status.isAnyBinStopLossBreached; // true if any evaluated bin blocks at least one direction
+status.breachedBins; // per-bin metrics, thresholds, blocksZeroForOne / blocksOneForZero
+status.secondsUntilZeroForOneResumes; // max decay seconds for token0 breaches; null if never via decay
+status.secondsUntilOneForZeroResumes;
+```
+
+`isAnyBinStopLossBreached` means at least one bin in the pool range is breached — not that every swap is halted. On-chain stop-loss only checks bins on the swap path; use per-bin direction flags (or a quote/simulate) for a specific trade. Offline: `evaluateOracleStopLoss` with balances and watermarks you already have.
+
 ## Oracle registration
 
 For providers-oracle price feeds, register pools before attributed reads:

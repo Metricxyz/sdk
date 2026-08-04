@@ -86,7 +86,9 @@ function maxResumeSeconds(values: Array<bigint | null>): bigint | null {
  * Compute per-bin stop-loss status from balances, watermarks, and current bid/ask.
  * Does not touch the chain — pass data you already have (or from the read helper).
  */
-export function evaluateOracleStopLoss(params: EvaluateOracleStopLossParams): OracleStopLossEvaluation {
+export function evaluateOracleStopLoss(
+  params: EvaluateOracleStopLossParams,
+): OracleStopLossEvaluation {
   const {
     bins,
     bidPriceX64,
