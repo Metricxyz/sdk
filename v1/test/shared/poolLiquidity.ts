@@ -37,6 +37,12 @@ export const PATH_SWAP_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = {
   shares: [5_000_000n, 5_000_000n, 10_000_000n, 5_000_000n, 5_000_000n],
 };
 
+/** Deeper book used by oracle stop-loss E2E (same bins, larger shares). */
+export const STOP_LOSS_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = {
+  binIdxs: [-2n, -1n, 0n, 1n, 2n],
+  shares: [100_000_000n, 100_000_000n, 200_000_000n, 100_000_000n, 100_000_000n],
+};
+
 /** Wider bin range used by native-swap E2E tests. */
 export const WIDE_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = createBinRangeLiquidityDeltas(
   -4n,
