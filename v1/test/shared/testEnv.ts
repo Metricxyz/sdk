@@ -40,6 +40,16 @@ export function testBidAskPriceQ64FromMid(midQ64: bigint): readonly [bigint, big
   return [midQ64 - 1n, midQ64 + 1n];
 }
 
+/** Set MockOracle bid/ask around `midPrice` and return the Q64.64 pair used. */
+export async function setOracleMid(
+  env: MetricTestEnv,
+  midPrice: number,
+): Promise<readonly [bigint, bigint]> {
+  const [bid, ask] = testBidAskPriceQ64(midPrice);
+  await env.priceProvider.write.setBidAndAskPrice([bid, ask]);
+  return [bid, ask];
+}
+
 export async function deployMetricTestEnv(viem: any, deployer: any): Promise<MetricTestEnv> {
   const publicClient = await viem.getPublicClient();
 
