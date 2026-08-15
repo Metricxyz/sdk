@@ -8,34 +8,18 @@ import type { DepthBin, DepthLevel, DepthSide } from "./types.js";
 /** E6 scale used by `priceImpactE6` on the wire. Shared with `./impact.js`. */
 export const E6 = 1_000_000n;
 
-/** Result of {@link toDepthBins}: the usable marginal bins, plus where the ladder went bad. */
-export interface DepthBinsResult {
-  /** Marginal bins differenced from the valid prefix of the ladder. */
-  bins: DepthBin[];
-  /**
-   * The first level whose `cumulativeVolume` decreased relative to the previous kept level, if
-   * any — the ladder is malformed from this point on, so `bins` stops just before it. `null`
-   * means the whole ladder was consumed without hitting such a level.
-   */
-  truncatedAtLevel: DepthLevel | null;
-}
-
 /**
  * Convert a side's cumulative depth levels into marginal per-bin deltas.
  *
- * Mirrors the server's `depth_bins` exactly:
+ * Mirrors the server's `depth_bins`:
  * - skips a level whose `cumulativeInputVolume` does not strictly increase over the
  *   previous kept level (a repeated/stale boundary);
- * - stops (rather than throwing) at a level whose `cumulativeVolume` (output) decreased across
- *   kept levels — the ladder must be non-decreasing, so a decrease means the payload is malformed
- *   from that point on. The server (`score_depth_leg`) returns as soon as a fill's remaining
- *   amount hits zero and never reads past that point, so a malformed level the fill never reaches
- *   must not fail a request the server would have completed — see `truncatedAtLevel` and the
- *   callers in `./impact.js`, which only surface an error when the fill actually needs to cross it;
+ * - throws if a level's `cumulativeVolume` (output) decreased across kept levels — the ladder
+ *   must be non-decreasing, so a decrease means the payload is malformed;
  * - KEEPS zero-output bins. Callers that walk the ladder (e.g. `computePriceImpactExactIn`)
  *   decide whether to skip them, and must do so WITHOUT consuming their input.
  */
-export function toDepthBins(levels: readonly DepthLevel[]): DepthBinsResult {
+export function toDepthBins(levels: readonly DepthLevel[]): DepthBin[] {
   const bins: DepthBin[] = [];
   let previousInput = 0n;
   let previousOutput = 0n;
@@ -47,7 +31,7 @@ export function toDepthBins(levels: readonly DepthLevel[]): DepthBinsResult {
       continue;
     }
     if (cumulativeOutput < previousOutput) {
-      return { bins, truncatedAtLevel: level };
+      throw new Error(`malformed depth: cumulativeVolume decreased at binIdx=${level.binIdx}`);
     }
 
     bins.push({
@@ -59,7 +43,7 @@ export function toDepthBins(levels: readonly DepthLevel[]): DepthBinsResult {
     previousOutput = cumulativeOutput;
   }
 
-  return { bins, truncatedAtLevel: null };
+  return bins;
 }
 
 /**
@@ -69,17 +53,10 @@ export function toDepthBins(levels: readonly DepthLevel[]): DepthBinsResult {
  * `ask: ref = level.price * E6 / (E6 + impactE6)`
  * `bid: ref = level.price * E6 / (E6 - impactE6)`
  *
- * This recovers a ladder-consistent reference price from an ordinary depth level, without the
- * cost of an `?debug=true` request (which bypasses the server's cache). It is NOT the same
- * number as `debug.poolBid`/`poolAsk`: those come from `pool_pricing::compute_pool_bid_ask`,
- * which does not apply the notional fee, while `level.price` is `sell_price_with_fees`/
- * `buy_price_with_fees`, which does — the two differ by the whole notional fee whenever
- * `notionalFeeE8 != 0`.
- *
- * `level.price` is guaranteed `> 0n` by `parseBidAskResponse` (see `./parse.js`). `impactE6` is
- * signed and can be negative. Floor division means the recovered value is off by at most 1 wei
- * from the true reference. Exposed (not inlined into the impact walk) so callers can audit it
- * directly.
+ * Recovers a ladder-consistent reference price from an ordinary depth level, without the cost
+ * of an `?debug=true` request (which bypasses the server's cache). `level.price` is guaranteed
+ * `> 0n` by `parseBidAskResponse` (see `./parse.js`). `impactE6` is signed and can be negative.
+ * Floor division means the recovered value is off by at most 1 wei from the true reference.
  */
 export function computeReferencePriceX64(level: DepthLevel, side: DepthSide): bigint {
   const { price, priceImpactE6: impactE6 } = level;

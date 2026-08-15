@@ -3,7 +3,7 @@
  * I/O — everything else is pure and takes data the caller already has.
  */
 
-import { computePriceImpactExactIn, computePriceImpactExactOut } from "./impact.js";
+import { computePriceImpactExactIn } from "./impact.js";
 import { parseBidAskResponse } from "./parse.js";
 import type { Address } from "viem";
 import type { BidAskQuote, BidAskResponse, PriceImpactResult } from "./types.js";
@@ -31,14 +31,12 @@ export type FetchLike = (
 
 /**
  * Read an optional field via its OWN property only, ignoring anything inherited from
- * `Object.prototype`. Plain destructuring/`??` reads (`params.fetch`, `params.baseUrl`, …) walk
- * the prototype chain like any other property access: if a caller simply omits an optional field
- * and something upstream has polluted `Object.prototype` with a same-named property (a
- * prototype-pollution gadget in some other dependency), a plain read silently picks up the
- * attacker's value instead of `undefined` — e.g. a polluted `Object.prototype.fetch` captures the
- * bearer API key and the request URL, and a polluted `Object.prototype.baseUrl` redirects the
- * request (including the `Authorization` header) to an attacker's host. `Object.hasOwn` bypasses
- * the prototype chain entirely, so an omitted field reads as `undefined` no matter what.
+ * `Object.prototype`. A plain `params.fetch`/`params.baseUrl` read walks the prototype chain: if
+ * a caller omits the field and some other dependency has polluted `Object.prototype` with a
+ * same-named property, a plain read silently picks up the attacker's value instead of
+ * `undefined` — a polluted `Object.prototype.fetch` captures the bearer API key, a polluted
+ * `Object.prototype.baseUrl` redirects the (still-authenticated) request to an attacker's host.
+ * `Object.hasOwn` bypasses the prototype chain, so an omitted field always reads as `undefined`.
  */
 function ownField<T extends object, K extends keyof T>(obj: T, key: K): T[K] | undefined {
   return Object.hasOwn(obj, key) ? obj[key] : undefined;
@@ -46,8 +44,8 @@ function ownField<T extends object, K extends keyof T>(obj: T, key: K): T[K] | u
 
 /**
  * Request/transport params shared by {@link fetchBidAsk} and the price-impact convenience
- * functions — named once so a future transport option (a header, a timeout, …) can't be added
- * to one and silently missed by the others.
+ * function — named once so a future transport option (a header, a timeout, …) can't be added
+ * to one and silently missed by the other.
  */
 export type BidAskRequestParams = {
   /**
@@ -116,16 +114,9 @@ export async function fetchBidAsk(
   return parseBidAskResponse(body);
 }
 
-export type GetBidAskPriceImpactExactInParams = BidAskRequestParams & {
+export type GetBidAskPriceImpactParams = BidAskRequestParams & {
   zeroForOne: boolean;
   amountIn: bigint;
-  token0ScaleMultiplier: bigint;
-  token1ScaleMultiplier: bigint;
-};
-
-export type GetBidAskPriceImpactExactOutParams = BidAskRequestParams & {
-  zeroForOne: boolean;
-  amountOut: bigint;
   token0ScaleMultiplier: bigint;
   token1ScaleMultiplier: bigint;
 };
@@ -143,8 +134,8 @@ export type GetBidAskPriceImpactExactOutParams = BidAskRequestParams & {
  * copies `params`'s OWN enumerable properties — so a polluted `Object.prototype.fetch`/`baseUrl`
  * is excluded here too, the same as the `ownField` reads inside `fetchBidAsk` itself.
  */
-export async function getBidAskPriceImpactExactIn(
-  params: GetBidAskPriceImpactExactInParams,
+export async function getBidAskPriceImpact(
+  params: GetBidAskPriceImpactParams,
 ): Promise<PriceImpactResult> {
   const { zeroForOne, amountIn, token0ScaleMultiplier, token1ScaleMultiplier, ...requestParams } =
     params;
@@ -153,34 +144,6 @@ export async function getBidAskPriceImpactExactIn(
   return computePriceImpactExactIn({
     quote,
     amountIn,
-    zeroForOne,
-    token0ScaleMultiplier,
-    token1ScaleMultiplier,
-  });
-}
-
-/**
- * One-call convenience: fetch a pool's `bid_ask` quote (always with depth — a fill can't be
- * scored without it) and compute the price impact of `amountOut` against it.
- *
- * `token0ScaleMultiplier`/`token1ScaleMultiplier` are NOT on the `bid_ask` response; get them
- * from the pool's own immutables (`getPoolImmutables`'s `PoolImmutables.token0ScaleMultiplier`/
- * `token1ScaleMultiplier`, `../types.js`) — see `computePriceImpactExactOut` in `./impact.js` for
- * why they're required.
- *
- * See {@link getBidAskPriceImpactExactIn}'s doc comment for why the object-rest spread below
- * doesn't reopen the prototype-pollution gap `fetchBidAsk`'s `ownField` reads close.
- */
-export async function getBidAskPriceImpactExactOut(
-  params: GetBidAskPriceImpactExactOutParams,
-): Promise<PriceImpactResult> {
-  const { zeroForOne, amountOut, token0ScaleMultiplier, token1ScaleMultiplier, ...requestParams } =
-    params;
-
-  const quote = await fetchBidAsk({ ...requestParams, depth: true });
-  return computePriceImpactExactOut({
-    quote,
-    amountOut,
     zeroForOne,
     token0ScaleMultiplier,
     token1ScaleMultiplier,

@@ -1,52 +1,30 @@
 /**
  * Pure price-impact computation over a parsed `bid_ask` depth ladder.
- * Mirrors oracle_api's `score_depth_leg`/`score_depth_leg_exact_out`.
+ * Mirrors oracle_api's `score_depth_leg`.
  */
 
 import { Q64 } from "../constants.js";
-import { ceilDiv } from "../utils/liquidityMath.js";
 import { E6, computeReferencePriceX64, toDepthBins } from "./depth.js";
 import { isQuoteUnavailable } from "./parse.js";
 import type { BidAskQuote, DepthBin, DepthLevel, DepthSide, PriceImpactResult } from "./types.js";
 
 /**
- * Average fill impact must sit between 0 and `marginalPriceImpactE6` — the LAST crossed level's
- * own wire impact, which is multiplier-independent and so a free cross-check on whether the
- * caller's `token0ScaleMultiplier`/`token1ScaleMultiplier` are plausible.
+ * Average fill impact must sit between 0 and `marginalPriceImpactE6` (the LAST crossed level's
+ * own wire impact): for a monotone ladder, a fill's average execution price sits between the
+ * pool's reference price (0 impact) and the last crossed boundary's price, so
+ * `priceImpactE6 ∈ [min(0, marginal), max(0, marginal)]`. `marginalPriceImpactE6` is
+ * multiplier-independent (it comes straight off the wire), so this is a free cross-check that
+ * the caller's `token0ScaleMultiplier`/`token1ScaleMultiplier` are plausible.
  *
- * This is the actual invariant, not an arbitrary band: for a monotone depth ladder, walking
- * outward from the top of book, the average execution price of a fill sits between the pool's
- * reference price (0 impact) and the last crossed boundary's price — a partial fill of the last
- * bin makes the average strictly less extreme than that boundary's own marginal impact. So the
- * fill's average must lie between `0` and `marginalPriceImpactE6`, whichever order they fall in:
- *
- *   0 <= priceImpactE6 <= marginalPriceImpactE6           when marginalPriceImpactE6 >= 0
- *   marginalPriceImpactE6 <= priceImpactE6 <= 0           when marginalPriceImpactE6 < 0
- *
- * i.e. `[min(0, marginal), max(0, marginal)]` below. `marginalPriceImpactE6` is a signed wire
- * value that can legitimately be negative (a price-improving boundary) or exactly 0 (a uniform-
- * rate bin) — the band is built from it directly with `min`/`max` against `0`, never by dividing
- * by it or assuming its sign.
- *
- * `IMPACT_PLAUSIBILITY_TOLERANCE_E6` is a small additive slack on both ends of that band, for
- * integer floor-division rounding only — NOT a percentage-of-marginal fudge factor (the previous
- * design multiplied `|marginal|` by a tolerance and added a 200-percentage-point floor, which a
- * wrong/swapped scale multiplier sails through whenever the two tokens' decimals differ by more
- * than ~12 orders of magnitude, e.g. any 8-decimal/6-decimal pair). A partial fill of a coarse
- * single bin can land the average a couple of E6 units to either side of the bin's own recorded
- * impact purely from the Q64/E6 floor divisions (measured in this suite: `-2` on a legitimately
- * tiny near-zero fill). `5_000n` (0.5 percentage points) clears that with ample margin while
- * staying far below any real corrupted-multiplier case: a wrong/swapped `token0ScaleMultiplier`/
- * `token1ScaleMultiplier` is off by a whole decimal-scale factor (1e6-1e12 for realistic token
- * pairs), landing `priceImpactE6` many orders of magnitude outside this band — measured live
- * against a real CBBTC(8)/USDC(6) pool on Base (on-chain multipliers `token0=1e10`,
- * `token1=1e12`; true `priceImpactE6 = 6`, `marginalPriceImpactE6 = 55`):
- *
- * | token0ScaleMultiplier, token1ScaleMultiplier | priceImpactE6            |
- * |-----------------------------------------------|--------------------------|
- * | correct `(1e10, 1e12)`                         | `6`                      |
- * | swapped `(1e12, 1e10)`                         | `999901` (99.99%)        |
- * | placeholder `(1n, 1n)`                          | `990001` (99.00%)        |
+ * `IMPACT_PLAUSIBILITY_TOLERANCE_E6` is additive slack on both ends of that band for integer
+ * floor-division rounding only, NOT a percentage-of-marginal fudge factor — a coarse single-bin
+ * partial fill can land a couple of E6 units either side of the bin's own recorded impact purely
+ * from Q64/E6 floor division. `5_000n` (0.5pp) clears that easily while staying far below any
+ * real wrong-multiplier case, which is off by a whole decimal-scale factor (1e6-1e12) and lands
+ * many orders of magnitude outside this band. Measured live against a CBBTC(8)/USDC(6) pool on
+ * Base (multipliers `1e10`/`1e12`; true `priceImpactE6=6`, `marginalPriceImpactE6=55`): swapped
+ * multipliers gave `999901` (99.99%), a `(1n,1n)` placeholder gave `990001` (99.00%) — both would
+ * silently return instead of throwing without this guard.
  */
 const IMPACT_PLAUSIBILITY_TOLERANCE_E6 = 5_000n;
 
@@ -96,25 +74,18 @@ function sumAvailable(bins: readonly DepthBin[], pick: (bin: DepthBin) => bigint
 }
 
 /**
- * Build the error for a fill that could not be completed against the ladder. Distinguishes
- * three causes so a caller doesn't misread a `feed_down`/no-liquidity side as "you asked for too
- * much": a genuinely malformed tail the fill needed to cross, a side with no usable depth at
- * all (e.g. an unavailable quote's empty `asks`/`bids`), and ordinary insufficient depth.
+ * Build the error for a fill that could not be completed against the ladder. Distinguishes a
+ * side with no usable depth at all (e.g. an unavailable quote's empty `asks`/`bids`) from
+ * ordinary insufficient depth, so a caller doesn't misread a `feed_down`/no-liquidity side as
+ * "you asked for too much".
  */
 function buildDepthExhaustionError(params: {
   side: DepthSide;
   requestedLabel: string;
   available: bigint;
-  truncatedAtLevel: DepthLevel | null;
 }): Error {
-  const { side, requestedLabel, available, truncatedAtLevel } = params;
+  const { side, requestedLabel, available } = params;
 
-  if (truncatedAtLevel) {
-    return new Error(
-      `malformed depth: cumulativeVolume decreased at binIdx=${truncatedAtLevel.binIdx} on the ${side} side; ` +
-        `the fill needs more depth than the valid ladder prefix (${available} available) provides`,
-    );
-  }
   if (available === 0n) {
     return new Error(
       `no depth available on the ${side} side: the ladder is empty; this usually means the quote is ` +
@@ -127,52 +98,42 @@ function buildDepthExhaustionError(params: {
 }
 
 /**
- * Orientation, scale-basis conversion, and impact shared by both exact-in and exact-out fills,
- * once the final (amountIn, amountOut, first/last crossed level) are known.
+ * Orientation, scale-basis conversion, and impact shared once the final (amountIn, amountOut,
+ * first/last crossed level) are known. Conflating either of the next two points is the bug this
+ * function exists to avoid:
  *
- * Two things happen here, and conflating them is the bug this function exists to avoid:
+ * 1. Orientation — `depth[].price` (and the recovered reference price) is token1-per-token0 on
+ *    BOTH sides, but the fill's in/out tokens flip by side: `zeroForOne` (bids) has in=token0,
+ *    out=token1; `!zeroForOne` (asks) has in=token1, out=token0. Reducing to token0/token1
+ *    amounts up front keeps the rest of this function orientation-agnostic.
  *
- * 1. Orientation — `depth[].price` (and the reference price recovered from it) is
- *    token1-per-token0 on BOTH sides, but the fill's in/out tokens flip by side:
- *    `zeroForOne` (bids) has in=token0, out=token1; `!zeroForOne` (asks) has in=token1,
- *    out=token0. Reducing to token0/token1 amounts up front (rather than branching the whole
- *    formula on side) is what keeps the rest of this function orientation-agnostic.
+ * 2. Scale basis — `depth[].cumulativeVolume`/`cumulativeInputVolume` (so `amountIn`/`amountOut`)
+ *    are external RAW token base units, but `depth[].price` (so the recovered reference price) is
+ *    the pool's internal SCALE-NORMALIZED basis: `price_scaled = price_external *
+ *    token1ScaleMultiplier / token0ScaleMultiplier`. Comparing a raw-external execution price
+ *    against a scale-normalized reference without applying the multipliers is wrong by a factor
+ *    of `token1ScaleMultiplier / token0ScaleMultiplier` — invisible when both tokens share
+ *    decimals, silently wrong otherwise (e.g. a true 0.2% WETH(18)/USDC(6) impact reads as 100%,
+ *    or negative).
  *
- * 2. Scale basis — `depth[].cumulativeVolume`/`cumulativeInputVolume` (and so `amountIn`/
- *    `amountOut`, built from them) are external RAW token base units, but `depth[].price` (and
- *    so the recovered reference price) is the pool's internal SCALE-NORMALIZED basis:
- *    `price_scaled = price_external * token1ScaleMultiplier / token0ScaleMultiplier` (server:
- *    `externalize()` divides scaled by the multiplier to get external, so `scaled = external *
- *    multiplier`). Comparing an execution price built from raw external amounts against a
- *    scale-normalized reference price — without applying the multipliers — is wrong by a factor
- *    of `token1ScaleMultiplier / token0ScaleMultiplier`, invisible whenever both tokens share the
- *    same decimals (every current test fixture) and silent but material otherwise (e.g. a true
- *    0.2% WETH(18)/USDC(6) impact reads as 100%, or negative, without this conversion).
- *
- * `token0ScaleMultiplier`/`token1ScaleMultiplier` are NOT on the `bid_ask` response — the caller
- * must supply them from the pool's own immutables (`getPoolImmutables`'s
- * `PoolImmutables.token0ScaleMultiplier`/`token1ScaleMultiplier`, `../types.js`). Passing the
- * wrong values (or `1n`/`1n` when the tokens' decimals differ) silently corrupts every impact
- * number this module returns for that pool — there is no way to detect that from the inputs.
+ * `token0ScaleMultiplier`/`token1ScaleMultiplier` are NOT on the `bid_ask` response — get them
+ * from the pool's own immutables (`getPoolImmutables`'s `PoolImmutables.token0ScaleMultiplier`/
+ * `token1ScaleMultiplier`, `../types.js`). Wrong values (or `1n`/`1n` when decimals differ)
+ * silently corrupt every impact number for that pool — undetectable from the inputs alone, which
+ * is why the plausibility guard below exists.
  *
  * Sign convention (matches the server's `price_impact_up`/`price_impact_down`; positive = worse
  * for the trader):
  * - ask side: `priceImpactE6 = scaledExecutionPriceX64 * E6 / referencePriceX64 - E6`
  * - bid side: `priceImpactE6 = E6 - scaledExecutionPriceX64 * E6 / referencePriceX64`
  *
- * Two failure modes beyond the ordinary math, both guarded here rather than left to surface as a
- * silently-wrong number:
- * - `ratio === 0n` (the `scaledExecutionPriceX64 * E6 / referencePriceX64` division floors to
- *   zero) means `referencePriceX64` is implausibly large relative to the execution price — e.g. a
- *   corrupted wire `price` — and would otherwise read as a nonsensical exactly-`-E6`/`+E6`
- *   impact. This is deliberately NOT a "throw if negative" check: a legitimately tiny impact can
- *   round to a small negative number near zero, and that is not an error.
- * - the computed `priceImpactE6` falls outside `[min(0, marginal), max(0, marginal)]` (plus a
- *   small rounding tolerance) — the last crossed level's own wire impact is multiplier-
- *   independent, so this is a free cross-check that the caller's scale multipliers are plausible.
- *   See `IMPACT_PLAUSIBILITY_TOLERANCE_E6` above for the invariant, the tolerance, and why a sign
- *   check alone would miss this (a wrong multiplier can land on the right sign with a wildly
- *   wrong magnitude).
+ * Two failure modes are guarded here rather than left to surface as a silently-wrong number:
+ * `ratio === 0n` means `referencePriceX64` is implausibly large relative to the execution price
+ * (e.g. a corrupted wire `price`) and would otherwise read as a nonsensical `-E6`/`+E6` impact —
+ * deliberately not a bare "throw if negative" check, since a legitimately tiny impact can floor to
+ * a small negative number near zero. And `priceImpactE6` falling outside
+ * `[min(0, marginal), max(0, marginal)]` (plus rounding tolerance) trips the plausibility guard —
+ * see `IMPACT_PLAUSIBILITY_TOLERANCE_E6` above.
  */
 function buildPriceImpactResult(params: {
   amountIn: bigint;
@@ -274,7 +235,7 @@ export function computePriceImpactExactIn(params: {
   assertQuoteUsable(quote);
 
   const levels = selectDepthLevels(quote, zeroForOne);
-  const { bins, truncatedAtLevel } = toDepthBins(levels);
+  const bins = toDepthBins(levels);
 
   let remaining = amountIn;
   let amountOut = 0n;
@@ -304,79 +265,6 @@ export function computePriceImpactExactIn(params: {
       side: zeroForOne ? "bid" : "ask",
       requestedLabel: `amountIn=${amountIn}`,
       available: sumAvailable(bins, (bin) => bin.input),
-      truncatedAtLevel,
-    });
-  }
-
-  return buildPriceImpactResult({
-    amountIn,
-    amountOut,
-    firstLevel,
-    lastLevel,
-    zeroForOne,
-    binsCrossed,
-    token0ScaleMultiplier,
-    token1ScaleMultiplier,
-  });
-}
-
-/**
- * Price impact of filling `amountOut` (exact-out) against the depth ladder.
- *
- * Inverse of {@link computePriceImpactExactIn}: `fillOutput = min(remaining, bin.output)` and
- * `fillInput = ceilDiv(bin.input * fillOutput, bin.output)` — rounded UP per bin so the
- * realized output never falls short of the request (matches `score_depth_leg_exact_out`).
- *
- * `token0ScaleMultiplier`/`token1ScaleMultiplier` are required — see
- * {@link buildPriceImpactResult} (via `computePriceImpactExactIn`'s doc comment) for why they
- * matter and where to get them.
- */
-export function computePriceImpactExactOut(params: {
-  quote: BidAskQuote;
-  amountOut: bigint;
-  zeroForOne: boolean;
-  token0ScaleMultiplier: bigint;
-  token1ScaleMultiplier: bigint;
-}): PriceImpactResult {
-  const { quote, amountOut, zeroForOne, token0ScaleMultiplier, token1ScaleMultiplier } = params;
-
-  assertPositive(amountOut, "amountOut");
-  assertPositive(token0ScaleMultiplier, "token0ScaleMultiplier");
-  assertPositive(token1ScaleMultiplier, "token1ScaleMultiplier");
-  assertQuoteUsable(quote);
-
-  const levels = selectDepthLevels(quote, zeroForOne);
-  const { bins, truncatedAtLevel } = toDepthBins(levels);
-
-  let remaining = amountOut;
-  let amountIn = 0n;
-  let binsCrossed = 0;
-  let firstLevel: DepthLevel | null = null;
-  let lastLevel: DepthLevel | null = null;
-
-  for (const bin of bins) {
-    if (bin.output === 0n) {
-      continue;
-    }
-    const fillOutput = remaining < bin.output ? remaining : bin.output;
-    const fillInput = ceilDiv(bin.input * fillOutput, bin.output);
-    amountIn += fillInput;
-    remaining -= fillOutput;
-    binsCrossed += 1;
-    firstLevel ??= bin.level;
-    lastLevel = bin.level;
-
-    if (remaining === 0n) {
-      break;
-    }
-  }
-
-  if (remaining > 0n || lastLevel === null || firstLevel === null) {
-    throw buildDepthExhaustionError({
-      side: zeroForOne ? "bid" : "ask",
-      requestedLabel: `amountOut=${amountOut}`,
-      available: sumAvailable(bins, (bin) => bin.output),
-      truncatedAtLevel,
     });
   }
 

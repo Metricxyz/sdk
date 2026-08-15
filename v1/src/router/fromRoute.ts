@@ -3,8 +3,8 @@
  */
 
 import type { Address, Hex, PublicClient } from "viem";
+import { getAddress } from "viem";
 import { resolveSwapPath } from "../swap/path.js";
-import { parseWireAddress, parseWireAmount } from "../utils/wire.js";
 import { ceilDiv, toSlippageBps } from "./swap.js";
 import type { ExactInputParams, ExactOutputParams } from "./swapPath.js";
 import type { ExactInputSingleParams, ExactOutputSingleParams } from "./swap.js";
@@ -84,6 +84,29 @@ export type PreparedExactOutputFromRoute =
   | { kind: "single"; params: ExactOutputSingleParams }
   | { kind: "multihop"; params: ExactOutputParams };
 
+function parseAddress(value: string, field: string): Address {
+  try {
+    return getAddress(value);
+  } catch {
+    throw new Error(`invalid ${field}: ${value}`);
+  }
+}
+
+function parseAmount(value: string, field: string): bigint {
+  try {
+    const amount = BigInt(value);
+    if (amount < 0n) {
+      throw new Error(`${field} must be non-negative`);
+    }
+    return amount;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("must be non-negative")) {
+      throw error;
+    }
+    throw new Error(`invalid ${field}: ${value}`, { cause: error });
+  }
+}
+
 function selectRouteOption(route: RouteResponse): RouteOptionResponse {
   if (route.routes.length === 0) {
     throw new Error("route.routes must not be empty");
@@ -123,9 +146,9 @@ function validateRouteLegs(
   const pools: Address[] = [];
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i]!;
-    const legTokenIn = parseWireAddress(leg.tokenIn, `legs[${i}].tokenIn`);
-    const legTokenOut = parseWireAddress(leg.tokenOut, `legs[${i}].tokenOut`);
-    pools.push(parseWireAddress(leg.poolAddress, `legs[${i}].poolAddress`));
+    const legTokenIn = parseAddress(leg.tokenIn, `legs[${i}].tokenIn`);
+    const legTokenOut = parseAddress(leg.tokenOut, `legs[${i}].tokenOut`);
+    pools.push(parseAddress(leg.poolAddress, `legs[${i}].poolAddress`));
 
     if (i === 0 && legTokenIn !== tokenIn) {
       throw new Error(`legs[0].tokenIn (${legTokenIn}) does not match route.tokenIn (${tokenIn})`);
@@ -136,7 +159,7 @@ function validateRouteLegs(
       );
     }
     if (i > 0) {
-      const prevLegTokenOut = parseWireAddress(legs[i - 1]!.tokenOut, `legs[${i - 1}].tokenOut`);
+      const prevLegTokenOut = parseAddress(legs[i - 1]!.tokenOut, `legs[${i - 1}].tokenOut`);
       if (legTokenIn !== prevLegTokenOut) {
         throw new Error(
           `legs[${i}].tokenIn (${legTokenIn}) does not connect to legs[${i - 1}].tokenOut (${prevLegTokenOut})`,
@@ -169,19 +192,19 @@ export async function routeToExactInputParams(
 ): Promise<PreparedExactInputFromRoute> {
   const { route, publicClient, recipient, deadline, slippagePercent, extensionDatas } = params;
 
-  const tokenIn = parseWireAddress(route.tokenIn, "tokenIn");
-  const tokenOut = parseWireAddress(route.tokenOut, "tokenOut");
+  const tokenIn = parseAddress(route.tokenIn, "tokenIn");
+  const tokenOut = parseAddress(route.tokenOut, "tokenOut");
   const option = selectRouteOption(route);
   assertTradeType(route, option, "exact_in");
 
-  const requestedAmountIn = parseWireAmount(route.amountIn, "amountIn");
-  const amountIn = parseWireAmount(option.amountIn, "routes[0].amountIn");
+  const requestedAmountIn = parseAmount(route.amountIn, "amountIn");
+  const amountIn = parseAmount(option.amountIn, "routes[0].amountIn");
   if (amountIn !== requestedAmountIn) {
     throw new Error(
       "routes[0].amountIn does not match request amountIn; partial fill is not supported",
     );
   }
-  const quotedAmountOut = parseWireAmount(option.amountOut, "routes[0].amountOut");
+  const quotedAmountOut = parseAmount(option.amountOut, "routes[0].amountOut");
   const amountOutMinimum = amountOutMinimumFromRoute(quotedAmountOut, slippagePercent);
 
   const pools = validateRouteLegs(option.legs, tokenIn, tokenOut);
@@ -205,7 +228,7 @@ export async function routeToExactInputParams(
         amountOutMinimum,
         recipient,
         deadline,
-        priceLimitX64: parseWireAmount(leg.priceLimitX64, "legs[0].priceLimitX64"),
+        priceLimitX64: parseAmount(leg.priceLimitX64, "legs[0].priceLimitX64"),
         extensionData: resolvedExtensionDatas[0],
       },
     };
@@ -237,19 +260,19 @@ export async function routeToExactOutputParams(
 ): Promise<PreparedExactOutputFromRoute> {
   const { route, publicClient, recipient, deadline, slippagePercent, extensionDatas } = params;
 
-  const tokenIn = parseWireAddress(route.tokenIn, "tokenIn");
-  const tokenOut = parseWireAddress(route.tokenOut, "tokenOut");
+  const tokenIn = parseAddress(route.tokenIn, "tokenIn");
+  const tokenOut = parseAddress(route.tokenOut, "tokenOut");
   const option = selectRouteOption(route);
   assertTradeType(route, option, "exact_out");
 
-  const requestedAmountOut = parseWireAmount(route.amountOut, "amountOut");
-  const amountOut = parseWireAmount(option.amountOut, "routes[0].amountOut");
+  const requestedAmountOut = parseAmount(route.amountOut, "amountOut");
+  const amountOut = parseAmount(option.amountOut, "routes[0].amountOut");
   if (amountOut !== requestedAmountOut) {
     throw new Error(
       "routes[0].amountOut does not match request amountOut; partial fill is not supported",
     );
   }
-  const quotedAmountIn = parseWireAmount(option.amountIn, "routes[0].amountIn");
+  const quotedAmountIn = parseAmount(option.amountIn, "routes[0].amountIn");
   const amountInMaximum = amountInMaximumFromRoute(quotedAmountIn, slippagePercent);
 
   const pools = validateRouteLegs(option.legs, tokenIn, tokenOut);
@@ -273,7 +296,7 @@ export async function routeToExactOutputParams(
         amountInMaximum,
         recipient,
         deadline,
-        priceLimitX64: parseWireAmount(leg.priceLimitX64, "legs[0].priceLimitX64"),
+        priceLimitX64: parseAmount(leg.priceLimitX64, "legs[0].priceLimitX64"),
         extensionData: resolvedExtensionDatas[0],
       },
     };

@@ -67,7 +67,6 @@ export {
   createUniformBins,
   priceToQ64,
   q64ToPrice,
-  priceX64ToPriceE18,
 } from "./utils/index.js";
 
 // ============ Pool Functions ============
@@ -290,14 +289,10 @@ export {
 export {
   parseBidAskResponse,
   isQuoteUnavailable,
-  toDepthBins,
-  computeReferencePriceX64,
   computePriceImpactExactIn,
-  computePriceImpactExactOut,
   METRIC_API_BASE_URL,
   fetchBidAsk,
-  getBidAskPriceImpactExactIn,
-  getBidAskPriceImpactExactOut,
+  getBidAskPriceImpact,
   type DepthLevelResponse,
   type DepthDataResponse,
   type DepthLevel,
@@ -305,13 +300,9 @@ export {
   type PriceProviderStatus,
   type BidAskResponse,
   type BidAskQuote,
-  type DepthSide,
-  type DepthBin,
-  type DepthBinsResult,
   type PriceImpactResult,
   type HttpResponseLike,
   type FetchLike,
   type BidAskRequestParams,
-  type GetBidAskPriceImpactExactInParams,
-  type GetBidAskPriceImpactExactOutParams,
+  type GetBidAskPriceImpactParams,
 } from "./bidAsk/index.js";

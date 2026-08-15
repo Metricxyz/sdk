@@ -12,25 +12,19 @@ export type {
   PriceProviderStatus,
   BidAskResponse,
   BidAskQuote,
-  DepthSide,
-  DepthBin,
   PriceImpactResult,
 } from "./types.js";
 
 export { parseBidAskResponse, isQuoteUnavailable } from "./parse.js";
 
-export { toDepthBins, computeReferencePriceX64, type DepthBinsResult } from "./depth.js";
-
-export { computePriceImpactExactIn, computePriceImpactExactOut } from "./impact.js";
+export { computePriceImpactExactIn } from "./impact.js";
 
 export {
   METRIC_API_BASE_URL,
   fetchBidAsk,
-  getBidAskPriceImpactExactIn,
-  getBidAskPriceImpactExactOut,
+  getBidAskPriceImpact,
   type HttpResponseLike,
   type FetchLike,
   type BidAskRequestParams,
-  type GetBidAskPriceImpactExactInParams,
-  type GetBidAskPriceImpactExactOutParams,
+  type GetBidAskPriceImpactParams,
 } from "./client.js";

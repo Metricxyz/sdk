@@ -2,8 +2,8 @@
  * Parse the raw `bid_ask` wire response into typed domain values.
  */
 
+import { getAddress, type Address } from "viem";
 import { MAX_UINT128 } from "../constants.js";
-import { parseWireAddress, parseWireAmount, parseWireInteger } from "../utils/wire.js";
 import type {
   BidAskQuote,
   BidAskResponse,
@@ -11,31 +11,45 @@ import type {
   DepthDataResponse,
   DepthLevel,
   DepthLevelResponse,
-  DepthSide,
 } from "./types.js";
+
+function parseAddress(value: string, field: string): Address {
+  try {
+    return getAddress(value);
+  } catch (error) {
+    throw new Error(`invalid ${field}: ${value}`, { cause: error });
+  }
+}
+
+function parseAmount(value: string, field: string): bigint {
+  try {
+    const amount = BigInt(value);
+    if (amount < 0n) {
+      throw new Error(`${field} must be non-negative`);
+    }
+    return amount;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("must be non-negative")) {
+      throw error;
+    }
+    throw new Error(`invalid ${field}: ${value}`, { cause: error });
+  }
+}
 
 function parseOptionalAmount(value: string | null | undefined, field: string): bigint | null {
   if (value === null || value === undefined) {
     return null;
   }
-  return parseWireAmount(value, field);
+  return parseAmount(value, field);
 }
 
 /**
- * Parse one cumulative depth-ladder boundary. `price` must be strictly positive: the server
- * never emits a non-positive `price`, and a caller feeding hand-built JSON into this parser
- * (`baseUrl` is overridable, and this function is a documented public entry point) must not be
- * able to smuggle in a negative or zero price that would silently invert or corrupt the impact
- * math downstream (see `computeReferencePriceX64` in `./depth.js`).
+ * Parse one cumulative depth-ladder boundary. `price` must be strictly positive: a non-positive
+ * price would silently invert or corrupt the impact math downstream (see `computeReferencePriceX64`
+ * in `./depth.js`).
  */
 function parseDepthLevel(raw: DepthLevelResponse, fieldPrefix: string): DepthLevel {
-  if (typeof raw.binIdx !== "number" || !Number.isInteger(raw.binIdx)) {
-    throw new Error(
-      `invalid ${fieldPrefix}.binIdx: expected an integer, got ${JSON.stringify(raw.binIdx)}`,
-    );
-  }
-
-  const price = parseWireAmount(raw.price, `${fieldPrefix}.price`);
+  const price = parseAmount(raw.price, `${fieldPrefix}.price`);
   if (price <= 0n) {
     throw new Error(`invalid ${fieldPrefix}.price: must be > 0, got ${raw.price}`);
   }
@@ -43,23 +57,13 @@ function parseDepthLevel(raw: DepthLevelResponse, fieldPrefix: string): DepthLev
   return {
     binIdx: raw.binIdx,
     price,
-    cumulativeVolume: parseWireAmount(raw.cumulativeVolume, `${fieldPrefix}.cumulativeVolume`),
-    cumulativeInputVolume: parseWireAmount(
+    cumulativeVolume: parseAmount(raw.cumulativeVolume, `${fieldPrefix}.cumulativeVolume`),
+    cumulativeInputVolume: parseAmount(
       raw.cumulativeInputVolume,
       `${fieldPrefix}.cumulativeInputVolume`,
     ),
-    priceImpactE6: parseWireInteger(raw.priceImpactE6, `${fieldPrefix}.priceImpactE6`),
+    priceImpactE6: BigInt(raw.priceImpactE6),
   };
-}
-
-function parseDepthSide(levels: unknown, side: DepthSide): DepthLevel[] {
-  const field = side === "ask" ? "depth.asks" : "depth.bids";
-  if (!Array.isArray(levels)) {
-    throw new Error(`invalid ${field}: expected an array, got ${typeof levels}`);
-  }
-  return levels.map((level, index) =>
-    parseDepthLevel(level as DepthLevelResponse, `${field}[${index}]`),
-  );
 }
 
 function parseDepthData(depth: DepthDataResponse | null | undefined): DepthData | null {
@@ -67,8 +71,8 @@ function parseDepthData(depth: DepthDataResponse | null | undefined): DepthData 
     return null;
   }
   return {
-    asks: parseDepthSide(depth.asks, "ask"),
-    bids: parseDepthSide(depth.bids, "bid"),
+    asks: depth.asks.map((level, index) => parseDepthLevel(level, `depth.asks[${index}]`)),
+    bids: depth.bids.map((level, index) => parseDepthLevel(level, `depth.bids[${index}]`)),
   };
 }
 
@@ -76,11 +80,9 @@ function parseDepthData(depth: DepthDataResponse | null | undefined): DepthData 
  * Parse a raw `GET .../bid_ask` response body into a `BidAskQuote`.
  *
  * `bidAdj`/`askAdj` are parsed as `bigint` (Q64.64, RAW oracle prices — see `BidAskResponse`
- * doc comments for why "Adj" is misleading). `poolAddress` is checksummed via viem.
- * `depth`, when present, is parsed into `bigint`-typed levels (still cumulative — see
- * `toDepthBins`/`computePriceImpactExactIn`/`ExactOut` in `./depth.js`/`./impact.js` to
- * interpret it); a non-array `asks`/`bids` throws a clear error naming the field rather than
- * failing later with a context-free `TypeError`.
+ * doc comments for why "Adj" is misleading). `poolAddress` is checksummed via viem. `depth`,
+ * when present, is parsed into `bigint`-typed levels (still cumulative — see `toDepthBins`/
+ * `computePriceImpactExactIn` in `./depth.js`/`./impact.js` to interpret it).
  *
  * `priceProviderStatus` defaults to `"unknown"` when absent: the server always sends it today,
  * but older cached payloads (written before the field existed) may not.
@@ -88,9 +90,9 @@ function parseDepthData(depth: DepthDataResponse | null | undefined): DepthData 
 export function parseBidAskResponse(response: BidAskResponse): BidAskQuote {
   return {
     pair: response.pair,
-    poolAddress: parseWireAddress(response.poolAddress, "poolAddress"),
-    bidAdj: parseWireAmount(response.bidAdj, "bidAdj"),
-    askAdj: parseWireAmount(response.askAdj, "askAdj"),
+    poolAddress: parseAddress(response.poolAddress, "poolAddress"),
+    bidAdj: parseAmount(response.bidAdj, "bidAdj"),
+    askAdj: parseAmount(response.askAdj, "askAdj"),
     totalToken0Available: parseOptionalAmount(
       response.totalToken0Available,
       "totalToken0Available",

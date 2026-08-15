@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { Q64 } from "../src/constants.js";
 import {
   fetchBidAsk,
-  getBidAskPriceImpactExactIn,
-  getBidAskPriceImpactExactOut,
+  getBidAskPriceImpact,
   METRIC_API_BASE_URL,
   type FetchLike,
   type HttpResponseLike,
@@ -144,27 +143,11 @@ describe("fetchBidAsk", () => {
         (globalThis as { fetch?: FetchLike }).fetch = original;
       }
     });
-
-    it("throws the module's own error (not a bare TypeError) for a poisoned non-callable global", async () => {
-      // resolveFetch checks `typeof resolved !== "function"`, not `!resolved`: a truthy but
-      // non-callable globalThis.fetch (e.g. a poisoned global left behind by another script)
-      // must still produce this module's clear error, not a downstream "fetch is not a function".
-      const original = globalThis.fetch;
-      (globalThis as unknown as { fetch: unknown }).fetch = "not-a-function";
-      try {
-        await assert.rejects(
-          () => fetchBidAsk({ apiKey, chainId: 1, poolAddress }),
-          /no fetch available; pass params\.fetch explicitly/,
-        );
-      } finally {
-        (globalThis as { fetch?: FetchLike }).fetch = original;
-      }
-    });
   });
 });
 
-describe("getBidAskPriceImpactExactIn", () => {
-  it("fetches then computes exact-in price impact end-to-end", async () => {
+describe("getBidAskPriceImpact", () => {
+  it("fetches then computes price impact end-to-end", async () => {
     const { fetch, calls } = stubFetch(() =>
       jsonResponse(
         bidAskBody({
@@ -184,7 +167,7 @@ describe("getBidAskPriceImpactExactIn", () => {
       ),
     );
 
-    const result = await getBidAskPriceImpactExactIn({
+    const result = await getBidAskPriceImpact({
       fetch,
       apiKey,
       chainId: 1,
@@ -200,51 +183,6 @@ describe("getBidAskPriceImpactExactIn", () => {
     assert.equal(result.amountOut, 500_000n);
     assert.equal(result.scaledExecutionPriceX64, 2n * Q64);
     assert.equal(result.priceImpactE6, 0n);
-  });
-});
-
-describe("getBidAskPriceImpactExactOut", () => {
-  it("returns an exact-out-shaped result, not the exact-in computation", async () => {
-    const { fetch, calls } = stubFetch(() =>
-      jsonResponse(
-        bidAskBody({
-          depth: {
-            bids: [],
-            asks: [
-              {
-                binIdx: 0,
-                // price set to the bin's own actual rate (input 1,000,000 / output 300,000) so
-                // the fill's computed priceImpactE6 is consistent with this level's wire impact
-                // (0) — see the implausible-impact guard in `../src/bidAsk/impact.ts`.
-                price: ((1_000_000n * Q64) / 300_000n).toString(),
-                priceImpactE6: "0",
-                cumulativeVolume: "300000",
-                cumulativeInputVolume: "1000000",
-              },
-            ],
-          },
-        }),
-      ),
-    );
-
-    const result = await getBidAskPriceImpactExactOut({
-      fetch,
-      apiKey,
-      chainId: 1,
-      poolAddress,
-      zeroForOne: false,
-      amountOut: 200_000n,
-      token0ScaleMultiplier: 1n,
-      token1ScaleMultiplier: 1n,
-    });
-
-    assert.equal(calls.length, 1);
-    assert.equal(result.amountOut, 200_000n);
-    // ceil(1,000,000 * 200,000 / 300,000) = ceil(666,666.67) = 666,667. If this call were
-    // mis-wired to computePriceImpactExactIn(amountIn: amountOut), amountIn would come back as
-    // exactly the requested 200_000n (the exact-in walk takes amountIn as given) instead of this
-    // ceil-rounded value, and amountOut would not land on the requested 200_000n either.
-    assert.equal(result.amountIn, 666_667n);
   });
 });
 
@@ -304,9 +242,9 @@ describe("prototype-pollution hardening", () => {
     }
   });
 
-  it("holds through the getBidAskPriceImpactExactIn wrapper's fresh object literal", async () => {
-    // getBidAskPriceImpactExactIn rebuilds a fresh `{ ...requestParams, depth: true }` object
-    // before calling fetchBidAsk — this must not reopen the gap `ownField` closes for a direct
+  it("holds through the getBidAskPriceImpact wrapper's fresh object literal", async () => {
+    // getBidAskPriceImpact rebuilds a fresh `{ ...requestParams, depth: true }` object before
+    // calling fetchBidAsk — this must not reopen the gap `ownField` closes for a direct
     // fetchBidAsk call.
     (Object.prototype as Record<string, unknown>).baseUrl = "https://attacker.example.com";
     const { fetch, calls } = stubFetch(() =>
@@ -328,7 +266,7 @@ describe("prototype-pollution hardening", () => {
       ),
     );
     try {
-      await getBidAskPriceImpactExactIn({
+      await getBidAskPriceImpact({
         fetch,
         apiKey,
         chainId: 1,

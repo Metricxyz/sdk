@@ -198,16 +198,11 @@ Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.
 
 ## Bid/ask depth (REST API)
 
-`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and cumulative depth ladder. `bidAdj`/`askAdj` are **raw oracle prices, not fee-adjusted, despite the name**; an unavailable quote is an ordinary **HTTP 200** with a sentinel (`bidAdj: "0"`, `askAdj: "340282366920938463463374607431768211455"`), not an error status — check `isQuoteUnavailable(quote)` before trusting one. `computePriceImpactExactIn`/`ExactOut` difference the wire's cumulative `depth[]` into marginal bins and walk them to fill a caller-supplied amount.
-
-Units: prices are Q64.64 fixed-point (use `priceX64ToPriceE18`, or the lossy `q64ToPrice` for display); price impact is signed E6, positive = worse for the trader; all amounts are raw token base units.
-
-**`token0ScaleMultiplier`/`token1ScaleMultiplier` are required and are NOT on the `bid_ask` response** — read them from `getPoolImmutables`. Passing the wrong values (or `1n`/`1n` for a pool whose tokens have different decimals) silently corrupts every impact number this SDK returns for that pool.
+`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and depth ladder; `getBidAskPriceImpact` fetches it and scores a caller-supplied `amountIn` against it. Prices are Q64.64; amounts are raw base units; `bidAdj`/`askAdj` are raw oracle prices, **not fee-adjusted despite the name**; `priceImpactE6` is signed, positive = worse for the trader. An unavailable quote is an ordinary **HTTP 200** sentinel (`bidAdj: "0"`, `askAdj: "340282366920938463463374607431768211455"`), not an error status. `token0ScaleMultiplier`/`token1ScaleMultiplier` are required and are **not on the `bid_ask` response** — read them from `getPoolImmutables`; wrong or `1n`/`1n` values silently corrupt the impact number.
 
 ```typescript
 import {
-  fetchBidAsk,
-  computePriceImpactExactIn,
+  getBidAskPriceImpact,
   getPoolImmutables,
   getAddressesOrThrow,
   ChainId,
@@ -220,14 +215,10 @@ const { token0ScaleMultiplier, token1ScaleMultiplier } = await getPoolImmutables
   poolAddress,
 );
 
-const quote = await fetchBidAsk({
+const impact = await getBidAskPriceImpact({
   apiKey, // trading API key — the endpoint requires Authorization: Bearer
   chainId: 1,
   poolAddress,
-});
-
-const impact = computePriceImpactExactIn({
-  quote,
   amountIn: 10_000_000_000n,
   zeroForOne: true, // selling token0 into the pool's bids
   token0ScaleMultiplier,
@@ -235,12 +226,10 @@ const impact = computePriceImpactExactIn({
 });
 
 console.log(impact.priceImpactE6); // average impact over the whole fill
-console.log(impact.marginalPriceImpactE6); // last-crossed level's impact — what /route reports, can differ a lot on a large fill
+console.log(impact.marginalPriceImpactE6); // last-crossed level's impact — what /route reports, can differ on a large fill
 ```
 
-Use `computePriceImpactExactOut` (with `amountOut`) for the inverse direction, or `getBidAskPriceImpactExactIn`/`ExactOut` to fetch and compute in one call. `fetch` is optional everywhere here — it defaults to `globalThis.fetch`; pass your own (`node-fetch`, a test stub, …) since `v1` has no `@types/node`/DOM lib.
-
-If you already have the JSON, compose the pure pieces directly: `parseBidAskResponse` then `computePriceImpactExactIn`/`ExactOut`.
+If you already have the JSON, compose the pure pieces directly: `parseBidAskResponse` then `computePriceImpactExactIn`. `fetch` is optional everywhere here — it defaults to `globalThis.fetch`; pass your own (`node-fetch`, a test stub, …) since `v1` has no `@types/node`/DOM lib.
 
 ## Quotes (SwapQuoter)
 
