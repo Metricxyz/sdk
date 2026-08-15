@@ -4,7 +4,7 @@ import { getAddress } from "viem";
 import { Q64, MAX_UINT128 } from "../src/constants.js";
 import { toDepthBins, computeReferencePriceX64, E6 } from "../src/bidAsk/depth.js";
 import { computePriceImpactExactIn, computePriceImpactExactOut } from "../src/bidAsk/impact.js";
-import type { BidAskQuote, DepthLevel } from "../src/bidAsk/types.js";
+import type { BidAskQuote, DepthLevel, DepthSide } from "../src/bidAsk/types.js";
 
 const poolAddress = getAddress("0x0000000000000000000000000000000000000001");
 const H = Q64 / 2n; // half of Q64 — exact, since Q64 = 2^64 is even.
@@ -38,6 +38,53 @@ function quoteFixture(overrides: Partial<BidAskQuote> = {}): BidAskQuote {
     priceProviderStatus: "healthy",
     ...overrides,
   };
+}
+
+/**
+ * Build a realistic multi-bin ladder where every level is self-consistent by construction —
+ * unlike a hand-picked placeholder `price`/`priceImpactE6`, both are derived here from a single
+ * shared `referencePriceX64` (inverting `computeReferencePriceX64`: ask `price = ref*(E6+impact)/
+ * E6`, bid `price = ref*(E6-impact)/E6`), and each bin's own marginal (input, output) ratio is
+ * derived from that SAME level's implied raw price. Mirrors a real depth ladder, where impact
+ * grows monotonically with depth away from the top of book. Used by the implausible-impact guard
+ * tests below to pin realistic CBBTC(8)/USDC(6)- and WETH(18)/USDC(6)-shaped fills, in place of
+ * the single-bin placeholder fixtures the rest of this file uses for rounding/skip mechanics.
+ */
+function buildLadder(params: {
+  side: DepthSide;
+  referencePriceX64: bigint;
+  token0ScaleMultiplier: bigint;
+  token1ScaleMultiplier: bigint;
+  /** One entry per bin, in crossing order: this bin's own wire impact and its input size. */
+  bins: ReadonlyArray<{ impactE6: bigint; inputSize: bigint }>;
+}): DepthLevel[] {
+  const { side, referencePriceX64, token0ScaleMultiplier, token1ScaleMultiplier, bins } = params;
+
+  const levels: DepthLevel[] = [];
+  let cumulativeInputVolume = 0n;
+  let cumulativeVolume = 0n;
+
+  bins.forEach((bin, binIdx) => {
+    const denominator = side === "ask" ? E6 + bin.impactE6 : E6 - bin.impactE6;
+    const price = (referencePriceX64 * denominator) / E6;
+    // raw price (token1_raw per token0_raw), Q64: scaled = raw * token1Mult/token0Mult.
+    const rawPriceX64 = (price * token0ScaleMultiplier) / token1ScaleMultiplier;
+    // ask: in=token1, out=token0 (out = in / rawPrice). bid: in=token0, out=token1 (out = in * rawPrice).
+    const deltaOutput =
+      side === "ask" ? (bin.inputSize * Q64) / rawPriceX64 : (bin.inputSize * rawPriceX64) / Q64;
+
+    cumulativeInputVolume += bin.inputSize;
+    cumulativeVolume += deltaOutput;
+    levels.push({
+      binIdx,
+      price,
+      priceImpactE6: bin.impactE6,
+      cumulativeInputVolume,
+      cumulativeVolume,
+    });
+  });
+
+  return levels;
 }
 
 describe("computePriceImpactExactIn — unequal-decimal scale basis (the basis fix)", () => {
@@ -342,6 +389,178 @@ describe("computePriceImpactExactIn — implausible-impact guards", () => {
     });
 
     assert.equal(result.priceImpactE6, -2n);
+  });
+});
+
+describe("implausible-impact guard — realistic multi-bin fixtures", () => {
+  // CBBTC(8)/USDC(6) BID side (sell token0/CBBTC for token1/USDC), on-chain multipliers
+  // token0=1e10, token1=1e12 — the exact shape measured live against a real Base pool
+  // (0x6d73ADe0Cd5EE7D826DCcfc700D26aad3CBd957f) that motivated this guard: with the correct
+  // multipliers, real fills there produced priceImpactE6=6 against marginalPriceImpactE6=55; with
+  // the multipliers swapped or replaced by a 1n/1n placeholder, the SAME live ladder produced
+  // priceImpactE6=999901 and 990001 respectively (99.99%/99.00%) — both silently returned instead
+  // of throwing under the old `|marginal|*3 + 2*E6` band, since 55*3 + 2,000,000 = 2,000,165 is
+  // far above either. This fixture reproduces that failure mode with a synthetic (but
+  // self-consistent, multi-bin) ladder in the same regime.
+  const cbbtcToken0ScaleMultiplier = 10n ** 10n;
+  const cbbtcToken1ScaleMultiplier = 10n ** 12n;
+  const cbbtcReferencePriceX64 = 65_000n * Q64; // a plausible BTC/USDC reference price.
+  const cbbtcLevels = buildLadder({
+    side: "bid",
+    referencePriceX64: cbbtcReferencePriceX64,
+    token0ScaleMultiplier: cbbtcToken0ScaleMultiplier,
+    token1ScaleMultiplier: cbbtcToken1ScaleMultiplier,
+    bins: [
+      { impactE6: 15n, inputSize: 100_000_000n }, // 1.0 CBBTC per bin (8 decimals).
+      { impactE6: 35n, inputSize: 100_000_000n },
+      { impactE6: 55n, inputSize: 100_000_000n },
+    ],
+  });
+  const cbbtcQuote = quoteFixture({
+    pair: "CBBTC/USDC",
+    depth: { asks: [], bids: cbbtcLevels },
+  });
+
+  it("accepts a legitimate partial fill (1 bin + half the next) with the correct multipliers", () => {
+    const oneBin = cbbtcLevels[0]!.cumulativeInputVolume;
+    const twoBins = cbbtcLevels[1]!.cumulativeInputVolume;
+    const amountIn = oneBin + (twoBins - oneBin) / 2n;
+
+    const result = computePriceImpactExactIn({
+      quote: cbbtcQuote,
+      amountIn,
+      zeroForOne: true,
+      token0ScaleMultiplier: cbbtcToken0ScaleMultiplier,
+      token1ScaleMultiplier: cbbtcToken1ScaleMultiplier,
+    });
+
+    assert.equal(result.binsCrossed, 2);
+    assert.equal(result.marginalPriceImpactE6, 35n);
+    assert.ok(
+      result.priceImpactE6 >= 0n && result.priceImpactE6 <= result.marginalPriceImpactE6,
+      `expected 0 <= priceImpactE6 (${result.priceImpactE6}) <= marginalPriceImpactE6 (${result.marginalPriceImpactE6})`,
+    );
+  });
+
+  it("accepts a legitimate larger fill (all 3 bins) with the correct multipliers", () => {
+    const result = computePriceImpactExactIn({
+      quote: cbbtcQuote,
+      amountIn: cbbtcLevels[2]!.cumulativeInputVolume,
+      zeroForOne: true,
+      token0ScaleMultiplier: cbbtcToken0ScaleMultiplier,
+      token1ScaleMultiplier: cbbtcToken1ScaleMultiplier,
+    });
+
+    assert.equal(result.binsCrossed, 3);
+    assert.equal(result.marginalPriceImpactE6, 55n);
+    assert.ok(
+      result.priceImpactE6 >= 0n && result.priceImpactE6 <= result.marginalPriceImpactE6,
+      `expected 0 <= priceImpactE6 (${result.priceImpactE6}) <= marginalPriceImpactE6 (${result.marginalPriceImpactE6})`,
+    );
+  });
+
+  it("rejects swapped token0ScaleMultiplier/token1ScaleMultiplier, naming them in the error", () => {
+    assert.throws(
+      () =>
+        computePriceImpactExactIn({
+          quote: cbbtcQuote,
+          amountIn: cbbtcLevels[2]!.cumulativeInputVolume,
+          zeroForOne: true,
+          token0ScaleMultiplier: cbbtcToken1ScaleMultiplier, // swapped with token1's
+          token1ScaleMultiplier: cbbtcToken0ScaleMultiplier, // swapped with token0's
+        }),
+      /implausible priceImpactE6=999901 vs\. marginalPriceImpactE6=55.*token0ScaleMultiplier.*token1ScaleMultiplier/s,
+    );
+  });
+
+  it("rejects a 1n/1n placeholder multiplier pair, naming them in the error", () => {
+    assert.throws(
+      () =>
+        computePriceImpactExactIn({
+          quote: cbbtcQuote,
+          amountIn: cbbtcLevels[2]!.cumulativeInputVolume,
+          zeroForOne: true,
+          token0ScaleMultiplier: 1n,
+          token1ScaleMultiplier: 1n,
+        }),
+      /implausible priceImpactE6=990001 vs\. marginalPriceImpactE6=55.*token0ScaleMultiplier.*token1ScaleMultiplier/s,
+    );
+  });
+
+  // WETH(18)/USDC(6) ASK side (buy token0/WETH with token1/USDC), multipliers token0=1n
+  // (already at the internal basis), token1=1e12 — mirrors the WETH/USDC live measurements
+  // (priceImpactE6 in the 20s-30s against marginalPriceImpactE6 in the 10s-50s) from the same
+  // live run, including the exact-out direction.
+  const wethToken0ScaleMultiplier = 1n;
+  const wethToken1ScaleMultiplier = 10n ** 12n;
+  const wethReferencePriceX64 = 3_000n * Q64; // a plausible WETH/USDC reference price.
+  const wethLevels = buildLadder({
+    side: "ask",
+    referencePriceX64: wethReferencePriceX64,
+    token0ScaleMultiplier: wethToken0ScaleMultiplier,
+    token1ScaleMultiplier: wethToken1ScaleMultiplier,
+    bins: [
+      { impactE6: 10n, inputSize: 1_000_000_000n }, // 1000 USDC per bin (6 decimals).
+      { impactE6: 30n, inputSize: 1_000_000_000n },
+      { impactE6: 50n, inputSize: 1_000_000_000n },
+    ],
+  });
+  const wethQuote = quoteFixture({
+    pair: "WETH/USDC",
+    depth: { asks: wethLevels, bids: [] },
+  });
+
+  it("accepts a legitimate small exact-in fill (1 bin) with the correct multipliers", () => {
+    const result = computePriceImpactExactIn({
+      quote: wethQuote,
+      amountIn: wethLevels[0]!.cumulativeInputVolume,
+      zeroForOne: false,
+      token0ScaleMultiplier: wethToken0ScaleMultiplier,
+      token1ScaleMultiplier: wethToken1ScaleMultiplier,
+    });
+
+    assert.equal(result.binsCrossed, 1);
+    assert.equal(result.marginalPriceImpactE6, 10n);
+    assert.ok(
+      result.priceImpactE6 >= 0n && result.priceImpactE6 <= result.marginalPriceImpactE6,
+      `expected 0 <= priceImpactE6 (${result.priceImpactE6}) <= marginalPriceImpactE6 (${result.marginalPriceImpactE6})`,
+    );
+  });
+
+  it("accepts a legitimate larger exact-in fill (all 3 bins) with the correct multipliers", () => {
+    const result = computePriceImpactExactIn({
+      quote: wethQuote,
+      amountIn: wethLevels[2]!.cumulativeInputVolume,
+      zeroForOne: false,
+      token0ScaleMultiplier: wethToken0ScaleMultiplier,
+      token1ScaleMultiplier: wethToken1ScaleMultiplier,
+    });
+
+    assert.equal(result.binsCrossed, 3);
+    assert.equal(result.marginalPriceImpactE6, 50n);
+    assert.ok(
+      result.priceImpactE6 >= 0n && result.priceImpactE6 <= result.marginalPriceImpactE6,
+      `expected 0 <= priceImpactE6 (${result.priceImpactE6}) <= marginalPriceImpactE6 (${result.marginalPriceImpactE6})`,
+    );
+  });
+
+  it("accepts a legitimate exact-out fill with the correct multipliers", () => {
+    const requestedOut = wethLevels[0]!.cumulativeVolume / 2n; // half of bin0's output.
+
+    const result = computePriceImpactExactOut({
+      quote: wethQuote,
+      amountOut: requestedOut,
+      zeroForOne: false,
+      token0ScaleMultiplier: wethToken0ScaleMultiplier,
+      token1ScaleMultiplier: wethToken1ScaleMultiplier,
+    });
+
+    assert.equal(result.binsCrossed, 1);
+    assert.equal(result.marginalPriceImpactE6, 10n);
+    assert.ok(
+      result.priceImpactE6 >= 0n && result.priceImpactE6 <= result.marginalPriceImpactE6,
+      `expected 0 <= priceImpactE6 (${result.priceImpactE6}) <= marginalPriceImpactE6 (${result.marginalPriceImpactE6})`,
+    );
   });
 });
 
@@ -742,9 +961,12 @@ describe("computePriceImpactExactIn", () => {
       depth: {
         bids: [],
         asks: [
+          // price/priceImpactE6 set to the bin's own actual rate (input 1,000,000 / output
+          // 500,000 = 2) so the fill's computed priceImpactE6 is consistent with this level's
+          // wire impact, not an arbitrary placeholder — see the implausible-impact guard.
           depthLevel({
             binIdx: 0,
-            price: Q64,
+            price: 2n * Q64,
             priceImpactE6: 0n,
             cumulativeVolume: 500_000n,
             cumulativeInputVolume: 1_000_000n,
@@ -874,13 +1096,16 @@ describe("computePriceImpactExactIn", () => {
   });
 
   it("fills exactly when amountIn equals total available across multiple bins", () => {
+    // Both bins carry the same 2:1 input:output rate (bin0 500,000/250,000; bin1's marginal
+    // 500,000/250,000), so price/priceImpactE6 on both levels reflect that uniform rate with
+    // zero impact — self-consistent with the actual fill, not an arbitrary placeholder.
     const quote = quoteFixture({
       depth: {
         bids: [],
         asks: [
           depthLevel({
             binIdx: 0,
-            price: Q64,
+            price: 2n * Q64,
             priceImpactE6: 0n,
             cumulativeVolume: 250_000n,
             cumulativeInputVolume: 500_000n,
@@ -888,7 +1113,7 @@ describe("computePriceImpactExactIn", () => {
           depthLevel({
             binIdx: 1,
             price: 2n * Q64,
-            priceImpactE6: 500_000n,
+            priceImpactE6: 0n,
             cumulativeVolume: 500_000n,
             cumulativeInputVolume: 1_000_000n,
           }),
@@ -1001,13 +1226,16 @@ describe("computePriceImpactExactIn", () => {
 
 describe("computePriceImpactExactOut", () => {
   it("rounds the required input UP (ceil), not down", () => {
+    // price set to the bin's own actual rate (input 1,000,000 / output 300,000) so the fill's
+    // computed priceImpactE6 is consistent with this level's wire impact (0), not an arbitrary
+    // placeholder — see the implausible-impact guard.
     const quote = quoteFixture({
       depth: {
         bids: [],
         asks: [
           depthLevel({
             binIdx: 0,
-            price: 2n * Q64,
+            price: (1_000_000n * Q64) / 300_000n,
             priceImpactE6: 0n,
             cumulativeVolume: 300_000n,
             cumulativeInputVolume: 1_000_000n,
@@ -1070,13 +1298,16 @@ describe("computePriceImpactExactOut", () => {
   });
 
   it("does not abort when a malformed level lies past the amount the fill actually needs", () => {
+    // price/priceImpactE6 set to the bin's own actual rate (input 1,000,000 / output 500,000 =
+    // 2) so the fill's computed priceImpactE6 is consistent with this level's wire impact — see
+    // the implausible-impact guard.
     const quote = quoteFixture({
       depth: {
         bids: [],
         asks: [
           depthLevel({
             binIdx: 0,
-            price: Q64,
+            price: 2n * Q64,
             priceImpactE6: 0n,
             cumulativeVolume: 500_000n,
             cumulativeInputVolume: 1_000_000n,

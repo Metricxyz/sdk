@@ -213,7 +213,10 @@ describe("getBidAskPriceImpactExactOut", () => {
             asks: [
               {
                 binIdx: 0,
-                price: (2n * Q64).toString(),
+                // price set to the bin's own actual rate (input 1,000,000 / output 300,000) so
+                // the fill's computed priceImpactE6 is consistent with this level's wire impact
+                // (0) — see the implausible-impact guard in `../src/bidAsk/impact.ts`.
+                price: ((1_000_000n * Q64) / 300_000n).toString(),
                 priceImpactE6: "0",
                 cumulativeVolume: "300000",
                 cumulativeInputVolume: "1000000",

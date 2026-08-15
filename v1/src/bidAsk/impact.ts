@@ -10,43 +10,52 @@ import { isQuoteUnavailable } from "./parse.js";
 import type { BidAskQuote, DepthBin, DepthLevel, DepthSide, PriceImpactResult } from "./types.js";
 
 /**
- * Average fill impact must be of the same order as `marginalPriceImpactE6` — the LAST crossed
- * level's own wire impact, which is multiplier-independent and so a free cross-check on whether
- * the caller's `token0ScaleMultiplier`/`token1ScaleMultiplier` are plausible. For a monotone
- * ladder the average of the crossed bins' marginal impacts can't exceed the largest of them (the
- * last one) by more than rounding slack — theory puts the ratio at <= 1; `3` leaves generous
- * headroom for that theory being approximate (the first crossed bin isn't exactly 0 impact).
+ * Average fill impact must sit between 0 and `marginalPriceImpactE6` — the LAST crossed level's
+ * own wire impact, which is multiplier-independent and so a free cross-check on whether the
+ * caller's `token0ScaleMultiplier`/`token1ScaleMultiplier` are plausible.
  *
- * A wrong/swapped multiplier is off by a whole decimal-scale factor (1e6-1e12 for realistic
- * token pairs), which lands priceImpactE6 many orders of magnitude outside this band — measured:
+ * This is the actual invariant, not an arbitrary band: for a monotone depth ladder, walking
+ * outward from the top of book, the average execution price of a fill sits between the pool's
+ * reference price (0 impact) and the last crossed boundary's price — a partial fill of the last
+ * bin makes the average strictly less extreme than that boundary's own marginal impact. So the
+ * fill's average must lie between `0` and `marginalPriceImpactE6`, whichever order they fall in:
  *
- * | multipliers                  | priceImpactE6 (honest ladder, wire impact ~2000) |
- * |-------------------------------|--------------------------------------------------|
- * | correct `(1n, 10n**12n)`      | `2000n`                                          |
- * | swapped `(10n**12n, 1n)`       | throws in the `ratio === 0n` guard above          |
- * | `(1n, 1n)`                     | throws in the `ratio === 0n` guard above          |
- * | WBTC(8)/DAI(18) `(1n, 1n)`     | `-9994989992766850n` (~-1e10 x E6)               |
+ *   0 <= priceImpactE6 <= marginalPriceImpactE6           when marginalPriceImpactE6 >= 0
+ *   marginalPriceImpactE6 <= priceImpactE6 <= 0           when marginalPriceImpactE6 < 0
+ *
+ * i.e. `[min(0, marginal), max(0, marginal)]` below. `marginalPriceImpactE6` is a signed wire
+ * value that can legitimately be negative (a price-improving boundary) or exactly 0 (a uniform-
+ * rate bin) — the band is built from it directly with `min`/`max` against `0`, never by dividing
+ * by it or assuming its sign.
+ *
+ * `IMPACT_PLAUSIBILITY_TOLERANCE_E6` is a small additive slack on both ends of that band, for
+ * integer floor-division rounding only — NOT a percentage-of-marginal fudge factor (the previous
+ * design multiplied `|marginal|` by a tolerance and added a 200-percentage-point floor, which a
+ * wrong/swapped scale multiplier sails through whenever the two tokens' decimals differ by more
+ * than ~12 orders of magnitude, e.g. any 8-decimal/6-decimal pair). A partial fill of a coarse
+ * single bin can land the average a couple of E6 units to either side of the bin's own recorded
+ * impact purely from the Q64/E6 floor divisions (measured in this suite: `-2` on a legitimately
+ * tiny near-zero fill). `5_000n` (0.5 percentage points) clears that with ample margin while
+ * staying far below any real corrupted-multiplier case: a wrong/swapped `token0ScaleMultiplier`/
+ * `token1ScaleMultiplier` is off by a whole decimal-scale factor (1e6-1e12 for realistic token
+ * pairs), landing `priceImpactE6` many orders of magnitude outside this band — measured live
+ * against a real CBBTC(8)/USDC(6) pool on Base (on-chain multipliers `token0=1e10`,
+ * `token1=1e12`; true `priceImpactE6 = 6`, `marginalPriceImpactE6 = 55`):
+ *
+ * | token0ScaleMultiplier, token1ScaleMultiplier | priceImpactE6            |
+ * |-----------------------------------------------|--------------------------|
+ * | correct `(1e10, 1e12)`                         | `6`                      |
+ * | swapped `(1e12, 1e10)`                         | `999901` (99.99%)        |
+ * | placeholder `(1n, 1n)`                          | `990001` (99.00%)        |
  */
-const IMPACT_PLAUSIBILITY_RELATIVE_TOLERANCE = 3n;
+const IMPACT_PLAUSIBILITY_TOLERANCE_E6 = 5_000n;
 
-/**
- * Additive floor for the plausibility check above, covering the case where
- * `marginalPriceImpactE6` is itself 0 or small: a purely relative bound can't distinguish "a tiny
- * average impact" from "a corrupted one" when multiplying a near-zero marginal by any tolerance
- * still yields a near-zero ceiling. `2 * E6` (200 percentage points) is generous enough that it
- * never fires on a legitimate fill — the existing test suite's single-bin fixtures routinely
- * reuse placeholder `price`/`priceImpactE6` values that don't reflect the bin's own marginal rate
- * (they exist to test rounding/skip mechanics, not impact correctness), and the largest average
- * impact any of those legitimately produces against a `0` marginal is exactly `E6` (100%, an
- * ask-side execution price at 2x the placeholder reference). `2 * E6` clears that with margin
- * while remaining ~10 orders of magnitude below the WBTC/DAI corruption case above — a
- * wrong/swapped scale multiplier is never merely "somewhat" off, so there is no realistic
- * corrupted case this floor would let through.
- */
-const IMPACT_PLAUSIBILITY_ABSOLUTE_FLOOR_E6 = 2n * E6;
+function minBigint(a: bigint, b: bigint): bigint {
+  return a < b ? a : b;
+}
 
-function absBigint(value: bigint): bigint {
-  return value < 0n ? -value : value;
+function maxBigint(a: bigint, b: bigint): bigint {
+  return a > b ? a : b;
 }
 
 /**
@@ -158,11 +167,12 @@ function buildDepthExhaustionError(params: {
  *   corrupted wire `price` — and would otherwise read as a nonsensical exactly-`-E6`/`+E6`
  *   impact. This is deliberately NOT a "throw if negative" check: a legitimately tiny impact can
  *   round to a small negative number near zero, and that is not an error.
- * - the computed `priceImpactE6` is implausible relative to `marginalPriceImpactE6` (the last
- *   crossed level's own wire impact — multiplier-independent). See
- *   `IMPACT_PLAUSIBILITY_RELATIVE_TOLERANCE`/`_ABSOLUTE_FLOOR_E6` above for the tolerance and why
- *   a sign check alone would miss this (a wrong multiplier can land on the right sign with a
- *   wildly wrong magnitude).
+ * - the computed `priceImpactE6` falls outside `[min(0, marginal), max(0, marginal)]` (plus a
+ *   small rounding tolerance) — the last crossed level's own wire impact is multiplier-
+ *   independent, so this is a free cross-check that the caller's scale multipliers are plausible.
+ *   See `IMPACT_PLAUSIBILITY_TOLERANCE_E6` above for the invariant, the tolerance, and why a sign
+ *   check alone would miss this (a wrong multiplier can land on the right sign with a wildly
+ *   wrong magnitude).
  */
 function buildPriceImpactResult(params: {
   amountIn: bigint;
@@ -214,14 +224,13 @@ function buildPriceImpactResult(params: {
   const priceImpactE6 = side === "ask" ? ratio - E6 : E6 - ratio;
 
   const marginalPriceImpactE6 = lastLevel.priceImpactE6;
-  const impactCeiling =
-    absBigint(marginalPriceImpactE6) * IMPACT_PLAUSIBILITY_RELATIVE_TOLERANCE +
-    IMPACT_PLAUSIBILITY_ABSOLUTE_FLOOR_E6;
-  if (absBigint(priceImpactE6) > impactCeiling) {
+  const impactFloor = minBigint(0n, marginalPriceImpactE6) - IMPACT_PLAUSIBILITY_TOLERANCE_E6;
+  const impactCeiling = maxBigint(0n, marginalPriceImpactE6) + IMPACT_PLAUSIBILITY_TOLERANCE_E6;
+  if (priceImpactE6 < impactFloor || priceImpactE6 > impactCeiling) {
     throw new Error(
       `implausible priceImpactE6=${priceImpactE6} vs. marginalPriceImpactE6=${marginalPriceImpactE6} ` +
-        "(wire-reported, multiplier-independent): the average fill impact should be of the same " +
-        "order as the last crossed boundary's impact. This usually means token0ScaleMultiplier/" +
+        "(wire-reported, multiplier-independent): the average fill impact must lie between 0 and " +
+        "the last crossed boundary's impact. This usually means token0ScaleMultiplier/" +
         "token1ScaleMultiplier are wrong or swapped — read them from the pool's own " +
         "getImmutables() rather than a hardcoded/guessed value.",
     );
