@@ -196,6 +196,52 @@ await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account }
 
 Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.value` when `tokenIn` is native ETH (route `tokenIn` should be wrapped native).
 
+## Bid/ask depth (REST API)
+
+`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and cumulative depth ladder. `bidAdj`/`askAdj` are **raw oracle prices, not fee-adjusted, despite the name**; an unavailable quote is an ordinary **HTTP 200** with a sentinel (`bidAdj: "0"`, `askAdj: "340282366920938463463374607431768211455"`), not an error status — check `isQuoteUnavailable(quote)` before trusting one. `computePriceImpactExactIn`/`ExactOut` difference the wire's cumulative `depth[]` into marginal bins and walk them to fill a caller-supplied amount.
+
+Units: prices are Q64.64 fixed-point (use `priceX64ToPriceE18`, or the lossy `q64ToPrice` for display); price impact is signed E6, positive = worse for the trader; all amounts are raw token base units.
+
+**`token0ScaleMultiplier`/`token1ScaleMultiplier` are required and are NOT on the `bid_ask` response** — read them from `getPoolImmutables`. Passing the wrong values (or `1n`/`1n` for a pool whose tokens have different decimals) silently corrupts every impact number this SDK returns for that pool.
+
+```typescript
+import {
+  fetchBidAsk,
+  computePriceImpactExactIn,
+  getPoolImmutables,
+  getAddressesOrThrow,
+  ChainId,
+} from "@metric.xyz/metric-omm-sdk-v1";
+
+const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
+const { token0ScaleMultiplier, token1ScaleMultiplier } = await getPoolImmutables(
+  publicClient,
+  addresses.factory,
+  poolAddress,
+);
+
+const quote = await fetchBidAsk({
+  apiKey, // trading API key — the endpoint requires Authorization: Bearer
+  chainId: 1,
+  poolAddress,
+});
+
+const impact = computePriceImpactExactIn({
+  quote,
+  amountIn: 10_000_000_000n,
+  zeroForOne: true, // selling token0 into the pool's bids
+  token0ScaleMultiplier,
+  token1ScaleMultiplier,
+});
+
+console.log(impact.priceImpactE6); // average impact over the whole fill
+console.log(impact.marginalPriceImpactE6); // last-crossed level's impact — what /route reports, can differ a lot on a large fill
+```
+
+Use `computePriceImpactExactOut` (with `amountOut`) for the inverse direction, or `getBidAskPriceImpactExactIn`/`ExactOut` to fetch and compute in one call. `fetch` is optional everywhere here — it defaults to `globalThis.fetch`; pass your own (`node-fetch`, a test stub, …) since `v1` has no `@types/node`/DOM lib.
+
+If you already have the JSON, compose the pure pieces directly: `parseBidAskResponse` then `computePriceImpactExactIn`/`ExactOut`.
+
 ## Quotes (SwapQuoter)
 
 Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` with the deployed **MetricOmmSwapQuoter** address.

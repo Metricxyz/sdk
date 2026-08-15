@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — SDK (v1)
+
+- **Bid/ask depth interpretation** — `computePriceImpactExactIn`/`ExactOut` score a caller-supplied `amountIn`/`amountOut` against a pool's `bid_ask` depth ladder, so consumers don't have to reverse-engineer the raw response; `getBidAskPriceImpactExactIn`/`ExactOut` fetch (via `fetchBidAsk`) and compute in one call. Both require `token0ScaleMultiplier`/`token1ScaleMultiplier` (from `getPoolImmutables` — not on the `bid_ask` response) to convert the fill into the pool's scaled basis before scoring it, which matters for any pool whose tokens have different decimals. Differences the wire's cumulative depth into marginal bins (`toDepthBins`) and recovers the fee-adjusted pool reference price from the first crossed depth level without the cache-bypassing `?debug=true` (`computeReferencePriceX64`). Returns both `priceImpactE6` (averaged over the whole fill) and `marginalPriceImpactE6` (the last-crossed level's own value, matching `/route`) — two different numbers, and the main thing today's raw response gets consumers to conflate. `fetch` is optional, defaulting to `globalThis.fetch`. Pure building blocks (`parseBidAskResponse`, `isQuoteUnavailable`) are exported for callers composing over JSON they already have.
+
 ## [0.4.6] - 2026-08-04
 
 > OracleValueStopLoss helpers for front ends: detect whether any pool bin is stop-loss breached and estimate when trading may resume via watermark decay.

@@ -67,6 +67,7 @@ export {
   createUniformBins,
   priceToQ64,
   q64ToPrice,
+  priceX64ToPriceE18,
 } from "./utils/index.js";
 
 // ============ Pool Functions ============
@@ -284,3 +285,33 @@ export {
   type GetOracleStopLossAnyBinStatusParams,
   type OracleStopLossAnyBinStatus,
 } from "./extensions/index.js";
+
+// ============ Bid/Ask Functions ============
+export {
+  parseBidAskResponse,
+  isQuoteUnavailable,
+  toDepthBins,
+  computeReferencePriceX64,
+  computePriceImpactExactIn,
+  computePriceImpactExactOut,
+  METRIC_API_BASE_URL,
+  fetchBidAsk,
+  getBidAskPriceImpactExactIn,
+  getBidAskPriceImpactExactOut,
+  type DepthLevelResponse,
+  type DepthDataResponse,
+  type DepthLevel,
+  type DepthData,
+  type PriceProviderStatus,
+  type BidAskResponse,
+  type BidAskQuote,
+  type DepthSide,
+  type DepthBin,
+  type DepthBinsResult,
+  type PriceImpactResult,
+  type HttpResponseLike,
+  type FetchLike,
+  type BidAskRequestParams,
+  type GetBidAskPriceImpactExactInParams,
+  type GetBidAskPriceImpactExactOutParams,
+} from "./bidAsk/index.js";
