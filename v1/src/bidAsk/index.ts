@@ -22,11 +22,11 @@ export { computePriceImpactExactIn, computePriceImpactExactOut } from "./impact.
 export {
   METRIC_API_BASE_URL,
   fetchBidAsk,
-  getBidAskPriceImpact,
+  getBidAskPriceImpactExactIn,
   getBidAskPriceImpactExactOut,
   type HttpResponseLike,
   type FetchLike,
   type BidAskRequestParams,
-  type GetBidAskPriceImpactParams,
+  type GetBidAskPriceImpactExactInParams,
   type GetBidAskPriceImpactExactOutParams,
 } from "./client.js";

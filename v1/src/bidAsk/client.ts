@@ -114,7 +114,7 @@ export async function fetchBidAsk(
   return parseBidAskResponse(body);
 }
 
-export type GetBidAskPriceImpactParams = BidAskRequestParams & {
+export type GetBidAskPriceImpactExactInParams = BidAskRequestParams & {
   zeroForOne: boolean;
   amountIn: bigint;
   token0ScaleMultiplier: bigint;
@@ -134,8 +134,8 @@ export type GetBidAskPriceImpactParams = BidAskRequestParams & {
  * copies `params`'s OWN enumerable properties — so a polluted `Object.prototype.fetch`/`baseUrl`
  * is excluded here too, the same as the `ownField` reads inside `fetchBidAsk` itself.
  */
-export async function getBidAskPriceImpact(
-  params: GetBidAskPriceImpactParams,
+export async function getBidAskPriceImpactExactIn(
+  params: GetBidAskPriceImpactExactInParams,
 ): Promise<PriceImpactResult> {
   const { zeroForOne, amountIn, token0ScaleMultiplier, token1ScaleMultiplier, ...requestParams } =
     params;
@@ -160,11 +160,11 @@ export type GetBidAskPriceImpactExactOutParams = BidAskRequestParams & {
 /**
  * One-call convenience, exact-out: fetch a pool's `bid_ask` quote (always with depth) and
  * compute the price impact of receiving `amountOut` against it — the same "one call" shape as
- * {@link getBidAskPriceImpact}, just asking the other direction of the same question ("what does
+ * {@link getBidAskPriceImpactExactIn}, just asking the other direction of the same question ("what does
  * it cost to receive this much?" rather than "what do I receive for this much?").
  *
  * See `computePriceImpactExactOut` in `./impact.js` for the ceil-rounding semantics this implies,
- * and {@link getBidAskPriceImpact}'s doc comment for `token0ScaleMultiplier`/
+ * and {@link getBidAskPriceImpactExactIn}'s doc comment for `token0ScaleMultiplier`/
  * `token1ScaleMultiplier` and the prototype-pollution hardening this wrapper inherits.
  */
 export async function getBidAskPriceImpactExactOut(

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Q64 } from "../src/constants.js";
 import {
   fetchBidAsk,
-  getBidAskPriceImpact,
+  getBidAskPriceImpactExactIn,
   getBidAskPriceImpactExactOut,
   METRIC_API_BASE_URL,
   type FetchLike,
@@ -147,7 +147,7 @@ describe("fetchBidAsk", () => {
   });
 });
 
-describe("getBidAskPriceImpact", () => {
+describe("getBidAskPriceImpactExactIn", () => {
   it("fetches then computes price impact end-to-end", async () => {
     const { fetch, calls } = stubFetch(() =>
       jsonResponse(
@@ -168,7 +168,7 @@ describe("getBidAskPriceImpact", () => {
       ),
     );
 
-    const result = await getBidAskPriceImpact({
+    const result = await getBidAskPriceImpactExactIn({
       fetch,
       apiKey,
       chainId: 1,
@@ -286,8 +286,8 @@ describe("prototype-pollution hardening", () => {
     }
   });
 
-  it("holds through the getBidAskPriceImpact wrapper's fresh object literal", async () => {
-    // getBidAskPriceImpact rebuilds a fresh `{ ...requestParams, depth: true }` object before
+  it("holds through the getBidAskPriceImpactExactIn wrapper's fresh object literal", async () => {
+    // getBidAskPriceImpactExactIn rebuilds a fresh `{ ...requestParams, depth: true }` object before
     // calling fetchBidAsk — this must not reopen the gap `ownField` closes for a direct
     // fetchBidAsk call.
     (Object.prototype as Record<string, unknown>).baseUrl = "https://attacker.example.com";
@@ -310,7 +310,7 @@ describe("prototype-pollution hardening", () => {
       ),
     );
     try {
-      await getBidAskPriceImpact({
+      await getBidAskPriceImpactExactIn({
         fetch,
         apiKey,
         chainId: 1,

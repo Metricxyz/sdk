@@ -198,13 +198,13 @@ Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.
 
 ## Bid/ask depth (REST API)
 
-`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and depth ladder. `getBidAskPriceImpact` fetches it and scores a caller-supplied `amountIn` (exact-in: "what do I receive for this much?"); `getBidAskPriceImpactExactOut` asks the same question the other way around for a caller-supplied `amountOut` (exact-out: "what does it cost to receive this much?"). Both return `executionPriceX64` — the post-fee price this size actually executes at, Q64.64, token1-per-token0, directly comparable to `referencePriceX64` and to `depth[].price` (the server bakes fees into the ladder before this SDK ever sees it, so nothing here needs a fee applied by the caller) — plus `effectivePriceX64` (the raw `amountOut/amountIn` ratio, un-normalized, matching the route API's field of the same name; on the ask side it's in the **inverse orientation** to `executionPriceX64`, so the two are not interchangeable). Prices are Q64.64; amounts are raw base units; `priceImpactE6` is signed, positive = worse for the trader.
+`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and depth ladder. `getBidAskPriceImpactExactIn` fetches it and scores a caller-supplied `amountIn` (exact-in: "what do I receive for this much?"); `getBidAskPriceImpactExactOut` asks the same question the other way around for a caller-supplied `amountOut` (exact-out: "what does it cost to receive this much?"). Both return `executionPriceX64` — the post-fee price this size actually executes at, Q64.64, token1-per-token0, directly comparable to `referencePriceX64` and to `depth[].price` (the server bakes fees into the ladder before this SDK ever sees it, so nothing here needs a fee applied by the caller) — plus `effectivePriceX64` (the raw `amountOut/amountIn` ratio, un-normalized, matching the route API's field of the same name; on the ask side it's in the **inverse orientation** to `executionPriceX64`, so the two are not interchangeable). Prices are Q64.64; amounts are raw base units; `priceImpactE6` is signed, positive = worse for the trader.
 
 `bidAdj`/`askAdj` on the raw response are **not** what this SDK's price impact is built from — the impact functions derive everything from `depth`, never from `bidAdj`/`askAdj`. Today those two fields carry the raw oracle bid/ask (despite the "Adj" name); a pending oracle_suite change repoints them at the pool's executable price instead. Don't hard-code either interpretation — the only place this SDK reads them is `isQuoteUnavailable`'s sentinel check (`bidAdj: "0"`, `askAdj: "340282366920938463463374607431768211455"`), which is stable across that change. An unavailable quote is an ordinary **HTTP 200** with that sentinel, not an error status. `token0ScaleMultiplier`/`token1ScaleMultiplier` are required and are **not on the `bid_ask` response** — read them from `getPoolImmutables`; wrong or `1n`/`1n` values silently corrupt the impact number.
 
 ```typescript
 import {
-  getBidAskPriceImpact,
+  getBidAskPriceImpactExactIn,
   getBidAskPriceImpactExactOut,
   getPoolImmutables,
   getAddressesOrThrow,
@@ -218,7 +218,7 @@ const { token0ScaleMultiplier, token1ScaleMultiplier } = await getPoolImmutables
   poolAddress,
 );
 
-const impact = await getBidAskPriceImpact({
+const impact = await getBidAskPriceImpactExactIn({
   apiKey, // trading API key — the endpoint requires Authorization: Bearer
   chainId: 1,
   poolAddress,
