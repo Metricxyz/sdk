@@ -290,9 +290,11 @@ export {
   parseBidAskResponse,
   isQuoteUnavailable,
   computePriceImpactExactIn,
+  computePriceImpactExactOut,
   METRIC_API_BASE_URL,
   fetchBidAsk,
   getBidAskPriceImpact,
+  getBidAskPriceImpactExactOut,
   type DepthLevelResponse,
   type DepthDataResponse,
   type DepthLevel,
@@ -305,4 +307,5 @@ export {
   type FetchLike,
   type BidAskRequestParams,
   type GetBidAskPriceImpactParams,
+  type GetBidAskPriceImpactExactOutParams,
 } from "./bidAsk/index.js";

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { getAddress } from "viem";
 import { Q64, MAX_UINT128 } from "../src/constants.js";
 import { toDepthBins, computeReferencePriceX64 } from "../src/bidAsk/depth.js";
-import { computePriceImpactExactIn } from "../src/bidAsk/impact.js";
+import { computePriceImpactExactIn, computePriceImpactExactOut } from "../src/bidAsk/impact.js";
 import { parseBidAskResponse, isQuoteUnavailable } from "../src/bidAsk/parse.js";
 import type {
   BidAskQuote,
@@ -271,7 +271,7 @@ describe("computePriceImpactExactIn — unequal-decimal scale basis (WETH(18)/US
     });
 
     assert.equal(result.amountOut, ONE_WETH);
-    assert.equal(result.scaledExecutionPriceX64, 3006n * Q64);
+    assert.equal(result.executionPriceX64, 3006n * Q64);
     assert.equal(result.referencePriceX64, 3000n * Q64);
     assert.equal(result.priceImpactE6, 2_000n);
     assert.ok(result.priceImpactE6 > 0n, "ask-side impact must be positive (worse for the trader)");
@@ -287,10 +287,40 @@ describe("computePriceImpactExactIn — unequal-decimal scale basis (WETH(18)/US
     });
 
     assert.equal(result.amountOut, 2_994_000_000n);
-    assert.equal(result.scaledExecutionPriceX64, 2994n * Q64);
+    assert.equal(result.executionPriceX64, 2994n * Q64);
     assert.equal(result.referencePriceX64, 3000n * Q64);
     assert.equal(result.priceImpactE6, 2_000n);
     assert.ok(result.priceImpactE6 > 0n, "bid-side impact must be positive (worse for the trader)");
+  });
+
+  it("computePriceImpactExactOut lands on the same numbers, ask side (in=token1, out=token0)", () => {
+    const result = computePriceImpactExactOut({
+      quote,
+      amountOut: ONE_WETH,
+      zeroForOne: false,
+      token0ScaleMultiplier,
+      token1ScaleMultiplier,
+    });
+
+    assert.equal(result.amountIn, 3_006_000_000n);
+    assert.equal(result.executionPriceX64, 3006n * Q64);
+    assert.equal(result.referencePriceX64, 3000n * Q64);
+    assert.equal(result.priceImpactE6, 2_000n);
+  });
+
+  it("computePriceImpactExactOut lands on the same numbers, bid side (in=token0, out=token1)", () => {
+    const result = computePriceImpactExactOut({
+      quote,
+      amountOut: 2_994_000_000n,
+      zeroForOne: true,
+      token0ScaleMultiplier,
+      token1ScaleMultiplier,
+    });
+
+    assert.equal(result.amountIn, ONE_WETH);
+    assert.equal(result.executionPriceX64, 2994n * Q64);
+    assert.equal(result.referencePriceX64, 3000n * Q64);
+    assert.equal(result.priceImpactE6, 2_000n);
   });
 });
 
@@ -340,7 +370,7 @@ describe("computePriceImpactExactIn — unequal-decimal scale basis (mirrored: 6
     });
 
     assert.equal(result.amountOut, 1_000_000n);
-    assert.equal(result.scaledExecutionPriceX64, 1002n * Q64);
+    assert.equal(result.executionPriceX64, 1002n * Q64);
     assert.equal(result.referencePriceX64, 1000n * Q64);
     assert.equal(result.priceImpactE6, 2_000n);
     assert.ok(result.priceImpactE6 > 0n, "ask-side impact must be positive (worse for the trader)");
@@ -356,7 +386,7 @@ describe("computePriceImpactExactIn — unequal-decimal scale basis (mirrored: 6
     });
 
     assert.equal(result.amountOut, 998n * ONE_TOKEN1);
-    assert.equal(result.scaledExecutionPriceX64, 998n * Q64);
+    assert.equal(result.executionPriceX64, 998n * Q64);
     assert.equal(result.referencePriceX64, 1000n * Q64);
     assert.equal(result.priceImpactE6, 2_000n);
     assert.ok(result.priceImpactE6 > 0n, "bid-side impact must be positive (worse for the trader)");
@@ -385,6 +415,50 @@ describe("computePriceImpactExactIn — unequal-decimal scale basis (mirrored: 6
           zeroForOne: false,
           token0ScaleMultiplier: 1n,
           token1ScaleMultiplier: 1n,
+        }),
+      /implausible priceImpactE6/,
+    );
+  });
+
+  it("computePriceImpactExactOut lands on the same numbers using token0ScaleMultiplier (ask side)", () => {
+    const result = computePriceImpactExactOut({
+      quote,
+      amountOut: 1_000_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier,
+      token1ScaleMultiplier,
+    });
+
+    assert.equal(result.amountIn, 1002n * ONE_TOKEN1);
+    assert.equal(result.executionPriceX64, 1002n * Q64);
+    assert.equal(result.referencePriceX64, 1000n * Q64);
+    assert.equal(result.priceImpactE6, 2_000n);
+  });
+
+  it("computePriceImpactExactOut lands on the same numbers using token0ScaleMultiplier (bid side)", () => {
+    const result = computePriceImpactExactOut({
+      quote,
+      amountOut: 998n * ONE_TOKEN1,
+      zeroForOne: true,
+      token0ScaleMultiplier,
+      token1ScaleMultiplier,
+    });
+
+    assert.equal(result.amountIn, 1_000_000n);
+    assert.equal(result.executionPriceX64, 998n * Q64);
+    assert.equal(result.referencePriceX64, 1000n * Q64);
+    assert.equal(result.priceImpactE6, 2_000n);
+  });
+
+  it("computePriceImpactExactOut also rejects a swapped token0ScaleMultiplier/token1ScaleMultiplier (implausible-magnitude guard)", () => {
+    assert.throws(
+      () =>
+        computePriceImpactExactOut({
+          quote,
+          amountOut: 1_000_000n,
+          zeroForOne: false,
+          token0ScaleMultiplier: token1ScaleMultiplier, // swapped with token1's
+          token1ScaleMultiplier: token0ScaleMultiplier, // swapped with token0's
         }),
       /implausible priceImpactE6/,
     );
@@ -492,7 +566,7 @@ describe("computePriceImpactExactIn — ladder walk", () => {
     assert.equal(boundary.binsCrossed, 1);
     assert.equal(boundary.priceImpactE6, 0n);
     assert.equal(boundary.marginalPriceImpactE6, 0n);
-    // effectivePriceX64 is un-normalized and so, unlike scaledExecutionPriceX64, does NOT flip
+    // effectivePriceX64 is un-normalized and so, unlike executionPriceX64, does NOT flip
     // for the ask side — it's the inverse here, not the same value.
     assert.equal(boundary.effectivePriceX64, H);
 
@@ -537,7 +611,7 @@ describe("computePriceImpactExactIn — ladder walk", () => {
       token1ScaleMultiplier: ONE,
     });
     assert.equal(bidResult.amountOut, 1_000_000n + 500_000n);
-    assert.equal(bidResult.scaledExecutionPriceX64, 3n * H); // amountOut*Q64/amountIn = 1.5*Q64.
+    assert.equal(bidResult.executionPriceX64, 3n * H); // amountOut*Q64/amountIn = 1.5*Q64.
     assert.equal(bidResult.referencePriceX64, 2n * Q64);
     assert.equal(bidResult.priceImpactE6, 250_000n); // E6 - (1.5*Q64*E6/(2*Q64)) = 250,000.
     assert.ok(bidResult.priceImpactE6 > 0n);
@@ -572,9 +646,9 @@ describe("computePriceImpactExactIn — ladder walk", () => {
       token1ScaleMultiplier: ONE,
     });
     assert.equal(askResult.amountOut, 1_000_000n);
-    // ask: scaledExecutionPriceX64 = amountIn*Q64/amountOut = 3*Q64 (using the BID formula here,
+    // ask: executionPriceX64 = amountIn*Q64/amountOut = 3*Q64 (using the BID formula here,
     // amountOut/amountIn, would wrongly give Q64/3).
-    assert.equal(askResult.scaledExecutionPriceX64, 3n * Q64);
+    assert.equal(askResult.executionPriceX64, 3n * Q64);
     assert.equal(askResult.referencePriceX64, 2n * Q64);
     assert.equal(askResult.priceImpactE6, 500_000n);
     assert.ok(askResult.priceImpactE6 > 0n);
@@ -648,6 +722,70 @@ describe("computePriceImpactExactIn — ladder walk", () => {
           token1ScaleMultiplier: ONE,
         }),
       /insufficient depth.*amountIn=5000000.*available/,
+    );
+  });
+});
+
+describe("computePriceImpactExactOut — ladder walk", () => {
+  it("rounds the fill input UP so realized output never falls short (666667n, not the floor 666666n)", () => {
+    // A single bin from the origin: input=1,000,000, output=3,000,000. `price` is set to this
+    // bin's own full-fill rate (floor(Q64/3)) with zero recorded impact, so the plausibility
+    // guard sees a consistent ladder rather than a placeholder that happens to diverge from it.
+    const quote = quoteFixture({
+      depth: {
+        bids: [],
+        asks: [
+          depthLevel({
+            binIdx: 0,
+            price: Q64 / 3n,
+            priceImpactE6: 0n,
+            cumulativeVolume: 3_000_000n,
+            cumulativeInputVolume: 1_000_000n,
+          }),
+        ],
+      },
+    });
+
+    const result = computePriceImpactExactOut({
+      quote,
+      amountOut: 2_000_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: ONE,
+    });
+
+    // floor(1,000,000 * 2,000,000 / 3,000,000) = 666,666 would under-deliver the requested
+    // output; ceilDiv rounds up to 666,667 (mirrors score_depth_leg_exact_out/mul_div_u128_ceil).
+    assert.equal(result.amountIn, 666_667n);
+    assert.equal(result.amountOut, 2_000_000n);
+  });
+
+  it("throws on insufficient depth, naming the requested and available amounts", () => {
+    const quote = quoteFixture({
+      depth: {
+        bids: [],
+        asks: [
+          depthLevel({
+            binIdx: 0,
+            price: Q64,
+            priceImpactE6: 0n,
+            cumulativeVolume: 500_000n,
+            cumulativeInputVolume: 1_000_000n,
+          }),
+        ],
+      },
+    });
+
+    assert.throws(
+      () =>
+        computePriceImpactExactOut({
+          quote,
+          amountOut: 5_000_000n,
+          zeroForOne: false,
+          token0ScaleMultiplier: ONE,
+          token1ScaleMultiplier: ONE,
+        }),
+      /insufficient depth.*amountOut=5000000.*available/,
     );
   });
 });

@@ -79,9 +79,10 @@ function parseDepthData(depth: DepthDataResponse | null | undefined): DepthData 
 /**
  * Parse a raw `GET .../bid_ask` response body into a `BidAskQuote`.
  *
- * `bidAdj`/`askAdj` are parsed as `bigint` (Q64.64, RAW oracle prices — see `BidAskResponse`
- * doc comments for why "Adj" is misleading). `poolAddress` is checksummed via viem. `depth`,
- * when present, is parsed into `bigint`-typed levels (still cumulative — see `toDepthBins`/
+ * `bidAdj`/`askAdj` are parsed as `bigint` (Q64.64 — see `BidAskResponse.bidAdj`'s doc comment
+ * for what they currently mean, why the "Adj" name is not a reliable guide, and why this SDK's
+ * price-impact math never reads them). `poolAddress` is checksummed via viem. `depth`, when
+ * present, is parsed into `bigint`-typed levels (still cumulative — see `toDepthBins`/
  * `computePriceImpactExactIn` in `./depth.js`/`./impact.js` to interpret it).
  *
  * `priceProviderStatus` defaults to `"unknown"` when absent: the server always sends it today,
@@ -109,7 +110,10 @@ export function parseBidAskResponse(response: BidAskResponse): BidAskQuote {
 
 /**
  * True when the quote is the server's fail-closed "no usable price" sentinel:
- * `bidAdj === 0` and `askAdj === MAX_UINT128`.
+ * `bidAdj === 0` and `askAdj === MAX_UINT128`. This exact encoding is stable across the pending
+ * oracle_suite #429 change to what `bidAdj`/`askAdj` mean day-to-day (see `BidAskResponse.bidAdj`)
+ * — #429 only widens which server-side conditions produce it (e.g. a crossed feed), not the
+ * values themselves.
  *
  * This sentinel arrives as an ordinary HTTP 200, not an error status — callers must check
  * for it explicitly before using `bidAdj`/`askAdj` or attempting a depth fill.

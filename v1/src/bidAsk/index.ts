@@ -17,14 +17,16 @@ export type {
 
 export { parseBidAskResponse, isQuoteUnavailable } from "./parse.js";
 
-export { computePriceImpactExactIn } from "./impact.js";
+export { computePriceImpactExactIn, computePriceImpactExactOut } from "./impact.js";
 
 export {
   METRIC_API_BASE_URL,
   fetchBidAsk,
   getBidAskPriceImpact,
+  getBidAskPriceImpactExactOut,
   type HttpResponseLike,
   type FetchLike,
   type BidAskRequestParams,
   type GetBidAskPriceImpactParams,
+  type GetBidAskPriceImpactExactOutParams,
 } from "./client.js";

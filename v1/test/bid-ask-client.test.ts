@@ -4,6 +4,7 @@ import { Q64 } from "../src/constants.js";
 import {
   fetchBidAsk,
   getBidAskPriceImpact,
+  getBidAskPriceImpactExactOut,
   METRIC_API_BASE_URL,
   type FetchLike,
   type HttpResponseLike,
@@ -181,8 +182,51 @@ describe("getBidAskPriceImpact", () => {
     assert.equal(calls.length, 1);
     assert.equal(result.amountIn, 1_000_000n);
     assert.equal(result.amountOut, 500_000n);
-    assert.equal(result.scaledExecutionPriceX64, 2n * Q64);
+    assert.equal(result.executionPriceX64, 2n * Q64);
     assert.equal(result.priceImpactE6, 0n);
+  });
+});
+
+describe("getBidAskPriceImpactExactOut", () => {
+  it("fetches then computes exact-out end-to-end, proving it is not mis-wired to exact-in", async () => {
+    const { fetch, calls } = stubFetch(() =>
+      jsonResponse(
+        bidAskBody({
+          depth: {
+            bids: [],
+            asks: [
+              {
+                binIdx: 0,
+                price: (Q64 / 3n).toString(),
+                priceImpactE6: "0",
+                cumulativeVolume: "3000000",
+                cumulativeInputVolume: "1000000",
+              },
+            ],
+          },
+        }),
+      ),
+    );
+
+    // This bin's input capacity is only 1,000,000. If this wrapper were wired to
+    // computePriceImpactExactIn instead, amountOut=3,000,000 would be interpreted as amountIn and
+    // immediately exceed that capacity — an "insufficient depth" throw, not a successful fill. A
+    // successful fill with amountIn=1,000,000 (the bin's own input, not 3,000,000) proves this
+    // called the exact-out walk.
+    const result = await getBidAskPriceImpactExactOut({
+      fetch,
+      apiKey,
+      chainId: 1,
+      poolAddress,
+      zeroForOne: false,
+      amountOut: 3_000_000n,
+      token0ScaleMultiplier: 1n,
+      token1ScaleMultiplier: 1n,
+    });
+
+    assert.equal(calls.length, 1);
+    assert.equal(result.amountIn, 1_000_000n);
+    assert.equal(result.amountOut, 3_000_000n);
   });
 });
 

@@ -1,9 +1,10 @@
 /**
  * Pure price-impact computation over a parsed `bid_ask` depth ladder.
- * Mirrors oracle_api's `score_depth_leg`.
+ * Mirrors oracle_api's `score_depth_leg`/`score_depth_leg_exact_out`.
  */
 
 import { Q64 } from "../constants.js";
+import { ceilDiv } from "../utils/liquidityMath.js";
 import { E6, computeReferencePriceX64, toDepthBins } from "./depth.js";
 import { isQuoteUnavailable } from "./parse.js";
 import type { BidAskQuote, DepthBin, DepthLevel, DepthSide, PriceImpactResult } from "./types.js";
@@ -98,9 +99,69 @@ function buildDepthExhaustionError(params: {
 }
 
 /**
- * Orientation, scale-basis conversion, and impact shared once the final (amountIn, amountOut,
- * first/last crossed level) are known. Conflating either of the next two points is the bug this
- * function exists to avoid:
+ * Result of walking a depth ladder to fill `amountRequested` of whichever quantity `capacity`
+ * measures on each bin.
+ */
+interface LadderWalkResult {
+  /** The counterpart amount produced: `amountOut` for exact-in, `amountIn` for exact-out. */
+  filled: bigint;
+  binsCrossed: number;
+  firstLevel: DepthLevel | null;
+  lastLevel: DepthLevel | null;
+  /** Uncovered remainder of `amountRequested`. `> 0n` means the ladder ran out before filling it. */
+  remaining: bigint;
+}
+
+/**
+ * Walk marginal bins in order, filling `amountRequested` against whichever bin field `capacity`
+ * selects. Shared by {@link computePriceImpactExactIn} (`capacity = bin.input`, floor-rounded
+ * `fill`) and {@link computePriceImpactExactOut} (`capacity = bin.output`, ceil-rounded `fill`)
+ * so the server-parity invariants live in exactly one place rather than two copies that must be
+ * kept in lockstep by hand: the zero-output bin skip that does NOT consume any capacity (mirrors
+ * `score_depth_leg`/`score_depth_leg_exact_out`), first/last crossed level tracking, the
+ * bins-crossed count, and the early exit once `remaining` hits exactly `0n`.
+ *
+ * `capacity`/`fill` are the only direction-specific pieces: `capacity(bin)` says how much of
+ * this bin's own field can be consumed, and `fill(bin, consumedCapacity)` maps that consumption
+ * to the counterpart amount it produces.
+ */
+function walkDepthLadder(params: {
+  bins: readonly DepthBin[];
+  amountRequested: bigint;
+  capacity: (bin: DepthBin) => bigint;
+  fill: (bin: DepthBin, consumedCapacity: bigint) => bigint;
+}): LadderWalkResult {
+  const { bins, amountRequested, capacity, fill } = params;
+
+  let remaining = amountRequested;
+  let filled = 0n;
+  let binsCrossed = 0;
+  let firstLevel: DepthLevel | null = null;
+  let lastLevel: DepthLevel | null = null;
+
+  for (const bin of bins) {
+    if (bin.output === 0n) {
+      continue;
+    }
+    const consumedCapacity = minBigint(remaining, capacity(bin));
+    filled += fill(bin, consumedCapacity);
+    remaining -= consumedCapacity;
+    binsCrossed += 1;
+    firstLevel ??= bin.level;
+    lastLevel = bin.level;
+
+    if (remaining === 0n) {
+      break;
+    }
+  }
+
+  return { filled, binsCrossed, firstLevel, lastLevel, remaining };
+}
+
+/**
+ * Orientation, scale-basis conversion, and impact shared by both exact-in and exact-out fills,
+ * once the final (amountIn, amountOut, first/last crossed level) are known. Conflating either of
+ * the next two points is the bug this function exists to avoid:
  *
  * 1. Orientation — `depth[].price` (and the recovered reference price) is token1-per-token0 on
  *    BOTH sides, but the fill's in/out tokens flip by side: `zeroForOne` (bids) has in=token0,
@@ -124,8 +185,8 @@ function buildDepthExhaustionError(params: {
  *
  * Sign convention (matches the server's `price_impact_up`/`price_impact_down`; positive = worse
  * for the trader):
- * - ask side: `priceImpactE6 = scaledExecutionPriceX64 * E6 / referencePriceX64 - E6`
- * - bid side: `priceImpactE6 = E6 - scaledExecutionPriceX64 * E6 / referencePriceX64`
+ * - ask side: `priceImpactE6 = executionPriceX64 * E6 / referencePriceX64 - E6`
+ * - bid side: `priceImpactE6 = E6 - executionPriceX64 * E6 / referencePriceX64`
  *
  * Two failure modes are guarded here rather than left to surface as a silently-wrong number:
  * `ratio === 0n` means `referencePriceX64` is implausibly large relative to the execution price
@@ -171,13 +232,13 @@ function buildPriceImpactResult(params: {
 
   const amountToken0 = zeroForOne ? amountIn : amountOut;
   const amountToken1 = zeroForOne ? amountOut : amountIn;
-  const scaledExecutionPriceX64 =
+  const executionPriceX64 =
     (amountToken1 * token1ScaleMultiplier * Q64) / (amountToken0 * token0ScaleMultiplier);
 
-  const ratio = (scaledExecutionPriceX64 * E6) / referencePrice;
+  const ratio = (executionPriceX64 * E6) / referencePrice;
   if (ratio === 0n) {
     throw new Error(
-      `degenerate price ratio: scaledExecutionPriceX64=${scaledExecutionPriceX64} is negligible ` +
+      `degenerate price ratio: executionPriceX64=${executionPriceX64} is negligible ` +
         `relative to referencePriceX64=${referencePrice}; this usually means referencePriceX64 is ` +
         "implausibly large (a corrupted wire price), not a real multi-order-of-magnitude price move",
     );
@@ -200,7 +261,7 @@ function buildPriceImpactResult(params: {
   return {
     amountIn,
     amountOut,
-    scaledExecutionPriceX64,
+    executionPriceX64,
     referencePriceX64: referencePrice,
     priceImpactE6,
     // Last crossed level (not first) — this is exactly what `/route` reports for a leg.
@@ -213,9 +274,10 @@ function buildPriceImpactResult(params: {
 /**
  * Price impact of filling `amountIn` (exact-in) against the depth ladder.
  *
- * Walks marginal bins in order: a zero-output bin is skipped WITHOUT consuming its input
- * (matches `score_depth_leg`); otherwise `fillInput = min(remaining, bin.input)` and
- * `fillOutput = floor(bin.output * fillInput / bin.input)`.
+ * Walks marginal bins via {@link walkDepthLadder} with `capacity = bin.input`: a zero-output bin
+ * is skipped WITHOUT consuming its input (matches `score_depth_leg`); otherwise
+ * `fillInput = min(remaining, bin.input)` and `fillOutput = floor(bin.output * fillInput /
+ * bin.input)`.
  *
  * `token0ScaleMultiplier`/`token1ScaleMultiplier` are required — see {@link buildPriceImpactResult}
  * for why they matter and where to get them (they are not on the `bid_ask` response).
@@ -237,34 +299,88 @@ export function computePriceImpactExactIn(params: {
   const levels = selectDepthLevels(quote, zeroForOne);
   const bins = toDepthBins(levels);
 
-  let remaining = amountIn;
-  let amountOut = 0n;
-  let binsCrossed = 0;
-  let firstLevel: DepthLevel | null = null;
-  let lastLevel: DepthLevel | null = null;
+  const {
+    filled: amountOut,
+    binsCrossed,
+    firstLevel,
+    lastLevel,
+    remaining,
+  } = walkDepthLadder({
+    bins,
+    amountRequested: amountIn,
+    capacity: (bin) => bin.input,
+    fill: (bin, fillInput) => (bin.output * fillInput) / bin.input,
+  });
 
-  for (const bin of bins) {
-    if (bin.output === 0n) {
-      continue;
-    }
-    const fillInput = remaining < bin.input ? remaining : bin.input;
-    const fillOutput = (bin.output * fillInput) / bin.input;
-    amountOut += fillOutput;
-    remaining -= fillInput;
-    binsCrossed += 1;
-    firstLevel ??= bin.level;
-    lastLevel = bin.level;
-
-    if (remaining === 0n) {
-      break;
-    }
-  }
-
-  if (remaining > 0n || lastLevel === null || firstLevel === null) {
+  if (remaining > 0n || firstLevel === null || lastLevel === null) {
     throw buildDepthExhaustionError({
       side: zeroForOne ? "bid" : "ask",
       requestedLabel: `amountIn=${amountIn}`,
       available: sumAvailable(bins, (bin) => bin.input),
+    });
+  }
+
+  return buildPriceImpactResult({
+    amountIn,
+    amountOut,
+    firstLevel,
+    lastLevel,
+    zeroForOne,
+    binsCrossed,
+    token0ScaleMultiplier,
+    token1ScaleMultiplier,
+  });
+}
+
+/**
+ * Price impact of filling `amountOut` (exact-out) against the depth ladder — the same question
+ * as {@link computePriceImpactExactIn} in the other direction: "what does it cost to receive
+ * this much?" rather than "what do I receive for this much?".
+ *
+ * Walks marginal bins via {@link walkDepthLadder} with `capacity = bin.output`: a zero-output bin
+ * is skipped WITHOUT consuming any output (matches `score_depth_leg_exact_out`); otherwise
+ * `fillOutput = min(remaining, bin.output)` and `fillInput = ceilDiv(bin.input * fillOutput,
+ * bin.output)` — rounded UP per bin so the realized output never falls short of the request.
+ *
+ * `token0ScaleMultiplier`/`token1ScaleMultiplier` are required — see
+ * {@link buildPriceImpactResult} (via `computePriceImpactExactIn`'s doc comment) for why they
+ * matter and where to get them.
+ */
+export function computePriceImpactExactOut(params: {
+  quote: BidAskQuote;
+  amountOut: bigint;
+  zeroForOne: boolean;
+  token0ScaleMultiplier: bigint;
+  token1ScaleMultiplier: bigint;
+}): PriceImpactResult {
+  const { quote, amountOut, zeroForOne, token0ScaleMultiplier, token1ScaleMultiplier } = params;
+
+  assertPositive(amountOut, "amountOut");
+  assertPositive(token0ScaleMultiplier, "token0ScaleMultiplier");
+  assertPositive(token1ScaleMultiplier, "token1ScaleMultiplier");
+  assertQuoteUsable(quote);
+
+  const levels = selectDepthLevels(quote, zeroForOne);
+  const bins = toDepthBins(levels);
+
+  const {
+    filled: amountIn,
+    binsCrossed,
+    firstLevel,
+    lastLevel,
+    remaining,
+  } = walkDepthLadder({
+    bins,
+    amountRequested: amountOut,
+    capacity: (bin) => bin.output,
+    fill: (bin, fillOutput) => ceilDiv(bin.input * fillOutput, bin.output),
+  });
+
+  if (remaining > 0n || firstLevel === null || lastLevel === null) {
+    throw buildDepthExhaustionError({
+      side: zeroForOne ? "bid" : "ask",
+      requestedLabel: `amountOut=${amountOut}`,
+      available: sumAvailable(bins, (bin) => bin.output),
     });
   }
 
