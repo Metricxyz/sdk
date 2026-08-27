@@ -11,40 +11,40 @@ import {
 } from "../src/addresses.js";
 
 describe("v1 addresses", () => {
-  it("Ethereum, Base, Robinhood, and HyperEVM are deployed in this release", () => {
+  it("bundles the ten deployed chains", () => {
     assert.deepEqual(getSupportedChainIds(), [
       ChainId.ETHEREUM,
       ChainId.BASE,
-      ChainId.ROBINHOOD,
+      ChainId.ARBITRUM,
+      ChainId.AVALANCHE,
+      ChainId.BNB,
+      ChainId.POLYGON,
+      ChainId.MEGAETH,
       ChainId.HYPEREVM,
+      ChainId.MONAD,
+      ChainId.ROBINHOOD,
     ]);
-    assert.equal(isChainSupported(ChainId.ETHEREUM), true);
-    assert.equal(isChainSupported(ChainId.BASE), true);
-    assert.equal(isChainSupported(ChainId.ROBINHOOD), true);
-    assert.equal(isChainSupported(ChainId.HYPEREVM), true);
-    assert.equal(isChainSupported(ChainId.ARBITRUM), false);
-    assert.equal(getAddresses(ChainId.ARBITRUM), undefined);
+    for (const chainId of Object.values(ChainId)) {
+      assert.equal(isChainSupported(chainId), true);
+      assert.ok(getAddresses(chainId));
+    }
   });
 
   it("deployed chains share protocol addresses", () => {
     const eth = ADDRESSES[ChainId.ETHEREUM];
-    const base = ADDRESSES[ChainId.BASE];
-    const robinhood = ADDRESSES[ChainId.ROBINHOOD];
-    const hyper = ADDRESSES[ChainId.HYPEREVM];
+    for (const chainId of getSupportedChainIds()) {
+      const addresses = ADDRESSES[chainId];
+      assert.equal(addresses.factory, eth.factory);
+      assert.equal(addresses.simpleRouter, eth.simpleRouter);
+      assert.equal(addresses.quoter, eth.quoter);
+      assert.equal(
+        addresses.extensions.depositAllowlistExtension,
+        eth.extensions.depositAllowlistExtension,
+      );
+    }
 
-    assert.equal(eth.factory, base.factory);
-    assert.equal(eth.factory, robinhood.factory);
-    assert.equal(eth.factory, hyper.factory);
-    assert.equal(eth.simpleRouter, base.simpleRouter);
-    assert.equal(eth.quoter, base.quoter);
-    assert.equal(
-      eth.extensions.depositAllowlistExtension,
-      base.extensions.depositAllowlistExtension,
-    );
-
-    assert.notEqual(eth.wrappedNative, base.wrappedNative);
-    assert.notEqual(eth.wrappedNative, robinhood.wrappedNative);
-    assert.notEqual(eth.wrappedNative, hyper.wrappedNative);
+    assert.equal(eth.factory, "0xA32761549A1DE40060c194C86A8df24f0A29bA2d");
+    assert.equal(eth.simpleRouter, "0x7D4fb51164288D2e1fdA2032D887517F71008b89");
   });
 
   it("getAddressesOrThrow returns bundled deployment for configured chains", () => {
@@ -58,9 +58,6 @@ describe("v1 addresses", () => {
   });
 
   it("getAddressesOrThrow rejects unsupported chains", () => {
-    assert.throws(
-      () => getAddressesOrThrow(ChainId.ARBITRUM),
-      /Ethereum, Base, Robinhood, and HyperEVM are configured/,
-    );
+    assert.throws(() => getAddressesOrThrow(10), /Chain 10 has no v1 deployment in this SDK/);
   });
 });

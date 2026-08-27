@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking — SDK (v1)
+
+- **Latest contract generation** — regenerated the exported core, periphery, and extension ABIs from metric-periphery `6bb01830399a18c559067d53b73c749d89d7bd8d`. The package remains the single `v1` namespace; no parallel V2 API was added.
+- **Pool creation** — `CreatePoolFactoryParams` now matches the latest factory tuple: renamed initial scaled amount and minimum-liquidity fields, added protocol spread/notional fees, and added `bidAskRefAsymmetryX8`. `computeMinimumOperationalLiquidity` exposes the factory's minimum calculation and `DISABLED_BID_ASK_REF_ASYMMETRY_X8` exposes the on-chain sentinel.
+- **Hypothetical quotes** — single-hop and path quote helpers now require the oracle reference price alongside bid and ask.
+- **Liquidity adds** — exact-shares and weighted encoders now pass the latest `BinPositionBounds` tuple. `binPositionBounds` is optional and defaults to `UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS`.
+- **Oracle stop-loss** — decay configuration and helpers use E18 precision (`decayPerSecondE18` / `STOP_LOSS_E18`), and minimum-share fields are named `minimalOperationalLiquidity`.
+- **Pool reads** — immutable and slot0 types match the latest layouts, including `minimalOperationalLiquidity` and `bidAskRefAsymmetryX8`.
+- **Price velocity guard** — `encodeSetLastMidPriceCalldata` was replaced by `encodeSetAnchorMidPriceCalldata` for the renamed contract method.
+
+### Added — SDK (v1)
+
+- **Allowlist extensions** — added `encodeSetAllowAllDepositorsCalldata` and `encodeSetAllowAllSwappersCalldata` for the new pool-wide allow-all switches.
+- **Ten-chain address bundle** — updated the shared latest-generation protocol addresses and added bundled wrapped-native addresses for Ethereum, Base, Arbitrum, Avalanche, BNB Chain, Polygon, MegaETH, HyperEVM, Monad, and Robinhood.
+
 ## [0.4.6] - 2026-08-04
 
 > OracleValueStopLoss helpers for front ends: detect whether any pool bin is stop-loss breached and estimate when trading may resume via watermark decay.

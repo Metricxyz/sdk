@@ -77,6 +77,18 @@ describe("SDK createPool", async () => {
     });
   });
 
+  describe("computeMinimumOperationalLiquidity", () => {
+    it("matches the factory minimum for common density scales", () => {
+      assert.equal(sdk.computeMinimumOperationalLiquidity(10n ** 18n, 10n ** 18n), 1_000_000n);
+      assert.equal(sdk.computeMinimumOperationalLiquidity(10n ** 6n, 10n ** 18n), 10n ** 18n);
+    });
+
+    it("enforces the factory's initial scaled amount range", () => {
+      assert.throws(() => sdk.computeMinimumOperationalLiquidity(0n, 10n ** 18n));
+      assert.throws(() => sdk.computeMinimumOperationalLiquidity((1n << 128n) - 1n, 10n ** 18n));
+    });
+  });
+
   describe("encodeCreatePoolCalldata", () => {
     it("should encode calldata from direct CreatePoolParams", async () => {
       const { token0, token1, priceProvider } = await networkHelpers.loadFixture(setupEnvironment);
@@ -91,9 +103,12 @@ describe("SDK createPool", async () => {
         negativeBins: sdk.createUniformBins(10, 10_000),
         adminSpreadFeeE6: 50000,
         adminNotionalFeeE8: 0,
-        initialScaledToken0PerShareE18: 1000000000000000000n,
-        initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: 1000000000000000000n,
+        initialScaledAmount1PerE18Shares: 1000000000000000000n,
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -118,9 +133,12 @@ describe("SDK createPool", async () => {
         negativeBins: sdk.createUniformBins(10, 10_000),
         adminSpreadFeeE6: 50000,
         adminNotionalFeeE8: 0,
-        initialScaledToken0PerShareE18: 1000000000000000000n,
-        initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: 1000000000000000000n,
+        initialScaledAmount1PerE18Shares: 1000000000000000000n,
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -177,9 +195,12 @@ describe("SDK createPool", async () => {
         adminFeeDestination: deployer.account.address,
         adminSpreadFeeE6: 25000,
         adminNotionalFeeE8: 0,
-        initialScaledToken0PerShareE18: 1000000000000000000n,
-        initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: 1000000000000000000n,
+        initialScaledAmount1PerE18Shares: 1000000000000000000n,
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -219,9 +240,12 @@ describe("SDK createPool", async () => {
         negativeBins: sdk.createUniformBins(10, 10000), // 10 uniform 1% bins
         adminSpreadFeeE6: 50000,
         adminNotionalFeeE8: 0,
-        initialScaledToken0PerShareE18: 1000000000000000000n,
-        initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: 1000000000000000000n,
+        initialScaledAmount1PerE18Shares: 1000000000000000000n,
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -255,9 +279,12 @@ describe("SDK createPool", async () => {
         negativeBins: sdk.createUniformBins(10, 10000),
         adminSpreadFeeE6: 50000,
         adminNotionalFeeE8: 0,
-        initialScaledToken0PerShareE18: 1000000000000000000n,
-        initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: 1000000000000000000n,
+        initialScaledAmount1PerE18Shares: 1000000000000000000n,
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         curBinDistFromProvidedPricePercent: 0,
       };
       const calldata = sdk.encodeCreatePoolCalldata(params);

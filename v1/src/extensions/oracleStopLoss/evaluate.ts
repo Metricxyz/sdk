@@ -50,8 +50,8 @@ export interface EvaluateOracleStopLossParams {
   bidPriceX64: bigint;
   askPriceX64: bigint;
   drawdownE6: number;
-  decayPerSecondE8: number;
-  minimalMintableLiquidity: bigint;
+  decayPerSecondE18: bigint;
+  minimalOperationalLiquidity: bigint;
   /**
    * When true (default), only bins with `totalShares > 0` are evaluated.
    * Empty bins are skipped (matches on-chain `afterSwap` skip).
@@ -94,8 +94,8 @@ export function evaluateOracleStopLoss(
     bidPriceX64,
     askPriceX64,
     drawdownE6,
-    decayPerSecondE8,
-    minimalMintableLiquidity,
+    decayPerSecondE18,
+    minimalOperationalLiquidity,
     skipEmptyBins = true,
   } = params;
 
@@ -128,7 +128,7 @@ export function evaluateOracleStopLoss(
       token0BalanceScaled: bin.token0BalanceScaled,
       token1BalanceScaled: bin.token1BalanceScaled,
       totalShares: bin.totalShares,
-      minimalMintableLiquidity,
+      minimalOperationalLiquidity,
       bidPriceX64,
       askPriceX64,
     });
@@ -152,13 +152,13 @@ export function evaluateOracleStopLoss(
         metric: metricToken0,
         hwm: bin.highWatermark0,
         drawdownE6,
-        decayPerSecondE8,
+        decayPerSecondE18,
       }),
       secondsUntilOneForZeroResumes: secondsUntilStopLossClears({
         metric: metricToken1,
         hwm: bin.highWatermark1,
         drawdownE6,
-        decayPerSecondE8,
+        decayPerSecondE18,
       }),
     });
   }

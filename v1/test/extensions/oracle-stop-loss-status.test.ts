@@ -15,16 +15,14 @@ describe("oracle stop-loss math", () => {
       token0BalanceScaled: t0,
       token1BalanceScaled: t1,
       totalShares: shares,
-      minimalMintableLiquidity: 1n,
+      minimalOperationalLiquidity: 1n,
       bidPriceX64: price,
       askPriceX64: price,
     });
 
-    // t0ps = t1ps = 1000 * 1e6 / 1e6 = 1000
-    // metric0 = 1000 + 1000 * Q64 / Q64 = 2000
-    // metric1 = 1000 * Q64 / Q64 + 1000 = 2000
-    assert.equal(metricToken0, 2000n);
-    assert.equal(metricToken1, 2000n);
+    // t0ps = t1ps = 1000 * 1e18 / 1e6 = 1e15
+    assert.equal(metricToken0, 2_000_000_000_000_000n);
+    assert.equal(metricToken1, 2_000_000_000_000_000n);
   });
 
   it("isStopLossMetricBreached uses drawdown floor", () => {
@@ -43,7 +41,7 @@ describe("oracle stop-loss math", () => {
         metric: 950_000n,
         hwm: 1_000_000n,
         drawdownE6: 50_000,
-        decayPerSecondE8: 0,
+        decayPerSecondE18: 0n,
       }),
       0n,
     );
@@ -52,7 +50,7 @@ describe("oracle stop-loss math", () => {
         metric: 900_000n,
         hwm: 1_000_000n,
         drawdownE6: 50_000,
-        decayPerSecondE8: 0,
+        decayPerSecondE18: 0n,
       }),
       null,
     );
@@ -63,15 +61,14 @@ describe("oracle stop-loss math", () => {
       metric: 900_000n,
       hwm: 1_000_000n,
       drawdownE6: 50_000,
-      // ~5%/day ≈ 58 / 1e8 per second — use a fast rate for the test
-      decayPerSecondE8: 1_000_000, // 1% per second
+      decayPerSecondE18: 10_000_000_000_000_000n, // 1% per second
     });
     assert.ok(seconds !== null && seconds > 0n);
 
-    const decayed = sdk.decayedHighWatermark(1_000_000n, 1_000_000, seconds!);
+    const decayed = sdk.decayedHighWatermark(1_000_000n, 10_000_000_000_000_000n, seconds!);
     assert.equal(sdk.isStopLossMetricBreached(900_000n, decayed, 50_000), false);
     if (seconds! > 0n) {
-      const before = sdk.decayedHighWatermark(1_000_000n, 1_000_000, seconds! - 1n);
+      const before = sdk.decayedHighWatermark(1_000_000n, 10_000_000_000_000_000n, seconds! - 1n);
       assert.equal(sdk.isStopLossMetricBreached(900_000n, before, 50_000), true);
     }
   });
@@ -84,8 +81,8 @@ describe("oracle stop-loss math", () => {
           token0BalanceScaled: 1000n,
           token1BalanceScaled: 1000n,
           totalShares: 1_000_000n,
-          highWatermark0: 10_000n,
-          highWatermark1: 10_000n,
+          highWatermark0: 10_000_000_000_000_000n,
+          highWatermark1: 10_000_000_000_000_000n,
         },
         {
           binIdx: 1,
@@ -99,11 +96,11 @@ describe("oracle stop-loss math", () => {
       bidPriceX64: Q64,
       askPriceX64: Q64,
       drawdownE6: 50_000,
-      decayPerSecondE8: 1_000_000,
-      minimalMintableLiquidity: 1n,
+      decayPerSecondE18: 10_000_000_000_000_000n,
+      minimalOperationalLiquidity: 1n,
     });
 
-    // metrics = 2000; thresholds = 9500 → both breached
+    // metrics = 2e15; thresholds = 9.5e15 → both breached
     assert.equal(result.enabled, true);
     assert.equal(result.bins.length, 1);
     assert.equal(result.isAnyBinStopLossBreached, true);

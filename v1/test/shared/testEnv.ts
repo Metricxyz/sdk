@@ -67,7 +67,10 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
 
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
-  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+    factory.address,
+    weth.address,
+  ]);
   const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
     weth.address,
     factory.address,
@@ -101,12 +104,15 @@ export async function createPoolViaFactory(
     priceProvider: env.priceProvider.address,
     admin: wallet.account.address,
     adminFeeDestination: wallet.account.address,
+    protocolSpreadFeeE6: 0,
     adminSpreadFeeE6: adminSpreadFeeE6FromPercent(0.5),
+    protocolNotionalFeeE8: 0,
     adminNotionalFeeE8: 0,
     curBinDistFromProvidedPricePercent: 0,
-    initialScaledToken0PerShareE18: parseUnits("1", 18),
-    initialScaledToken1PerShareE18: parseUnits("1", 18),
-    minimalMintableLiquidity: 1000n,
+    initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+    initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+    minimalOperationalLiquidity: 1_000_000n,
+    bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
     nonNegativeBins: sdk.createUniformBins(10, 10000),
     negativeBins: sdk.createUniformBins(10, 10000),
     ...overrides,

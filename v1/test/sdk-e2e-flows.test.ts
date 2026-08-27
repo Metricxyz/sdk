@@ -36,9 +36,12 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       adminSpreadFeeE6: 5000,
       adminNotionalFeeE8: 0,
       curBinDistFromProvidedPricePercent: 0,
-      initialScaledToken0PerShareE18: parseUnits("1", 18),
-      initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+      initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+      minimalOperationalLiquidity: 1_000_000n,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
       negativeBins: sdk.createUniformBins(10, 10_000),
       salt: fixedSalt,
@@ -72,7 +75,13 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
     const salt = 1n;
     const addDeltas: sdk.PoolLiquidityDelta = {
       binIdxs: [-2n, -1n, 0n, 1n, 2n],
-      shares: [5_000_000n, 5_000_000n, 10_000_000n, 5_000_000n, 5_000_000n],
+      shares: [
+        5n * 10n ** 18n,
+        5n * 10n ** 18n,
+        10n * 10n ** 18n,
+        5n * 10n ** 18n,
+        5n * 10n ** 18n,
+      ],
     };
     const addData = sdk.encodeAddLiquidityExactSharesSelfCalldata({
       pool,
@@ -90,6 +99,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
         { binIdxs: [...addDeltas.binIdxs], shares: [...addDeltas.shares] },
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
+        sdk.UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS,
         "0x",
       ],
     });
@@ -199,9 +209,12 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       adminSpreadFeeE6: 5000,
       adminNotionalFeeE8: 0,
       curBinDistFromProvidedPricePercent: 0,
-      initialScaledToken0PerShareE18: parseUnits("1", 18),
-      initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+      initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+      minimalOperationalLiquidity: 1_000_000n,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
     };

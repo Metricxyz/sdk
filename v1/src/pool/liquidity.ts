@@ -778,11 +778,11 @@ export async function buildAddLiquidityExactSharesParamsFromBinTargets(
   };
 }
 
-/** Cursor bounds that disable weighted-add cursor checks (matches on-chain test helpers). */
+/** Bin-position bounds that disable LiquidityAdder cursor checks. */
 export const UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS = {
-  minimalCurBin: -128,
+  minimalCurBin: -(2 ** 15),
   minimalPosition: 0n,
-  maximalCurBin: 127,
+  maximalCurBin: 2 ** 15 - 1,
   maximalPosition: MAX_UINT104,
 } as const;
 
@@ -792,6 +792,10 @@ export type LiquidityCursorBounds = {
   maximalCurBin: number;
   maximalPosition: bigint;
 };
+
+function resolveLiquidityCursorBounds(bounds?: LiquidityCursorBounds): LiquidityCursorBounds {
+  return bounds ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS;
+}
 
 /**
  * Encode `LiquidityAdder.addLiquidityExactShares` for the transaction sender.
@@ -805,10 +809,12 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
   deltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  binPositionBounds?: LiquidityCursorBounds;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params.binPositionBounds);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 6)],
+    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 7)],
     functionName: "addLiquidityExactShares",
     args: [
       params.pool,
@@ -816,6 +822,7 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -835,10 +842,12 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
   deltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
+  binPositionBounds?: LiquidityCursorBounds;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params.binPositionBounds);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 7)],
+    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 8)],
     functionName: "addLiquidityExactShares",
     args: [
       params.pool,
@@ -847,6 +856,7 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -865,14 +875,12 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
-  minimalCurBin?: number;
-  minimalPosition?: bigint;
-  maximalCurBin?: number;
-  maximalPosition?: bigint;
+  binPositionBounds?: LiquidityCursorBounds;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params.binPositionBounds);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 10)],
+    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 7)],
     functionName: "addLiquidityWeighted",
     args: [
       params.pool,
@@ -880,10 +888,7 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
-      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
-      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
-      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -902,14 +907,12 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
-  minimalCurBin?: number;
-  minimalPosition?: bigint;
-  maximalCurBin?: number;
-  maximalPosition?: bigint;
+  binPositionBounds?: LiquidityCursorBounds;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params.binPositionBounds);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 11)],
+    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 8)],
     functionName: "addLiquidityWeighted",
     args: [
       params.pool,
@@ -918,10 +921,7 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
-      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
-      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
-      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });

@@ -43,6 +43,7 @@ export interface QuoteHypotheticalExactInputParams {
   extensionDatas?: readonly Hex[];
   bidPricesX64: readonly bigint[];
   askPricesX64: readonly bigint[];
+  referencePricesX64: readonly bigint[];
   recipient: Address;
   amountIn: bigint;
   quoterAddress?: Address;
@@ -56,6 +57,7 @@ export interface QuoteHypotheticalExactOutputParams {
   extensionDatas?: readonly Hex[];
   bidPricesX64: readonly bigint[];
   askPricesX64: readonly bigint[];
+  referencePricesX64: readonly bigint[];
   recipient: Address;
   amountOut: bigint;
   quoterAddress?: Address;
@@ -91,9 +93,16 @@ export function validateHypotheticalPrices(
   pools: readonly Address[],
   bidPricesX64: readonly bigint[],
   askPricesX64: readonly bigint[],
+  referencePricesX64: readonly bigint[],
 ): void {
-  if (bidPricesX64.length !== pools.length || askPricesX64.length !== pools.length) {
-    throw new Error("bidPricesX64 and askPricesX64 length must match pools length");
+  if (
+    bidPricesX64.length !== pools.length ||
+    askPricesX64.length !== pools.length ||
+    referencePricesX64.length !== pools.length
+  ) {
+    throw new Error(
+      "bidPricesX64, askPricesX64, and referencePricesX64 length must match pools length",
+    );
   }
 }
 
@@ -174,7 +183,12 @@ export async function quoteLiveExactOut(params: QuoteLiveExactOutParams): Promis
 export async function quoteHypotheticalExactInput(
   params: QuoteHypotheticalExactInputParams,
 ): Promise<QuoteSwapResult> {
-  validateHypotheticalPrices(params.pools, params.bidPricesX64, params.askPricesX64);
+  validateHypotheticalPrices(
+    params.pools,
+    params.bidPricesX64,
+    params.askPricesX64,
+    params.referencePricesX64,
+  );
   const quoterAddress = await resolveQuoterAddress({
     publicClient: params.publicClient,
     quoterAddress: params.quoterAddress,
@@ -200,6 +214,7 @@ export async function quoteHypotheticalExactInput(
         amountIn: params.amountIn,
         bidPricesX64: [...params.bidPricesX64],
         askPricesX64: [...params.askPricesX64],
+        referencePricesX64: [...params.referencePricesX64],
       },
     ],
   );
@@ -208,7 +223,12 @@ export async function quoteHypotheticalExactInput(
 export async function quoteHypotheticalExactOutput(
   params: QuoteHypotheticalExactOutputParams,
 ): Promise<QuoteSwapResult> {
-  validateHypotheticalPrices(params.pools, params.bidPricesX64, params.askPricesX64);
+  validateHypotheticalPrices(
+    params.pools,
+    params.bidPricesX64,
+    params.askPricesX64,
+    params.referencePricesX64,
+  );
   const quoterAddress = await resolveQuoterAddress({
     publicClient: params.publicClient,
     quoterAddress: params.quoterAddress,
@@ -234,6 +254,7 @@ export async function quoteHypotheticalExactOutput(
         amountOut: params.amountOut,
         bidPricesX64: [...params.bidPricesX64],
         askPricesX64: [...params.askPricesX64],
+        referencePricesX64: [...params.referencePricesX64],
       },
     ],
   );

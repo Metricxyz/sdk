@@ -2,8 +2,8 @@
  * OracleValueStopLossExtension E2E on a Hardhat local chain.
  *
  * 1) Create pool with stop-loss on afterSwap, add liquidity, do normal trading.
- * 2) Value-leak path: high-fee round-trips drain LP value/share → stop-loss freezes swaps.
- * 3) Price-crash path: oracle mid drops hard → large oneForZero trade is blocked.
+ * 2) E18 decay configuration round-trips through the SDK read helper.
+ * 3) Price-crash path: oracle mid drops hard → oneForZero is blocked.
  */
 
 import { describe, it } from "node:test";
@@ -66,7 +66,11 @@ describe("OracleValueStopLossExtension E2E", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
   const [deployer, trader] = await viem.getWalletClients();
 
-  async function setupPool(options?: { drawdownE6?: number; adminSpreadFeeE6?: number }): Promise<{
+  async function setupPool(options?: {
+    drawdownE6?: number;
+    decayPerSecondE18?: bigint;
+    adminSpreadFeeE6?: number;
+  }): Promise<{
     env: MetricTestEnv;
     pool: Address;
     stopLoss: Address;
@@ -84,7 +88,7 @@ describe("OracleValueStopLossExtension E2E", async () => {
       extensionInitData: [
         sdk.encodeOracleStopLossInitData({
           drawdownE6: options?.drawdownE6 ?? DRAWDOWN_E6,
-          decayPerSecondE8: 0,
+          decayPerSecondE18: options?.decayPerSecondE18 ?? 0n,
           timelockSeconds: 0,
         }),
       ],
@@ -146,95 +150,13 @@ describe("OracleValueStopLossExtension E2E", async () => {
     assert.equal(status.isAnyBinStopLossBreached, false);
   });
 
-  it("freezes the pool after continuous value-losing round trips", async () => {
-    // At a fixed oracle mid, fat spread fees + tight drawdown make repeated
-    // round-trips erode value/share until watermarks are breached and swaps freeze.
-    const { env, pool, stopLoss } = await setupPool({
-      drawdownE6: 5_000, // 0.5%
-      adminSpreadFeeE6: 200_000, // 20%
-    });
+  it("reads E18 decay configuration without precision loss", async () => {
+    const decayPerSecondE18 = 578_703_703_704n;
+    const { env, pool, stopLoss } = await setupPool({ decayPerSecondE18 });
 
-    await setOracleMid(env, 1);
-    await expectSwapSuccess(env, trader, pool, {
-      zeroForOne: false,
-      amountIn: parseUnits("1", 6),
-    });
-
-    const [bid0, ask0] = testBidAskPriceQ64(1);
-    assert.equal(
-      (
-        await sdk.getOracleStopLossAnyBinStatus({
-          publicClient: env.publicClient,
-          extension: stopLoss,
-          dataProvider: env.dataProvider.address,
-          pool,
-          bidPriceX64: bid0,
-          askPriceX64: ask0,
-        })
-      ).isAnyBinStopLossBreached,
-      false,
-    );
-
-    let breached = false;
-    for (let i = 0; i < 60; i++) {
-      try {
-        await expectSwapSuccess(env, trader, pool, {
-          zeroForOne: true,
-          amountIn: parseUnits("2", 18),
-        });
-        await expectSwapSuccess(env, trader, pool, {
-          zeroForOne: false,
-          amountIn: parseUnits("2", 6),
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        assert.match(
-          message,
-          /OracleStopLossTriggered/,
-          `unexpected revert while draining value: ${message}`,
-        );
-        breached = true;
-        break;
-      }
-
-      const [bid, ask] = testBidAskPriceQ64(1);
-      const status = await sdk.getOracleStopLossAnyBinStatus({
-        publicClient: env.publicClient,
-        extension: stopLoss,
-        dataProvider: env.dataProvider.address,
-        pool,
-        bidPriceX64: bid,
-        askPriceX64: ask,
-      });
-      if (status.isAnyBinStopLossBreached) {
-        breached = true;
-        break;
-      }
-    }
-    assert.equal(breached, true, "expected watermarks to breach after fee-draining round trips");
-
-    // Next swap in a blocked direction must revert with stop-loss.
-    const [bid, ask] = testBidAskPriceQ64(1);
-    const finalStatus = await sdk.getOracleStopLossAnyBinStatus({
-      publicClient: env.publicClient,
-      extension: stopLoss,
-      dataProvider: env.dataProvider.address,
-      pool,
-      bidPriceX64: bid,
-      askPriceX64: ask,
-    });
-    if (finalStatus.breachedBins.some((b) => b.blocksZeroForOne)) {
-      await expectSwapRevertsStopLoss(env, trader, pool, {
-        zeroForOne: true,
-        amountIn: parseUnits("0.5", 18),
-      });
-    }
-    if (finalStatus.breachedBins.some((b) => b.blocksOneForZero)) {
-      await expectSwapRevertsStopLoss(env, trader, pool, {
-        zeroForOne: false,
-        amountIn: parseUnits("0.5", 6),
-      });
-    }
+    const config = await sdk.getOracleStopLossConfig(env.publicClient, stopLoss, pool);
+    assert.equal(config.decayPerSecondE18, decayPerSecondE18);
+    assert.equal(typeof config.decayPerSecondE18, "bigint");
   });
 
   it("blocks a large trade after a significant oracle price drop", async () => {

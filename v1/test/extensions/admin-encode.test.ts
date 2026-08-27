@@ -27,6 +27,20 @@ describe("extension admin calldata encoders", () => {
       args: [pool, account, true],
     });
     assert.equal(viaSdk, direct);
+
+    const allowAllViaSdk = sdk.encodeSetAllowAllDepositorsCalldata({
+      extension,
+      pool,
+      allowAll: true,
+    });
+    assert.equal(
+      allowAllViaSdk,
+      encodeFunctionData({
+        abi: DepositAllowlistExtensionAbi,
+        functionName: "setAllowAllDepositors",
+        args: [pool, true],
+      }),
+    );
   });
 
   it("swap allowlist admin encoder matches viem", () => {
@@ -42,6 +56,20 @@ describe("extension admin calldata encoders", () => {
       args: [pool, account, false],
     });
     assert.equal(viaSdk, direct);
+
+    const allowAllViaSdk = sdk.encodeSetAllowAllSwappersCalldata({
+      extension,
+      pool,
+      allowAll: true,
+    });
+    assert.equal(
+      allowAllViaSdk,
+      encodeFunctionData({
+        abi: SwapAllowlistExtensionAbi,
+        functionName: "setAllowAllSwappers",
+        args: [pool, true],
+      }),
+    );
   });
 
   it("price velocity guard admin encoders match viem", () => {
@@ -62,16 +90,16 @@ describe("extension admin calldata encoders", () => {
       }),
     );
 
-    const midPriceViaSdk = sdk.encodeSetLastMidPriceCalldata({
+    const midPriceViaSdk = sdk.encodeSetAnchorMidPriceCalldata({
       extension,
       pool,
-      lastMidPriceX64: midPrice,
+      anchorMidPriceX64: midPrice,
     });
     assert.equal(
       midPriceViaSdk,
       encodeFunctionData({
         abi: PriceVelocityGuardExtensionAbi,
-        functionName: "setLastMidPrice",
+        functionName: "setAnchorMidPrice",
         args: [pool, midPrice],
       }),
     );
@@ -139,7 +167,7 @@ describe("extension admin calldata encoders", () => {
         viaSdk: sdk.encodeProposeOracleStopLossDecayCalldata({
           extension,
           pool,
-          newDecayPerSecondE8: 50n,
+          newDecayPerSecondE18: 50n,
         }),
         direct: encodeFunctionData({
           abi: OracleValueStopLossExtensionAbi,

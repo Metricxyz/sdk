@@ -8,7 +8,7 @@ This directory holds **three independent npm packages**. They share no root tool
 | -------- | ------ | ----------- |
 | `@metric.xyz/metric-omm-sdk` | [metric-omm-sdk](./metric-omm-sdk) | Combined entry: `v0` and `v1` namespaces — see [HOW_TO.md](./metric-omm-sdk/HOW_TO.md) |
 | `@metric.xyz/metric-omm-sdk-v0` | [v0](./v0) | **v0** — main-line Router, `modifyLiquidity`, multi-chain addresses |
-| `@metric.xyz/metric-omm-sdk-v1` | [v1](./v1) | **v1** — SimpleRouter, SwapQuoter, LiquidityAdder, Ethereum + Base + Robinhood + HyperEVM |
+| `@metric.xyz/metric-omm-sdk-v1` | [v1](./v1) | **v1** — current SimpleRouter, SwapQuoter, LiquidityAdder, and extension contracts on ten EVM chains |
 
 ## Installation
 
@@ -25,7 +25,7 @@ npm install @metric.xyz/metric-omm-sdk-v1 viem
 npm install @metric.xyz/metric-omm-sdk-v0 viem
 ```
 
-## Quick start (v1 — current Ethereum deployment)
+## Quick start (v1 — current contract generation)
 
 ```typescript
 import { v1 } from "@metric.xyz/metric-omm-sdk";
@@ -61,7 +61,7 @@ See [v0/README.md](./v0/README.md) for Router swaps and `modifyLiquidity`.
 | Add liquidity | Pool `modifyLiquidity` | `MetricOmmPoolLiquidityAdder.addLiquidity*` |
 | Remove liquidity | Pool `modifyLiquidity` | Pool `removeLiquidity` |
 | Pool immutables | On pool / legacy reads | `factory.poolImmutables(pool)` |
-| Deployed chains (bundled addresses) | Many chains | Ethereum mainnet and Base |
+| Deployed chains (bundled addresses) | Many chains | Ethereum, Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood |
 | DataProvider | `addresses.dataProvider` on mainnet | `addresses.dataProvider` (MetricOmmPoolDataProvider) |
 
 ## Development

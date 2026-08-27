@@ -26,7 +26,10 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
     const weth = await viem.deployContract("MockWETH9", []);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
+      weth.address,
+    ]);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
@@ -38,9 +41,12 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       adminSpreadFeeE6: 5000,
       adminNotionalFeeE8: 0,
       curBinDistFromProvidedPricePercent: 0,
-      initialScaledToken0PerShareE18: parseUnits("1", 18),
-      initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+      initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+      minimalOperationalLiquidity: 1_000_000n,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
     };
@@ -199,7 +205,10 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
     const weth = await viem.deployContract("MockWETH9", []);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
+      weth.address,
+    ]);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
@@ -211,9 +220,12 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       adminSpreadFeeE6: 5000,
       adminNotionalFeeE8: 0,
       curBinDistFromProvidedPricePercent: 0,
-      initialScaledToken0PerShareE18: parseUnits("1", 18),
-      initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+      initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+      minimalOperationalLiquidity: 1_000_000n,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
     };

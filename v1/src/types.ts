@@ -48,7 +48,7 @@ export interface PoolImmutables {
   token1ScaleMultiplier: bigint;
   initialScaledToken0PerShareE18: bigint;
   initialScaledToken1PerShareE18: bigint;
-  minimalMintableLiquidity: bigint;
+  minimalOperationalLiquidity: bigint;
   immutablePriceProvider?: Address;
   extensions: PoolExtensions;
   extensionOrders: ExtensionOrders;
@@ -63,6 +63,7 @@ export interface PoolState {
   curBinDistFromProvidedPrice: number;
   spreadFeeE6: number;
   notionalFeeE8: number;
+  bidAskRefAsymmetryX8: number;
   totalScaledToken0InBins: bigint;
   totalScaledToken1InBins: bigint;
 }
@@ -110,6 +111,7 @@ export interface Slot0 {
   curBinDistFromProvidedPrice: number;
   spreadFeeE6: number;
   notionalFeeE8: number;
+  bidAskRefAsymmetryX8: number;
 }
 
 export interface Slot1 {

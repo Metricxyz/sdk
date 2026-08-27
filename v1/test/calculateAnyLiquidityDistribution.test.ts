@@ -3,11 +3,7 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, getContract, type Address } from "viem";
 import * as sdk from "../src/index.js";
-import {
-  deployLinkedPoolDeployer,
-  testBidAskPriceQ64,
-  testBidAskPriceQ64FromMid,
-} from "./shared/testEnv.js";
+import { deployLinkedPoolDeployer, testBidAskPriceQ64FromMid } from "./shared/testEnv.js";
 import { encodeAddLiquidityCalldata } from "./shared/liquidityTx.js";
 import { getPoolAddressFromCreateReceipt } from "./shared/getPoolAddressFromCreateReceipt.js";
 import MockOracleArtifact from "../artifacts/@metric/core/test/mocks/MockOracle.sol/MockOracle.json";
@@ -95,7 +91,10 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     const wethDeployment = await viem.deployContract("MockWETH9", []);
     const liquidityAdder = (
-      await viem.deployContract("MetricOmmPoolLiquidityAdder", [wethDeployment.address])
+      await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+        factory.address,
+        wethDeployment.address,
+      ])
     ).address;
 
     const priceProviderDeployment = await viem.deployContract("MockOracle", []);
@@ -120,9 +119,12 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         adminSpreadFeeE6: 5000,
         adminNotionalFeeE8: 0,
         curBinDistFromProvidedPricePercent: 0,
-        initialScaledToken0PerShareE18: parseUnits("1", 18),
-        initialScaledToken1PerShareE18: parseUnits("1", 18),
-        minimalMintableLiquidity: 1000n,
+        initialScaledAmount0PerE18Shares: parseUnits("1", 18),
+        initialScaledAmount1PerE18Shares: parseUnits("1", 18),
+        minimalOperationalLiquidity: 1_000_000n,
+        protocolSpreadFeeE6: 0,
+        protocolNotionalFeeE8: 0,
+        bidAskRefAsymmetryX8: sdk.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
         nonNegativeBins: sdk.createUniformBins(20, 10000, 0, 0),
         negativeBins: sdk.createUniformBins(20, 10000, 0, 0),
       }),

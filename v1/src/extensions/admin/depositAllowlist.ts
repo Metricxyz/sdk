@@ -14,3 +14,15 @@ export function encodeSetAllowedToDepositCalldata(params: {
     args: [params.pool, params.depositor, params.allowed],
   });
 }
+
+export function encodeSetAllowAllDepositorsCalldata(params: {
+  extension: Address;
+  pool: Address;
+  allowAll: boolean;
+}): Hex {
+  return encodeFunctionData({
+    abi: DepositAllowlistExtensionAbi,
+    functionName: "setAllowAllDepositors",
+    args: [params.pool, params.allowAll],
+  });
+}

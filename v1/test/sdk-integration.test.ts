@@ -221,9 +221,9 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const deltas: sdk.LiquidityDelta[] = [
-        { bin: -1, deltaShares: 100000n },
-        { bin: 0, deltaShares: 200000n },
-        { bin: 1, deltaShares: 100000n },
+        { bin: -1, deltaShares: 10_000_000n },
+        { bin: 0, deltaShares: 20_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
       ];
 
       const salt = 0n;
@@ -268,7 +268,7 @@ describe("SDK Integration Tests", async function () {
       const { pool, dataProvider, liquidityAdder, publicClient } =
         await networkHelpers.loadFixture(setupTestEnvironment);
 
-      const deltas: sdk.LiquidityDelta[] = [{ bin: 0, deltaShares: 200000n }];
+      const deltas: sdk.LiquidityDelta[] = [{ bin: 0, deltaShares: 20_000_000n }];
       const salt = 0n;
 
       // Use prepareModifyLiquidity
@@ -294,7 +294,7 @@ describe("SDK Integration Tests", async function () {
         0,
       );
 
-      assert.equal(shares, 200000n);
+      assert.equal(shares, 20_000_000n);
     });
   });
 
@@ -304,11 +304,11 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const deltas: sdk.LiquidityDelta[] = [
-        { bin: -2, deltaShares: 50000n },
-        { bin: -1, deltaShares: 100000n },
-        { bin: 0, deltaShares: 150000n },
-        { bin: 1, deltaShares: 100000n },
-        { bin: 2, deltaShares: 50000n },
+        { bin: -2, deltaShares: 5_000_000n },
+        { bin: -1, deltaShares: 10_000_000n },
+        { bin: 0, deltaShares: 15_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
+        { bin: 2, deltaShares: 5_000_000n },
       ];
 
       const userToken0Before = (await token0.read.balanceOf([deployer.account.address])) as bigint;
@@ -364,11 +364,11 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const deltas: sdk.LiquidityDelta[] = [
-        { bin: -2, deltaShares: 50000n },
-        { bin: -1, deltaShares: 100000n },
-        { bin: 0, deltaShares: 150000n },
-        { bin: 1, deltaShares: 100000n },
-        { bin: 2, deltaShares: 50000n },
+        { bin: -2, deltaShares: 5_000_000n },
+        { bin: -1, deltaShares: 10_000_000n },
+        { bin: 0, deltaShares: 15_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
+        { bin: 2, deltaShares: 5_000_000n },
       ];
 
       const salt = 0n;
@@ -430,8 +430,8 @@ describe("SDK Integration Tests", async function () {
       await token1User2.write.approve([liquidityAdder.address, parseUnits("1000000", 6)]);
 
       const deltas1: sdk.LiquidityDelta[] = [
-        { bin: 0, deltaShares: 100000n },
-        { bin: 1, deltaShares: 100000n },
+        { bin: 0, deltaShares: 10_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
       ];
       const salt1 = 0n;
       // Use prepareModifyLiquidity for user1
@@ -448,8 +448,8 @@ describe("SDK Integration Tests", async function () {
       await publicClient.waitForTransactionReceipt({ hash: hash1 });
 
       const deltas2: sdk.LiquidityDelta[] = [
-        { bin: 0, deltaShares: 200000n },
-        { bin: 1, deltaShares: 200000n },
+        { bin: 0, deltaShares: 20_000_000n },
+        { bin: 1, deltaShares: 20_000_000n },
       ];
       const salt2 = 0n; // Different user, same salt is fine
       // Use prepareModifyLiquidity for user2
@@ -473,7 +473,7 @@ describe("SDK Integration Tests", async function () {
         salt1,
         0,
       );
-      assert.equal(user1SharesBin0, 100000n, "User1 bin0 shares incorrect");
+      assert.equal(user1SharesBin0, 10_000_000n, "User1 bin0 shares incorrect");
 
       const user2SharesBin0 = await sdk.getPositionBinSharesFromDataProvider(
         publicClient,
@@ -483,7 +483,7 @@ describe("SDK Integration Tests", async function () {
         salt2,
         0,
       );
-      assert.equal(user2SharesBin0, 200000n, "User2 bin0 shares incorrect");
+      assert.equal(user2SharesBin0, 20_000_000n, "User2 bin0 shares incorrect");
 
       const totalSharesBin0 = await sdk.getBinTotalShares(
         publicClient,
@@ -491,7 +491,7 @@ describe("SDK Integration Tests", async function () {
         pool.address,
         0,
       );
-      assert.equal(totalSharesBin0, 300000n, "Total shares in bin0 incorrect");
+      assert.equal(totalSharesBin0, 30_000_000n, "Total shares in bin0 incorrect");
 
       console.log("Multiple users liquidity verified:");
       console.log(`  User1 shares in bin0: ${user1SharesBin0}`);
@@ -506,9 +506,9 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const addDeltas: sdk.LiquidityDelta[] = [
-        { bin: -1, deltaShares: 100000n },
-        { bin: 0, deltaShares: 200000n },
-        { bin: 1, deltaShares: 100000n },
+        { bin: -1, deltaShares: 10_000_000n },
+        { bin: 0, deltaShares: 20_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
       ];
 
       const salt = 0n;
@@ -530,9 +530,9 @@ describe("SDK Integration Tests", async function () {
       const poolToken1Before = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const removeDeltas: sdk.LiquidityDelta[] = [
-        { bin: -1, deltaShares: -50000n },
-        { bin: 0, deltaShares: -100000n },
-        { bin: 1, deltaShares: -50000n },
+        { bin: -1, deltaShares: -5_000_000n },
+        { bin: 0, deltaShares: -10_000_000n },
+        { bin: 1, deltaShares: -5_000_000n },
       ];
 
       // Remove liquidity using prepareModifyLiquidity
@@ -584,9 +584,9 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const addDeltas: sdk.LiquidityDelta[] = [
-        { bin: -1, deltaShares: 100000n },
-        { bin: 0, deltaShares: 200000n },
-        { bin: 1, deltaShares: 100000n },
+        { bin: -1, deltaShares: 10_000_000n },
+        { bin: 0, deltaShares: 20_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
       ];
 
       const salt = 0n;
@@ -616,9 +616,9 @@ describe("SDK Integration Tests", async function () {
       }
 
       const removeDeltas: sdk.LiquidityDelta[] = [
-        { bin: -1, deltaShares: -30000n },
-        { bin: 0, deltaShares: -100000n },
-        { bin: 1, deltaShares: -50000n },
+        { bin: -1, deltaShares: -3_000_000n },
+        { bin: 0, deltaShares: -10_000_000n },
+        { bin: 1, deltaShares: -5_000_000n },
       ];
 
       // Remove liquidity using prepareModifyLiquidity
@@ -635,9 +635,9 @@ describe("SDK Integration Tests", async function () {
       await publicClient.waitForTransactionReceipt({ hash: removeHash });
 
       const expectedShares = [
-        { bin: -1, shares: 70000n }, // 100000 - 30000
-        { bin: 0, shares: 100000n }, // 200000 - 100000
-        { bin: 1, shares: 50000n }, // 100000 - 50000
+        { bin: -1, shares: 7_000_000n }, // 10_000_000 - 3_000_000
+        { bin: 0, shares: 10_000_000n }, // 20_000_000 - 10_000_000
+        { bin: 1, shares: 5_000_000n }, // 10_000_000 - 5_000_000
       ];
 
       for (const expected of expectedShares) {
@@ -664,8 +664,8 @@ describe("SDK Integration Tests", async function () {
         await networkHelpers.loadFixture(setupTestEnvironment);
 
       const addDeltas: sdk.LiquidityDelta[] = [
-        { bin: 0, deltaShares: 200000n },
-        { bin: 1, deltaShares: 100000n },
+        { bin: 0, deltaShares: 20_000_000n },
+        { bin: 1, deltaShares: 10_000_000n },
       ];
 
       const salt = 0n;
@@ -686,8 +686,8 @@ describe("SDK Integration Tests", async function () {
       const poolToken1Before = (await token1.read.balanceOf([pool.address])) as bigint;
 
       const removeDeltas: sdk.LiquidityDelta[] = [
-        { bin: 0, deltaShares: -200000n },
-        { bin: 1, deltaShares: -100000n },
+        { bin: 0, deltaShares: -20_000_000n },
+        { bin: 1, deltaShares: -10_000_000n },
       ];
 
       // Remove liquidity using prepareModifyLiquidity
@@ -761,7 +761,7 @@ describe("SDK Integration Tests", async function () {
       // User1 adds liquidity using prepareModifyLiquidity
       const prepared1 = prepareModifyLiquidity(
         salt1,
-        [{ bin: 0, deltaShares: 100000n }],
+        [{ bin: 0, deltaShares: 10_000_000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
@@ -774,7 +774,7 @@ describe("SDK Integration Tests", async function () {
       // User2 adds liquidity using prepareModifyLiquidity
       const prepared2 = prepareModifyLiquidity(
         salt2,
-        [{ bin: 0, deltaShares: 200000n }],
+        [{ bin: 0, deltaShares: 20_000_000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
@@ -787,7 +787,7 @@ describe("SDK Integration Tests", async function () {
       // User1 removes all their liquidity using prepareModifyLiquidity
       const preparedRemove = prepareModifyLiquidity(
         salt1,
-        [{ bin: 0, deltaShares: -100000n }],
+        [{ bin: 0, deltaShares: -10_000_000n }],
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
       );
@@ -815,7 +815,7 @@ describe("SDK Integration Tests", async function () {
         salt2,
         0,
       );
-      assert.equal(user2SharesAfter, 200000n, "User2 shares should be preserved");
+      assert.equal(user2SharesAfter, 20_000_000n, "User2 shares should be preserved");
 
       console.log("Other user's position preserved after removal:");
       console.log(`  User1 shares: ${user1SharesAfter}`);

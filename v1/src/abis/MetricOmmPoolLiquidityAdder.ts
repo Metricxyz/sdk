@@ -3,6 +3,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
     inputs: [
       {
         internalType: "address",
+        name: "factory",
+        type: "address",
+      },
+      {
+        internalType: "address",
         name: "weth",
         type: "address",
       },
@@ -22,16 +27,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "CallbackContextNotActive",
-    type: "error",
-  },
-  {
     inputs: [
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "curBinIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint104",
@@ -39,9 +39,9 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint104",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "minimalCurBin",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint104",
@@ -49,9 +49,9 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint104",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "maximalCurBin",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint104",
@@ -59,7 +59,12 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint104",
       },
     ],
-    name: "CursorOutOfBounds",
+    name: "BinPositionOutOfBounds",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "CallbackContextNotActive",
     type: "error",
   },
   {
@@ -133,6 +138,22 @@ export const MetricOmmPoolLiquidityAdderAbi = [
   {
     inputs: [],
     name: "InvalidCallbackKind",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidFactory",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+    ],
+    name: "InvalidPool",
     type: "error",
   },
   {
@@ -284,6 +305,33 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
       {
+        components: [
+          {
+            internalType: "int16",
+            name: "minimalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "minimalPosition",
+            type: "uint104",
+          },
+          {
+            internalType: "int16",
+            name: "maximalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "maximalPosition",
+            type: "uint104",
+          },
+        ],
+        internalType: "struct IMetricOmmPoolLiquidityAdder.BinPositionBounds",
+        name: "binPositionBounds",
+        type: "tuple",
+      },
+      {
         internalType: "bytes",
         name: "extensionData",
         type: "bytes",
@@ -345,93 +393,39 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
       {
+        components: [
+          {
+            internalType: "int16",
+            name: "minimalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "minimalPosition",
+            type: "uint104",
+          },
+          {
+            internalType: "int16",
+            name: "maximalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "maximalPosition",
+            type: "uint104",
+          },
+        ],
+        internalType: "struct IMetricOmmPoolLiquidityAdder.BinPositionBounds",
+        name: "binPositionBounds",
+        type: "tuple",
+      },
+      {
         internalType: "bytes",
         name: "extensionData",
         type: "bytes",
       },
     ],
     name: "addLiquidityExactShares",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "amount0Added",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "amount1Added",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
-        internalType: "uint80",
-        name: "salt",
-        type: "uint80",
-      },
-      {
-        components: [
-          {
-            internalType: "int256[]",
-            name: "binIdxs",
-            type: "int256[]",
-          },
-          {
-            internalType: "uint256[]",
-            name: "shares",
-            type: "uint256[]",
-          },
-        ],
-        internalType: "struct LiquidityDelta",
-        name: "weightDeltas",
-        type: "tuple",
-      },
-      {
-        internalType: "uint256",
-        name: "maxAmountToken0",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "maxAmountToken1",
-        type: "uint256",
-      },
-      {
-        internalType: "int8",
-        name: "minimalCurBin",
-        type: "int8",
-      },
-      {
-        internalType: "uint104",
-        name: "minimalPosition",
-        type: "uint104",
-      },
-      {
-        internalType: "int8",
-        name: "maximalCurBin",
-        type: "int8",
-      },
-      {
-        internalType: "uint104",
-        name: "maximalPosition",
-        type: "uint104",
-      },
-      {
-        internalType: "bytes",
-        name: "extensionData",
-        type: "bytes",
-      },
-    ],
-    name: "addLiquidityWeighted",
     outputs: [
       {
         internalType: "uint256",
@@ -492,24 +486,119 @@ export const MetricOmmPoolLiquidityAdderAbi = [
         type: "uint256",
       },
       {
-        internalType: "int8",
-        name: "minimalCurBin",
-        type: "int8",
+        components: [
+          {
+            internalType: "int16",
+            name: "minimalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "minimalPosition",
+            type: "uint104",
+          },
+          {
+            internalType: "int16",
+            name: "maximalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "maximalPosition",
+            type: "uint104",
+          },
+        ],
+        internalType: "struct IMetricOmmPoolLiquidityAdder.BinPositionBounds",
+        name: "binPositionBounds",
+        type: "tuple",
       },
       {
-        internalType: "uint104",
-        name: "minimalPosition",
-        type: "uint104",
+        internalType: "bytes",
+        name: "extensionData",
+        type: "bytes",
+      },
+    ],
+    name: "addLiquidityWeighted",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amount0Added",
+        type: "uint256",
       },
       {
-        internalType: "int8",
-        name: "maximalCurBin",
-        type: "int8",
+        internalType: "uint256",
+        name: "amount1Added",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
       },
       {
-        internalType: "uint104",
-        name: "maximalPosition",
-        type: "uint104",
+        internalType: "uint80",
+        name: "salt",
+        type: "uint80",
+      },
+      {
+        components: [
+          {
+            internalType: "int256[]",
+            name: "binIdxs",
+            type: "int256[]",
+          },
+          {
+            internalType: "uint256[]",
+            name: "shares",
+            type: "uint256[]",
+          },
+        ],
+        internalType: "struct LiquidityDelta",
+        name: "weightDeltas",
+        type: "tuple",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountToken0",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "maxAmountToken1",
+        type: "uint256",
+      },
+      {
+        components: [
+          {
+            internalType: "int16",
+            name: "minimalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "minimalPosition",
+            type: "uint104",
+          },
+          {
+            internalType: "int16",
+            name: "maximalCurBin",
+            type: "int16",
+          },
+          {
+            internalType: "uint104",
+            name: "maximalPosition",
+            type: "uint104",
+          },
+        ],
+        internalType: "struct IMetricOmmPoolLiquidityAdder.BinPositionBounds",
+        name: "binPositionBounds",
+        type: "tuple",
       },
       {
         internalType: "bytes",

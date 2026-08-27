@@ -17,6 +17,11 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "BidAskRefAsymmetryTooHigh",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "BinArraysEmpty",
     type: "error",
   },
@@ -38,7 +43,7 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
-    name: "BinIndexRangeExceedsInt8",
+    name: "BinIndexRangeExceededInt16",
     type: "error",
   },
   {
@@ -63,22 +68,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "initialScaledAmount0PerShareE18",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "initialScaledAmount1PerShareE18",
-        type: "uint256",
-      },
-    ],
-    name: "InitialScaledAmountExceedsUint128",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "InvalidAdmin",
     type: "error",
@@ -86,6 +75,11 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [],
     name: "InvalidAdminFeeDestination",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidBinDistanceLimits",
     type: "error",
   },
   {
@@ -105,12 +99,17 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "InvalidFeeReceiver",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidInitialAmount",
     type: "error",
   },
   {
     inputs: [],
-    name: "InvalidMinimalMintableLiquidity",
+    name: "InvalidModerator",
     type: "error",
   },
   {
@@ -140,6 +139,22 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "provided",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "minimalRequired",
+        type: "uint256",
+      },
+    ],
+    name: "MinimalOperationalLiquidityTooSmallComparedToInitialScaledTokenAmounts",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "NoPendingPoolAdminTransfer",
     type: "error",
@@ -147,6 +162,11 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [],
     name: "NoPriceProviderChangeProposed",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotOwnerOrModerator",
     type: "error",
   },
   {
@@ -281,6 +301,25 @@ export const MetricOmmPoolFactoryAbi = [
     inputs: [
       {
         indexed: false,
+        internalType: "int256",
+        name: "newMinBinDistanceE6",
+        type: "int256",
+      },
+      {
+        indexed: false,
+        internalType: "int256",
+        name: "newMaxBinDistanceE6",
+        type: "int256",
+      },
+    ],
+    name: "BinDistanceLimitsUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
         internalType: "uint24",
         name: "maxProtocolSpreadFeeE6",
         type: "uint24",
@@ -305,6 +344,63 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "FeeCapsUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "oldReceiver",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newReceiver",
+        type: "address",
+      },
+    ],
+    name: "FeeReceiverUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "oldMaxX8",
+        type: "uint16",
+      },
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "newMaxX8",
+        type: "uint16",
+      },
+    ],
+    name: "MaxBidAskRefAsymmetryUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "moderator",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bool",
+        name: "enabled",
+        type: "bool",
+      },
+    ],
+    name: "ModeratorUpdated",
     type: "event",
   },
   {
@@ -477,6 +573,25 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "newBidAskRefAsymmetryX8",
+        type: "uint16",
+      },
+    ],
+    name: "PoolBidAskRefAsymmetryUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
         name: "poolAddress",
         type: "address",
       },
@@ -569,19 +684,19 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "initialAmount0PerShareE18",
+        name: "initialScaledAmount0PerE18Shares",
         type: "uint256",
       },
       {
         indexed: false,
         internalType: "uint256",
-        name: "initialAmount1PerShareE18",
+        name: "initialScaledAmount1PerE18Shares",
         type: "uint256",
       },
       {
         indexed: false,
         internalType: "uint256",
-        name: "minimalMintableLiquidity",
+        name: "minimalOperationalLiquidity",
         type: "uint256",
       },
       {
@@ -965,22 +1080,32 @@ export const MetricOmmPoolFactoryAbi = [
           },
           {
             internalType: "uint256",
-            name: "initialAmount0PerShareE18",
+            name: "initialScaledAmount0PerE18Shares",
             type: "uint256",
           },
           {
             internalType: "uint256",
-            name: "initialAmount1PerShareE18",
+            name: "initialScaledAmount1PerE18Shares",
             type: "uint256",
           },
           {
             internalType: "uint256",
-            name: "minimalMintableLiquidity",
+            name: "minimalOperationalLiquidity",
             type: "uint256",
           },
           {
             internalType: "uint24",
+            name: "protocolSpreadFeeE6",
+            type: "uint24",
+          },
+          {
+            internalType: "uint24",
             name: "adminSpreadFeeE6",
+            type: "uint24",
+          },
+          {
+            internalType: "uint24",
+            name: "protocolNotionalFeeE8",
             type: "uint24",
           },
           {
@@ -1012,6 +1137,11 @@ export const MetricOmmPoolFactoryAbi = [
             internalType: "bytes32",
             name: "salt",
             type: "bytes32",
+          },
+          {
+            internalType: "uint16",
+            name: "bidAskRefAsymmetryX8",
+            type: "uint16",
           },
         ],
         internalType: "struct PoolParameters",
@@ -1045,6 +1175,19 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "feeReceiver",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "getFeeCaps",
     outputs: [
       {
@@ -1072,6 +1215,32 @@ export const MetricOmmPoolFactoryAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "hardMaxBinDistanceLimitE6",
+    outputs: [
+      {
+        internalType: "int256",
+        name: "",
+        type: "int256",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "hardMinBinDistanceLimitE6",
+    outputs: [
+      {
+        internalType: "int256",
+        name: "",
+        type: "int256",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -1085,6 +1254,25 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "isModerator",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1137,7 +1325,33 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
-    name: "maxOwnerNotionalCapE8",
+    name: "maxBidAskRefAsymmetryX8",
+    outputs: [
+      {
+        internalType: "uint16",
+        name: "",
+        type: "uint16",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxBinDistanceE6",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxOwnerAdminNotionalCapE8",
     outputs: [
       {
         internalType: "uint24",
@@ -1150,7 +1364,33 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
-    name: "maxOwnerSpreadCapE6",
+    name: "maxOwnerAdminSpreadCapE6",
+    outputs: [
+      {
+        internalType: "uint24",
+        name: "",
+        type: "uint24",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxOwnerProtocolNotionalCapE8",
+    outputs: [
+      {
+        internalType: "uint24",
+        name: "",
+        type: "uint24",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxOwnerProtocolSpreadCapE6",
     outputs: [
       {
         internalType: "uint24",
@@ -1182,6 +1422,19 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "uint24",
         name: "",
         type: "uint24",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "minBinDistanceE6",
+    outputs: [
+      {
+        internalType: "int128",
+        name: "",
+        type: "int128",
       },
     ],
     stateMutability: "view",
@@ -1504,6 +1757,24 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [
       {
+        internalType: "int128",
+        name: "newMinBinDistanceE6",
+        type: "int128",
+      },
+      {
+        internalType: "int128",
+        name: "newMaxBinDistanceE6",
+        type: "int128",
+      },
+    ],
+    name: "setBinDistanceLimits",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint24",
         name: "newFeeE8",
         type: "uint24",
@@ -1559,6 +1830,50 @@ export const MetricOmmPoolFactoryAbi = [
     inputs: [
       {
         internalType: "address",
+        name: "newFeeReceiver",
+        type: "address",
+      },
+    ],
+    name: "setFeeReceiver",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint16",
+        name: "newMaxX8",
+        type: "uint16",
+      },
+    ],
+    name: "setMaxBidAskRefAsymmetryX8",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "moderator",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "enabled",
+        type: "bool",
+      },
+    ],
+    name: "setModerator",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
         name: "pool",
         type: "address",
       },
@@ -1604,9 +1919,27 @@ export const MetricOmmPoolFactoryAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
+        internalType: "uint16",
+        name: "newBidAskRefAsymmetryX8",
+        type: "uint16",
+      },
+    ],
+    name: "setPoolBidAskRefAsymmetryX8",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "int16",
         name: "bin",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint16",

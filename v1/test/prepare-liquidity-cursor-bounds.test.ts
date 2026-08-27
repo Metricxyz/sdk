@@ -44,17 +44,17 @@ describe("prepareLiquidityCursorBounds helpers", () => {
   });
 
   it("clamps to protocol cursor limits at the edges", () => {
-    const upper = computeLiquidityCursorBounds(127, MAX_UINT104, 1);
+    const upper = computeLiquidityCursorBounds(32_767, MAX_UINT104, 1);
 
-    assert.equal(upper.minimalCurBin, 127);
+    assert.equal(upper.minimalCurBin, 32_767);
     assert.equal(upper.minimalPosition, 0n);
-    assert.equal(upper.maximalCurBin, 127);
+    assert.equal(upper.maximalCurBin, 32_767);
     assert.equal(upper.maximalPosition, MAX_UINT104);
 
-    const lower = computeLiquidityCursorBounds(-128, 0n, 1);
-    assert.equal(lower.minimalCurBin, -128);
+    const lower = computeLiquidityCursorBounds(-32_768, 0n, 1);
+    assert.equal(lower.minimalCurBin, -32_768);
     assert.equal(lower.minimalPosition, 0n);
-    assert.equal(lower.maximalCurBin, -128);
+    assert.equal(lower.maximalCurBin, -32_768);
     assert.equal(lower.maximalPosition, MAX_UINT104);
   });
 });
