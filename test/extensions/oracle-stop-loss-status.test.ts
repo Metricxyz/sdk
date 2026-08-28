@@ -127,32 +127,32 @@ function assertCloseTo(actual: bigint, expected: number, relTolerance = 1e-3) {
 
 describe("recommendedInitialScaledAmounts", () => {
   it("matches the stable/stable row (pi0 = 1)", () => {
-    const { initialScaledToken0PerShareE18, initialScaledToken1PerShareE18 } =
+    const { initialScaledAmount0PerE18Shares, initialScaledAmount1PerE18Shares } =
       sdk.recommendedInitialScaledAmounts(1);
-    assertCloseTo(initialScaledToken0PerShareE18, 4.504e18);
-    assertCloseTo(initialScaledToken1PerShareE18, 4.504e18);
+    assertCloseTo(initialScaledAmount0PerE18Shares, 4.504e18);
+    assertCloseTo(initialScaledAmount1PerE18Shares, 4.504e18);
   });
 
   it("matches the USDC/WETH row (pi0 = 1/3000)", () => {
-    const { initialScaledToken0PerShareE18, initialScaledToken1PerShareE18 } =
+    const { initialScaledAmount0PerE18Shares, initialScaledAmount1PerE18Shares } =
       sdk.recommendedInitialScaledAmounts(1 / 3000);
-    assertCloseTo(initialScaledToken0PerShareE18, 2.4667e20);
-    assertCloseTo(initialScaledToken1PerShareE18, 8.2224e16);
+    assertCloseTo(initialScaledAmount0PerE18Shares, 2.4667e20);
+    assertCloseTo(initialScaledAmount1PerE18Shares, 8.2224e16);
   });
 
   it("matches the WBTC/USDC row (pi0 = 1e5)", () => {
-    const { initialScaledToken0PerShareE18, initialScaledToken1PerShareE18 } =
+    const { initialScaledAmount0PerE18Shares, initialScaledAmount1PerE18Shares } =
       sdk.recommendedInitialScaledAmounts(1e5);
-    assertCloseTo(initialScaledToken0PerShareE18, 1.4242e16);
-    assertCloseTo(initialScaledToken1PerShareE18, 1.4242e21);
+    assertCloseTo(initialScaledAmount0PerE18Shares, 1.4242e16);
+    assertCloseTo(initialScaledAmount1PerE18Shares, 1.4242e21);
   });
 
   it("keeps sqrt(P̂0 · P̂1) ≈ 4.5036e18 regardless of price", () => {
     for (const price of [1, 1 / 3000, 1e5, 42, 0.0007]) {
-      const { initialScaledToken0PerShareE18, initialScaledToken1PerShareE18 } =
+      const { initialScaledAmount0PerE18Shares, initialScaledAmount1PerE18Shares } =
         sdk.recommendedInitialScaledAmounts(price);
       const product =
-        Number(initialScaledToken0PerShareE18) * Number(initialScaledToken1PerShareE18);
+        Number(initialScaledAmount0PerE18Shares) * Number(initialScaledAmount1PerE18Shares);
       assertCloseTo(BigInt(Math.round(Math.sqrt(product))), 4.5036e18, 1e-2);
     }
   });
@@ -160,5 +160,18 @@ describe("recommendedInitialScaledAmounts", () => {
   it("rejects a non-positive price", () => {
     assert.throws(() => sdk.recommendedInitialScaledAmounts(0));
     assert.throws(() => sdk.recommendedInitialScaledAmounts(-1));
+  });
+
+  it("rejects extreme finite prices that would floor an amount to 0 or overflow uint128", () => {
+    // ~2.03e37: initialScaledAmount0PerE18Shares floors to 0 (factory rejects 0 amounts).
+    assert.throws(
+      () => sdk.recommendedInitialScaledAmounts(2.03e37),
+      /out-of-range initial scaled amount/,
+    );
+    // 1e40: initialScaledAmount1PerE18Shares exceeds uint128.max (factory rejects >= uint128.max).
+    assert.throws(
+      () => sdk.recommendedInitialScaledAmounts(1e40),
+      /out-of-range initial scaled amount/,
+    );
   });
 });

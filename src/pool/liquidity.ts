@@ -144,6 +144,7 @@ export interface BuildModifyLiquidityArgsForPercentageRemovalParams extends Buil
   salt: bigint;
   percentageToRemove: number;
   bins?: number[];
+  /** Defaults to the pool's actual `lowestBin`/`highestBin` (via `getPoolImmutables`) when omitted. */
   lowerBin?: number;
   upperBin?: number;
 }
@@ -645,6 +646,9 @@ export async function buildModifyLiquidityArgsForRemoval(
 /**
  * Remove the same `percentageToRemove` from every bin that has position shares.
  * When `bins` is omitted, discovers bins via `getPositionBinSharesRange(lowerBin, upperBin)`.
+ * `lowerBin`/`upperBin` default to the pool's actual configured `lowestBin`/`highestBin` (read
+ * via `getPoolImmutables`) rather than a fixed guess — a position outside a hardcoded window
+ * would otherwise be silently left partially withdrawn with no error.
  */
 export async function buildModifyLiquidityArgsForPercentageRemoval({
   publicClient,
@@ -654,8 +658,8 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
   salt,
   percentageToRemove,
   bins,
-  lowerBin = -10,
-  upperBin = 10,
+  lowerBin,
+  upperBin,
   specAmountBufferPercent = 0,
 }: BuildModifyLiquidityArgsForPercentageRemovalParams): Promise<ModifyLiquidityArgs> {
   validateSpecAmountBufferPercent(specAmountBufferPercent);
@@ -664,19 +668,31 @@ export async function buildModifyLiquidityArgsForPercentageRemoval({
     throw new Error("percentageToRemove must be between 0 and 100");
   }
 
-  const binsWithShares = bins
-    ? bins
-    : (
-        await getPositionBinSharesRange(
-          publicClient,
-          dataProviderAddress,
-          poolAddress,
-          owner,
-          salt,
-          lowerBin,
-          upperBin,
-        )
-      ).map((p) => p.binIdx);
+  let binsWithShares: number[];
+  if (bins) {
+    binsWithShares = bins;
+  } else {
+    let scanLowerBin = lowerBin;
+    let scanUpperBin = upperBin;
+    if (scanLowerBin === undefined || scanUpperBin === undefined) {
+      // getPoolImmutables reads getImmutables() straight from the pool; its factoryAddress
+      // param is unused, so there's no real factory address to pass here.
+      const immutables = await getPoolImmutables(publicClient, poolAddress, poolAddress);
+      scanLowerBin ??= immutables.lowestBin;
+      scanUpperBin ??= immutables.highestBin;
+    }
+    binsWithShares = (
+      await getPositionBinSharesRange(
+        publicClient,
+        dataProviderAddress,
+        poolAddress,
+        owner,
+        salt,
+        scanLowerBin,
+        scanUpperBin,
+      )
+    ).map((p) => p.binIdx);
+  }
 
   if (binsWithShares.length === 0) {
     return [salt, [], NO_SLIPPAGE_LIMIT, NO_SLIPPAGE_LIMIT];
@@ -778,7 +794,13 @@ export async function buildAddLiquidityExactSharesParamsFromBinTargets(
   };
 }
 
-/** Cursor bounds that disable weighted-add cursor checks (matches on-chain test helpers). */
+/**
+ * Cursor bounds that disable the on-chain cursor check entirely (matches on-chain test
+ * helpers). For `addLiquidityWeighted*`, this also disables the LP-sandwich protection
+ * the bounds exist for (see {@link encodeAddLiquidityWeightedSelfCalldata}) — only pass
+ * this explicitly if that protection is genuinely not wanted. Prefer
+ * {@link prepareLiquidityCursorBounds} for a live, tight bound instead.
+ */
 export const UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS = {
   minimalCurBin: -32768,
   minimalPosition: 0n,
@@ -878,8 +900,17 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(
 /**
  * Encode weighted add for the transaction sender.
  *
- * `weightDeltas` are relative share weights; the adder scales to fit
- * `maxAmountToken0` / `maxAmountToken1`. Use {@link scaleWeightedPoolDeltasToFitCaps} to pre-scale.
+ * `weightDeltas` are relative share weights; the adder determines the actual amounts by
+ * probing the pool's *live* cursor position at execution time and scales weights to fit
+ * `maxAmountToken0` / `maxAmountToken1` accordingly (use {@link scaleWeightedPoolDeltasToFitCaps}
+ * to pre-scale). Because that probe reads live state, an attacker who moves the cursor
+ * immediately before this transaction (and reverses it after) can skew the deposited
+ * composition in their favor — a sandwich on the LP. `minimalCurBin` / `minimalPosition` /
+ * `maximalCurBin` / `maximalPosition` bound how far the cursor may have moved by execution
+ * time; the call reverts outside that window instead of depositing at a manipulated ratio.
+ * They are required here (not defaulted) so that opting out is a visible, deliberate choice —
+ * pass {@link UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS} to do so. Prefer
+ * {@link prepareLiquidityCursorBounds} to derive a tight bound from the pool's current cursor.
  * Creates or increases the position `(msg.sender, salt)`.
  */
 export function encodeAddLiquidityWeightedSelfCalldata(params: {
@@ -888,10 +919,10 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
-  minimalCurBin?: number;
-  minimalPosition?: bigint;
-  maximalCurBin?: number;
-  maximalPosition?: bigint;
+  minimalCurBin: number;
+  minimalPosition: bigint;
+  maximalCurBin: number;
+  maximalPosition: bigint;
   extensionData?: Hex;
 }): Hex {
   const bounds = resolveLiquidityCursorBounds(params);
@@ -923,10 +954,10 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   weightDeltas: PoolLiquidityDelta;
   maxAmountToken0: bigint;
   maxAmountToken1: bigint;
-  minimalCurBin?: number;
-  minimalPosition?: bigint;
-  maximalCurBin?: number;
-  maximalPosition?: bigint;
+  minimalCurBin: number;
+  minimalPosition: bigint;
+  maximalCurBin: number;
+  maximalPosition: bigint;
   extensionData?: Hex;
 }): Hex {
   const bounds = resolveLiquidityCursorBounds(params);

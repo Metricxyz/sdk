@@ -44,26 +44,60 @@ function isqrt(value: bigint): bigint {
 }
 
 export interface RecommendedInitialScaledAmounts {
-  /** Recommended `initialScaledAmount0PerE18Shares` / `initialScaledToken0PerShareE18` (P̂0). */
-  initialScaledToken0PerShareE18: bigint;
-  /** Recommended `initialScaledAmount1PerE18Shares` / `initialScaledToken1PerShareE18` (P̂1). */
-  initialScaledToken1PerShareE18: bigint;
+  /** Recommended `initialScaledAmount0PerE18Shares` (P̂0). */
+  initialScaledAmount0PerE18Shares: bigint;
+  /** Recommended `initialScaledAmount1PerE18Shares` (P̂1). */
+  initialScaledAmount1PerE18Shares: bigint;
 }
 
 /**
  * Recommended initial per-share densities (P̂0, P̂1) for pools that use
  * `OracleValueStopLossExtension`, per metric-core's
  * `docs/POOL_CONFIGURATION_AND_MANAGEMENT.md` §2.5 "Choosing `initialScaledAmount{0,1}`":
+ *
+ * ```
+ * K  = 1e6 · (2^104 − 1)   (extension's 1e6 precision floor × uint104 watermark max)
+ * P̂0 = √(K / π0)          P̂1 = √(K · π0)
+ * ```
+ *
+ * `currentPrice` is the opening price `π0` (token1 per token0, whole-token terms, e.g.
+ * `3000`). Each side's OracleValueStopLoss watermark starts at its `P̂_i` and must stay
+ * in `[1e6, 2^104−1]` as price moves; this choice centers both watermarks in that range
+ * and keeps `√(P̂0·P̂1) ≈ 4.5036e18` regardless of `π0`, maximizing the price move the
+ * pool can absorb before either watermark saturates. Core does not require or validate
+ * this ratio — it is this extension's own tradeoff, not a protocol rule, so pools that
+ * don't use `OracleValueStopLossExtension` are free to choose `initialScaledAmount{0,1}`
+ * some other way (they still must independently satisfy `P̂1 / P̂0 = π0`). The result's
+ * field names match `CreatePoolFactoryParams`, so it can be spread directly:
+ * `{ ...recommendedInitialScaledAmounts(3000), ... }`.
  */
+const UINT128_MAX = (1n << 128n) - 1n;
+
 export function recommendedInitialScaledAmounts(
   currentPrice: number,
 ): RecommendedInitialScaledAmounts {
   const pi0E18 = toPriceE18(currentPrice);
   const K = STOP_LOSS_E6 * STOP_LOSS_METRIC_MAX;
-  return {
-    initialScaledToken0PerShareE18: isqrt(mulDiv(K, STOP_LOSS_E18, pi0E18)),
-    initialScaledToken1PerShareE18: isqrt(mulDiv(K, pi0E18, STOP_LOSS_E18)),
-  };
+  const initialScaledAmount0PerE18Shares = isqrt(mulDiv(K, STOP_LOSS_E18, pi0E18));
+  const initialScaledAmount1PerE18Shares = isqrt(mulDiv(K, pi0E18, STOP_LOSS_E18));
+
+  // The factory rejects 0 and >= uint128.max (InvalidInitialAmount). Both amounts are always
+  // well within range for realistic prices, but an extreme finite `currentPrice` can floor one
+  // side to 0 — fail loudly here instead of letting the caller hit an opaque on-chain revert.
+  if (
+    initialScaledAmount0PerE18Shares <= 0n ||
+    initialScaledAmount0PerE18Shares >= UINT128_MAX ||
+    initialScaledAmount1PerE18Shares <= 0n ||
+    initialScaledAmount1PerE18Shares >= UINT128_MAX
+  ) {
+    throw new Error(
+      `currentPrice ${currentPrice} produces an out-of-range initial scaled amount ` +
+        `(initialScaledAmount0PerE18Shares=${initialScaledAmount0PerE18Shares}, ` +
+        `initialScaledAmount1PerE18Shares=${initialScaledAmount1PerE18Shares}); use a less extreme price`,
+    );
+  }
+
+  return { initialScaledAmount0PerE18Shares, initialScaledAmount1PerE18Shares };
 }
 
 /**

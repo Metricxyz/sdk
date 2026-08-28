@@ -10,6 +10,38 @@ import { EMPTY_EXTENSION_ORDERS, type ExtensionOrders } from "../extensions/type
 
 export type { ExtensionOrders };
 
+const UINT128_MAX = (1n << 128n) - 1n;
+const MINIMAL_OPERATIONAL_LIQUIDITY_PRECISION = 1_000_000n;
+
+/** Disables the pool's bid/ask/reference asymmetry check. */
+export const DISABLED_BID_ASK_REF_ASYMMETRY_X8 = 0xffff;
+
+/**
+ * Minimum factory-accepted `minimalOperationalLiquidity` for the given initial scaled
+ * token densities: `PRECISION(1e6) * 1e18 / min(amount0, amount1)`, floored at 1.
+ */
+export function computeMinimumOperationalLiquidity(
+  initialScaledAmount0PerE18Shares: bigint,
+  initialScaledAmount1PerE18Shares: bigint,
+): bigint {
+  if (
+    initialScaledAmount0PerE18Shares <= 0n ||
+    initialScaledAmount0PerE18Shares >= UINT128_MAX ||
+    initialScaledAmount1PerE18Shares <= 0n ||
+    initialScaledAmount1PerE18Shares >= UINT128_MAX
+  ) {
+    throw new Error("initial scaled amounts must be > 0 and < uint128.max");
+  }
+
+  const minimumInitialScaledAmount =
+    initialScaledAmount0PerE18Shares < initialScaledAmount1PerE18Shares
+      ? initialScaledAmount0PerE18Shares
+      : initialScaledAmount1PerE18Shares;
+  const minimum =
+    (MINIMAL_OPERATIONAL_LIQUIDITY_PRECISION * 10n ** 18n) / minimumInitialScaledAmount;
+  return minimum === 0n ? 1n : minimum;
+}
+
 /**
  * Parameters for creating a new pool via the v1 factory.
  */
@@ -29,28 +61,34 @@ export interface CreatePoolFactoryParams {
   nonNegativeBins: bigint[];
   negativeBins: bigint[];
   /**
-   * Empty-bin mint density (P̂0/P̂1) for 1e18 shares; `initialScaledToken1PerShareE18 /
-   * initialScaledToken0PerShareE18` must equal the opening price (deployer duty, not
+   * Empty-bin mint density (P̂0/P̂1) for 1e18 shares; `initialScaledAmount1PerE18Shares /
+   * initialScaledAmount0PerE18Shares` must equal the opening price (deployer duty, not
    * validated on-chain). For pools using `OracleValueStopLossExtension`, prefer
    * {@link recommendedInitialScaledAmounts} to derive both fields — see metric-core's
    * `docs/POOL_CONFIGURATION_AND_MANAGEMENT.md` §2.5.
    */
-  initialScaledToken0PerShareE18: bigint;
-  initialScaledToken1PerShareE18: bigint;
+  initialScaledAmount0PerE18Shares: bigint;
+  initialScaledAmount1PerE18Shares: bigint;
+  /** Must be >= {@link computeMinimumOperationalLiquidity} for the chosen initial scaled amounts. */
   minimalOperationalLiquidity: bigint;
-  /** Protocol spread fee in E6 units; defaults to the factory floor. */
-  protocolSpreadFeeE6?: number;
+  /** Protocol spread fee in E6 units. Values below the factory default are clamped up on-chain. */
+  protocolSpreadFeeE6: number;
   /** Admin spread fee in E6 units (same convention as on-chain pool fees). */
   adminSpreadFeeE6: number;
-  /** Protocol notional fee in E8 units; defaults to the factory floor. */
-  protocolNotionalFeeE8?: number;
+  /** Protocol notional fee in E8 units. Values below the factory default are clamped up on-chain. */
+  protocolNotionalFeeE8: number;
   /** Admin notional fee in E8 units. */
   adminNotionalFeeE8: number;
   adminFeeDestination: Address;
   /** Distance from oracle price to bin anchor, in pool E6 units. */
   curBinDistFromProvidedPricePercent: number;
-  /** Bid/ask/reference asymmetry slack in X8; defaults to uint16 max (disabled). */
-  bidAskRefAsymmetryX8?: number;
+  /**
+   * Bid/ask/reference asymmetry slack in X8. Must be positive — `0` demands exact bid/ask/ref
+   * symmetry, which is unsatisfiable and would make every swap and quote on the pool revert, so
+   * it's rejected here rather than allowed to silently deploy a dead pool. Use
+   * {@link DISABLED_BID_ASK_REF_ASYMMETRY_X8} to disable the check.
+   */
+  bidAskRefAsymmetryX8: number;
   salt?: Hex;
 }
 
@@ -77,6 +115,28 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     throw new Error("curBinDistFromProvidedPricePercent maps to int24 out of range");
   }
 
+  if (!Number.isInteger(params.bidAskRefAsymmetryX8) || params.bidAskRefAsymmetryX8 <= 0) {
+    throw new Error(
+      "bidAskRefAsymmetryX8 must be a positive integer — 0 demands r1 == r2 exactly at Q64.64 " +
+        "precision, which is unsatisfiable in integer arithmetic and makes every swap, simulation, " +
+        "and quote on the pool revert (metric-core docs/POOL_CONFIGURATION_AND_MANAGEMENT.md §2.2.1). " +
+        "Use DISABLED_BID_ASK_REF_ASYMMETRY_X8 to disable the check, or a deliberate bound to enable it.",
+    );
+  }
+  if (params.bidAskRefAsymmetryX8 > DISABLED_BID_ASK_REF_ASYMMETRY_X8) {
+    throw new Error("bidAskRefAsymmetryX8 exceeds uint16.max");
+  }
+
+  const minimumOperationalLiquidity = computeMinimumOperationalLiquidity(
+    params.initialScaledAmount0PerE18Shares,
+    params.initialScaledAmount1PerE18Shares,
+  );
+  if (params.minimalOperationalLiquidity < minimumOperationalLiquidity) {
+    throw new Error(
+      `minimalOperationalLiquidity must be at least ${minimumOperationalLiquidity.toString()} for the configured initial scaled amounts`,
+    );
+  }
+
   const salt =
     params.salt ??
     (`0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join("")}` as Hex);
@@ -90,19 +150,19 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     extensionInitData: params.extensionInitData ?? [],
     priceProviderTimelock: params.priceProviderTimelock ?? 0n,
     admin: params.admin,
-    initialScaledAmount0PerE18Shares: params.initialScaledToken0PerShareE18,
-    initialScaledAmount1PerE18Shares: params.initialScaledToken1PerShareE18,
+    initialScaledAmount0PerE18Shares: params.initialScaledAmount0PerE18Shares,
+    initialScaledAmount1PerE18Shares: params.initialScaledAmount1PerE18Shares,
     minimalOperationalLiquidity: params.minimalOperationalLiquidity,
-    protocolSpreadFeeE6: params.protocolSpreadFeeE6 ?? 0,
+    protocolSpreadFeeE6: params.protocolSpreadFeeE6,
     adminSpreadFeeE6: params.adminSpreadFeeE6,
-    protocolNotionalFeeE8: params.protocolNotionalFeeE8 ?? 0,
+    protocolNotionalFeeE8: params.protocolNotionalFeeE8,
     adminNotionalFeeE8: params.adminNotionalFeeE8,
     adminFeeDestination: params.adminFeeDestination,
     curBinDistFromProvidedPriceE6: curBinDistFromProvidedPriceE6,
     nonNegativeBinDataArray: params.nonNegativeBins,
     negativeBinDataArray: params.negativeBins,
     salt,
-    bidAskRefAsymmetryX8: params.bidAskRefAsymmetryX8 ?? 65_535,
+    bidAskRefAsymmetryX8: params.bidAskRefAsymmetryX8,
   };
 }
 

@@ -84,7 +84,7 @@ describe("OracleValueStopLossExtension E2E", async () => {
 
     const pool = await createPoolViaFactory(env, deployer, {
       adminSpreadFeeE6: options?.adminSpreadFeeE6 ?? 5_000,
-      protocolSpreadFeeE6: options?.protocolSpreadFeeE6,
+      protocolSpreadFeeE6: options?.protocolSpreadFeeE6 ?? 0,
       adminNotionalFeeE8: 0,
       nonNegativeBins: sdk.createUniformBins(
         10,

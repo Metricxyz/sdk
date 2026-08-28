@@ -9,8 +9,14 @@ export { encodeExtensionOrder, buildExtensionOrders, type ExtensionOrderAction }
 
 export { EMPTY_EXTENSION_INIT_DATA, encodeOracleStopLossInitData } from "./init/index.js";
 
-export { encodeSetAllowedToDepositCalldata } from "./admin/depositAllowlist.js";
-export { encodeSetAllowedToSwapCalldata } from "./admin/swapAllowlist.js";
+export {
+  encodeSetAllowedToDepositCalldata,
+  encodeSetAllowAllDepositorsCalldata,
+} from "./admin/depositAllowlist.js";
+export {
+  encodeSetAllowedToSwapCalldata,
+  encodeSetAllowAllSwappersCalldata,
+} from "./admin/swapAllowlist.js";
 export {
   encodeSetMaxChangePerBlockCalldata,
   encodeSetAnchorMidPriceCalldata,

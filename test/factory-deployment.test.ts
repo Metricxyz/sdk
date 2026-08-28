@@ -104,9 +104,12 @@ describe("Factory Deployment Flow", async () => {
       // Config
       adminSpreadFeeE6: 50000,
       adminNotionalFeeE8: 0,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: 65_535,
       adminFeeDestination: admin.account.address,
-      initialScaledToken0PerShareE18: 1000000000000000000n,
-      initialScaledToken1PerShareE18: 1000000000000000000n,
+      initialScaledAmount0PerE18Shares: 1000000000000000000n,
+      initialScaledAmount1PerE18Shares: 1000000000000000000n,
       minimalOperationalLiquidity: 1_000_000n,
       curBinDistFromProvidedPricePercent: 0,
     };
@@ -149,8 +152,11 @@ describe("Factory Deployment Flow", async () => {
       negativeBins: sdk.createUniformBins(5, 10_000),
       adminSpreadFeeE6: 50000,
       adminNotionalFeeE8: 0,
-      initialScaledToken0PerShareE18: 1000000000000000000n,
-      initialScaledToken1PerShareE18: 1000000000000000000n,
+      protocolSpreadFeeE6: 0,
+      protocolNotionalFeeE8: 0,
+      bidAskRefAsymmetryX8: 65_535,
+      initialScaledAmount0PerE18Shares: 1000000000000000000n,
+      initialScaledAmount1PerE18Shares: 1000000000000000000n,
       minimalOperationalLiquidity: 1_000_000n,
       curBinDistFromProvidedPricePercent: 0,
     };

@@ -73,6 +73,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
       weightDeltas: deltas,
       maxAmountToken0: 3n,
       maxAmountToken1: 4n,
+      ...bounds,
     });
     const direct = encodeFunctionData({
       abi: MetricOmmPoolLiquidityAdderAbi,
