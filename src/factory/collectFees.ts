@@ -130,7 +130,7 @@ export async function collectFactoryFees(
       const { request } = await publicClient.simulateContract({
         address: factoryAddress,
         abi: POOL_FACTORY_ABI,
-        functionName: "collectETH",
+        functionName: "collectEth",
         args: [target, item.amount],
         account,
       });

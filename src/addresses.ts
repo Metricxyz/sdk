@@ -1,8 +1,8 @@
 /**
  * MetricAMM SDK — v1 deployed addresses.
  *
- * Ethereum, Base, Robinhood, and HyperEVM share the same protocol deployment
- * addresses (CREATE2). Pool state reads (slot0, bins, position shares) and
+ * All configured chains share the same protocol deployment addresses (CREATE2).
+ * Pool state reads (slot0, bins, position shares) and
  * depth/quote views use dataProvider (MetricOmmPoolDataProvider — the single
  * deployed lens per factory).
  */
@@ -30,8 +30,14 @@ export type ChainId = (typeof ChainId)[keyof typeof ChainId];
 export type DeployedChainId =
   | typeof ChainId.ETHEREUM
   | typeof ChainId.BASE
-  | typeof ChainId.ROBINHOOD
-  | typeof ChainId.HYPEREVM;
+  | typeof ChainId.ARBITRUM
+  | typeof ChainId.AVALANCHE
+  | typeof ChainId.BNB
+  | typeof ChainId.POLYGON
+  | typeof ChainId.MEGAETH
+  | typeof ChainId.HYPEREVM
+  | typeof ChainId.MONAD
+  | typeof ChainId.ROBINHOOD;
 
 // ============ Contract Address Types ============
 
@@ -48,7 +54,7 @@ export interface ChainAddresses {
   simpleRouter: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
   quoter: Address;
-  /** Wrapped native (WETH on Ethereum / Base) */
+  /** Wrapped native token for this chain. */
   wrappedNative: Address;
 
   /** Per-pool extensions (configure at pool creation). */
@@ -62,19 +68,19 @@ export interface ChainAddresses {
 
 // ============ Deployed addresses ============
 
-/** Shared protocol deployment (Ethereum, Base, Robinhood, HyperEVM). */
+/** Shared CREATE2 protocol deployment. */
 const PROTOCOL_ADDRESSES = {
-  factory: "0x622911384e7973439b8be305f5e3Fc3c5736EDe4",
-  poolDeployer: "0x47D5C9df5e3419217471A9D12D932Dbed7B0B7f1",
-  liquidityAdder: "0x9aA238a8319D20F6D8C3bcca45CA2F5e27C1e00f",
-  dataProvider: "0x19f85Eb0a450b429C9a700bE867CF284e7e685eC",
-  simpleRouter: "0x292DecA668291262341f92B840830f78dB35b6E5",
-  quoter: "0xaB6C48D981B943F62A23bb4EB2db125182E6753c",
+  factory: "0xA32761549A1DE40060c194C86A8df24f0A29bA2d",
+  poolDeployer: "0x8b25C2c3Dc0C3A9DC1272FbBC09E064015097A5B",
+  liquidityAdder: "0x6cd70697cca0586e80907cddC6e9304f910229DD",
+  dataProvider: "0x95ab07bCef6463712213D0845962FF4293E5acf7",
+  simpleRouter: "0x7D4fb51164288D2e1fdA2032D887517F71008b89",
+  quoter: "0x45e72641A71A7eCcccF2Ef905e4159951cdeF8e0",
   extensions: {
-    depositAllowlistExtension: "0x2229c48864d9aC877d23591fE99C3718Ef992F66",
-    swapAllowlistExtension: "0xAC6BA2d77279a7B26db57Be6f8bF234932547eEd",
-    oracleValueStopLossExtension: "0x7D5D12aa06A025Fa37410F522F166070bA998e11",
-    priceVelocityGuardExtension: "0x225c402B55c63d081821aA9260179C0d35e25091",
+    depositAllowlistExtension: "0x180c94f108dBa243FB74819fD1cC490dd82a2A2e",
+    swapAllowlistExtension: "0xe9c6C1f3b5a1994A7B66c844348b67086d33533b",
+    oracleValueStopLossExtension: "0x022B57C96a337b12eAAB1b39AF9E8a07dE23eE67",
+    priceVelocityGuardExtension: "0x5e971600f5f7e9972631960CCF1F57AF53B5fE95",
   },
 } as const satisfies Omit<ChainAddresses, "wrappedNative">;
 
@@ -88,6 +94,26 @@ export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
     ...PROTOCOL_ADDRESSES,
     wrappedNative: "0x4200000000000000000000000000000000000006",
   },
+  [ChainId.ARBITRUM]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+  },
+  [ChainId.AVALANCHE]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+  },
+  [ChainId.BNB]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+  },
+  [ChainId.POLYGON]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+  },
+  [ChainId.MEGAETH]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0x4200000000000000000000000000000000000006",
+  },
   [ChainId.ROBINHOOD]: {
     ...PROTOCOL_ADDRESSES,
     wrappedNative: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
@@ -96,6 +122,10 @@ export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
     ...PROTOCOL_ADDRESSES,
     wrappedNative: "0x5555555555555555555555555555555555555555",
   },
+  [ChainId.MONAD]: {
+    ...PROTOCOL_ADDRESSES,
+    wrappedNative: "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+  },
 } as const;
 
 // ============ Helper Functions ============
@@ -103,35 +133,30 @@ export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
 const DEPLOYED_CHAIN_IDS: readonly DeployedChainId[] = [
   ChainId.ETHEREUM,
   ChainId.BASE,
-  ChainId.ROBINHOOD,
+  ChainId.ARBITRUM,
+  ChainId.AVALANCHE,
+  ChainId.BNB,
+  ChainId.POLYGON,
+  ChainId.MEGAETH,
   ChainId.HYPEREVM,
+  ChainId.MONAD,
+  ChainId.ROBINHOOD,
 ];
 
 export function getAddresses(chainId: number): ChainAddresses | undefined {
-  if (chainId === ChainId.ETHEREUM) return ADDRESSES[ChainId.ETHEREUM];
-  if (chainId === ChainId.BASE) return ADDRESSES[ChainId.BASE];
-  if (chainId === ChainId.ROBINHOOD) return ADDRESSES[ChainId.ROBINHOOD];
-  if (chainId === ChainId.HYPEREVM) return ADDRESSES[ChainId.HYPEREVM];
-  return undefined;
+  return isChainSupported(chainId) ? ADDRESSES[chainId] : undefined;
 }
 
 export function getAddressesOrThrow(chainId: number): ChainAddresses {
   const addresses = getAddresses(chainId);
   if (!addresses) {
-    throw new Error(
-      `Chain ${chainId} has no v1 deployment in this SDK (Ethereum, Base, Robinhood, and HyperEVM are configured)`,
-    );
+    throw new Error(`Chain ${chainId} has no v1 deployment in this SDK`);
   }
   return addresses;
 }
 
 export function isChainSupported(chainId: number): chainId is DeployedChainId {
-  return (
-    chainId === ChainId.ETHEREUM ||
-    chainId === ChainId.BASE ||
-    chainId === ChainId.ROBINHOOD ||
-    chainId === ChainId.HYPEREVM
-  );
+  return DEPLOYED_CHAIN_IDS.includes(chainId as DeployedChainId);
 }
 
 export function getSupportedChainIds(): DeployedChainId[] {

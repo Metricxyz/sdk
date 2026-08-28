@@ -44,6 +44,26 @@ describe("extension admin calldata encoders", () => {
     assert.equal(viaSdk, direct);
   });
 
+  it("deposit allow-all admin encoder matches viem", () => {
+    const viaSdk = sdk.encodeSetAllowAllDepositorsCalldata({ extension, pool, allowAll: true });
+    const direct = encodeFunctionData({
+      abi: DepositAllowlistExtensionAbi,
+      functionName: "setAllowAllDepositors",
+      args: [pool, true],
+    });
+    assert.equal(viaSdk, direct);
+  });
+
+  it("swap allow-all admin encoder matches viem", () => {
+    const viaSdk = sdk.encodeSetAllowAllSwappersCalldata({ extension, pool, allowAll: false });
+    const direct = encodeFunctionData({
+      abi: SwapAllowlistExtensionAbi,
+      functionName: "setAllowAllSwappers",
+      args: [pool, false],
+    });
+    assert.equal(viaSdk, direct);
+  });
+
   it("price velocity guard admin encoders match viem", () => {
     const maxChange = 1_000_000_000_000_000_000n;
     const midPrice = 1n << 64n;

@@ -14,3 +14,16 @@ export function encodeSetAllowedToSwapCalldata(params: {
     args: [params.pool, params.swapper, params.allowed],
   });
 }
+
+/** Pool-wide switch: when `allowAll` is true, every swapper is allowed regardless of the allowlist. */
+export function encodeSetAllowAllSwappersCalldata(params: {
+  extension: Address;
+  pool: Address;
+  allowAll: boolean;
+}): Hex {
+  return encodeFunctionData({
+    abi: SwapAllowlistExtensionAbi,
+    functionName: "setAllowAllSwappers",
+    args: [params.pool, params.allowAll],
+  });
+}

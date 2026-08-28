@@ -270,30 +270,24 @@ export async function getPositionBinSharesRange(
     binIndices.push(bin);
   }
 
-  const results = await Promise.all(
-    binIndices.map((bin) =>
-      publicClient.readContract({
-        address: dataProviderAddress,
-        abi: DATA_PROVIDER_ABI,
-        functionName: "positionBinShares",
-        args: [poolAddress, owner, salt, bin],
-      }),
-    ),
+  return getPositionBinSharesForBins(
+    publicClient,
+    dataProviderAddress,
+    poolAddress,
+    owner,
+    salt,
+    binIndices,
   );
-
-  const positionShares: PositionBinSharesResult[] = [];
-  for (let i = 0; i < binIndices.length; i++) {
-    const shares = results[i] as bigint;
-    if (shares > 0n) {
-      positionShares.push({
-        binIdx: binIndices[i],
-        shares,
-      });
-    }
-  }
-
-  return positionShares;
 }
+
+/**
+ * Bins read per RPC round-trip in {@link getPositionBinSharesForBins}. `positionBinShares` has
+ * no on-chain array overload and multicall can't be assumed available (e.g. plain local test
+ * chains don't deploy Multicall3), so a wide bin range is chunked instead of fired as one
+ * `Promise.all` per bin — a pool's full `lowestBin`..`highestBin` can otherwise mean hundreds of
+ * concurrent reads, which public RPC providers commonly rate-limit or refuse.
+ */
+const POSITION_BIN_SHARES_CHUNK_SIZE = 25;
 
 /** Get user position shares for specific (possibly non-contiguous) bins. */
 export async function getPositionBinSharesForBins(
@@ -304,25 +298,29 @@ export async function getPositionBinSharesForBins(
   salt: bigint,
   bins: number[],
 ): Promise<PositionBinSharesResult[]> {
-  const results = await Promise.all(
-    bins.map((bin) =>
-      publicClient.readContract({
-        address: dataProviderAddress,
-        abi: DATA_PROVIDER_ABI,
-        functionName: "positionBinShares",
-        args: [poolAddress, owner, salt, bin],
-      }),
-    ),
-  );
-
   const positionShares: PositionBinSharesResult[] = [];
-  for (let i = 0; i < bins.length; i++) {
-    const shares = results[i] as bigint;
-    if (shares > 0n) {
-      positionShares.push({
-        binIdx: bins[i],
-        shares,
-      });
+
+  for (let start = 0; start < bins.length; start += POSITION_BIN_SHARES_CHUNK_SIZE) {
+    const chunk = bins.slice(start, start + POSITION_BIN_SHARES_CHUNK_SIZE);
+    const results = await Promise.all(
+      chunk.map((bin) =>
+        publicClient.readContract({
+          address: dataProviderAddress,
+          abi: DATA_PROVIDER_ABI,
+          functionName: "positionBinShares",
+          args: [poolAddress, owner, salt, bin],
+        }),
+      ),
+    );
+
+    for (let i = 0; i < chunk.length; i++) {
+      const shares = results[i] as bigint;
+      if (shares > 0n) {
+        positionShares.push({
+          binIdx: chunk[i]!,
+          shares,
+        });
+      }
     }
   }
 
