@@ -4,7 +4,7 @@
 
 export {
   STOP_LOSS_E6,
-  STOP_LOSS_E8,
+  STOP_LOSS_E18,
   STOP_LOSS_METRIC_SCALE,
   STOP_LOSS_METRIC_MAX,
   mulDiv,
@@ -14,7 +14,9 @@ export {
   computeOracleStopLossMetrics,
   isStopLossMetricBreached,
   secondsUntilStopLossClears,
+  recommendedInitialScaledAmounts,
   type OracleStopLossMetrics,
+  type RecommendedInitialScaledAmounts,
 } from "./math.js";
 
 export {

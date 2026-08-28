@@ -175,9 +175,20 @@ export const OracleValueStopLossExtensionAbi = [
   {
     inputs: [
       {
-        internalType: "int8",
+        internalType: "uint256",
+        name: "executeAfter",
+        type: "uint256",
+      },
+    ],
+    name: "OracleStopLossTimelockOverflow",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "bool",
@@ -223,7 +234,7 @@ export const OracleValueStopLossExtensionAbi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "proposedDecayPerSecondE8",
+        name: "proposedDecayPerSecondE18",
         type: "uint256",
       },
       {
@@ -248,7 +259,7 @@ export const OracleValueStopLossExtensionAbi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "newDecayPerSecondE8",
+        name: "newDecayPerSecondE18",
         type: "uint256",
       },
     ],
@@ -336,9 +347,9 @@ export const OracleValueStopLossExtensionAbi = [
       },
       {
         indexed: false,
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         indexed: false,
@@ -373,9 +384,9 @@ export const OracleValueStopLossExtensionAbi = [
       },
       {
         indexed: false,
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         indexed: false,
@@ -633,6 +644,11 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "",
+        type: "uint128",
+      },
+      {
         internalType: "int128",
         name: "",
         type: "int128",
@@ -809,6 +825,11 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "",
+        type: "uint128",
+      },
+      {
         internalType: "bytes",
         name: "",
         type: "bytes",
@@ -885,9 +906,9 @@ export const OracleValueStopLossExtensionAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
     ],
     name: "currentHighWatermarks",
@@ -966,9 +987,9 @@ export const OracleValueStopLossExtensionAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
     ],
     name: "highWatermarks",
@@ -984,9 +1005,9 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint104",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "lastDecayTs",
-        type: "uint32",
+        type: "uint40",
       },
     ],
     stateMutability: "view",
@@ -1032,14 +1053,14 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint32",
       },
       {
-        internalType: "uint32",
-        name: "decayPerSecondE8",
-        type: "uint32",
+        internalType: "uint64",
+        name: "decayPerSecondE18",
+        type: "uint64",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "timelock",
-        type: "uint32",
+        type: "uint40",
       },
       {
         internalType: "bool",
@@ -1071,14 +1092,14 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint104",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "executeAfter",
-        type: "uint32",
+        type: "uint40",
       },
     ],
     stateMutability: "view",
@@ -1095,14 +1116,14 @@ export const OracleValueStopLossExtensionAbi = [
     name: "poolStopLossSchedule",
     outputs: [
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "pendingTimelock",
-        type: "uint32",
+        type: "uint40",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "pendingTimelockExecuteAfter",
-        type: "uint32",
+        type: "uint40",
       },
       {
         internalType: "uint32",
@@ -1110,19 +1131,19 @@ export const OracleValueStopLossExtensionAbi = [
         type: "uint32",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "pendingDrawdownExecuteAfter",
-        type: "uint32",
+        type: "uint40",
       },
       {
-        internalType: "uint32",
-        name: "pendingDecayPerSecondE8",
-        type: "uint32",
+        internalType: "uint64",
+        name: "pendingDecayPerSecondE18",
+        type: "uint64",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "pendingDecayExecuteAfter",
-        type: "uint32",
+        type: "uint40",
       },
     ],
     stateMutability: "view",
@@ -1137,7 +1158,7 @@ export const OracleValueStopLossExtensionAbi = [
       },
       {
         internalType: "uint256",
-        name: "newDecayPerSecondE8",
+        name: "newDecayPerSecondE18",
         type: "uint256",
       },
     ],
@@ -1172,9 +1193,9 @@ export const OracleValueStopLossExtensionAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint104",
@@ -1200,9 +1221,9 @@ export const OracleValueStopLossExtensionAbi = [
         type: "address",
       },
       {
-        internalType: "uint32",
+        internalType: "uint40",
         name: "newTimelock",
-        type: "uint32",
+        type: "uint40",
       },
     ],
     name: "proposeOracleStopLossTimelock",

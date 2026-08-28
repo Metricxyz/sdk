@@ -9,12 +9,10 @@ export function sortTokens(tokenA: Address, tokenB: Address): [Address, Address]
   return getAddress(tokenA) < getAddress(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA];
 }
 
-/** Scaled per-share density for factory pool creation (6-decimal token1 vs 18-decimal others). */
-export function scaledPerShareForToken(token: Address, sixDecimalToken: Address): bigint {
-  if (token.toLowerCase() === sixDecimalToken.toLowerCase()) {
-    return parseUnits("1", 6);
-  }
-  return parseUnits("1", 18);
+/** Scaled per-share density for factory pool creation. */
+export function scaledPerShareForToken(...tokens: Address[]): bigint {
+  void tokens;
+  return parseUnits("1000", 18);
 }
 
 export function createBinRangeLiquidityDeltas(
@@ -34,20 +32,32 @@ export function createBinRangeLiquidityDeltas(
 /** Default liquidity shape used by path-swap and sdk-e2e tests. */
 export const PATH_SWAP_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = {
   binIdxs: [-2n, -1n, 0n, 1n, 2n],
-  shares: [5_000_000n, 5_000_000n, 10_000_000n, 5_000_000n, 5_000_000n],
+  shares: [
+    5_000_000_000_000n,
+    5_000_000_000_000n,
+    10_000_000_000_000n,
+    5_000_000_000_000n,
+    5_000_000_000_000n,
+  ],
 };
 
 /** Deeper book used by oracle stop-loss E2E (same bins, larger shares). */
 export const STOP_LOSS_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = {
   binIdxs: [-2n, -1n, 0n, 1n, 2n],
-  shares: [100_000_000n, 100_000_000n, 200_000_000n, 100_000_000n, 100_000_000n],
+  shares: [
+    100_000_000_000_000_000n,
+    100_000_000_000_000_000n,
+    200_000_000_000_000_000n,
+    100_000_000_000_000_000n,
+    100_000_000_000_000_000n,
+  ],
 };
 
 /** Wider bin range used by native-swap E2E tests. */
 export const WIDE_LIQUIDITY_DELTAS: sdk.PoolLiquidityDelta = createBinRangeLiquidityDeltas(
   -4n,
   4n,
-  100_000n,
+  1_000_000_000_000n,
 );
 
 export async function deployOracleForPair(viem: any, tokenA: Address, tokenB: Address) {
@@ -81,7 +91,7 @@ export async function createPoolForPair(
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: scaledPerShareForToken(token0, sixDecimalToken),
       initialScaledToken1PerShareE18: scaledPerShareForToken(token1, sixDecimalToken),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1000n,
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
       negativeBins: sdk.createUniformBins(10, 10_000),
       salt,

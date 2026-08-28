@@ -67,7 +67,10 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
 
   const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
 
-  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+  const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+    factory.address,
+    weth.address,
+  ]);
   const simpleRouter = await viem.deployContract("MetricOmmSimpleRouter", [
     weth.address,
     factory.address,
@@ -104,9 +107,9 @@ export async function createPoolViaFactory(
     adminSpreadFeeE6: adminSpreadFeeE6FromPercent(0.5),
     adminNotionalFeeE8: 0,
     curBinDistFromProvidedPricePercent: 0,
-    initialScaledToken0PerShareE18: parseUnits("1", 18),
-    initialScaledToken1PerShareE18: parseUnits("1", 18),
-    minimalMintableLiquidity: 1000n,
+    initialScaledToken0PerShareE18: parseUnits("1000", 18),
+    initialScaledToken1PerShareE18: parseUnits("1000", 18),
+    minimalOperationalLiquidity: 1000n,
     nonNegativeBins: sdk.createUniformBins(10, 10000),
     negativeBins: sdk.createUniformBins(10, 10000),
     ...overrides,

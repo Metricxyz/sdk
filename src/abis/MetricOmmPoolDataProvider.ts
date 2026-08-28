@@ -69,9 +69,9 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "binIdx",
-        type: "int8",
+        type: "int16",
       },
     ],
     name: "binState",
@@ -113,9 +113,9 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "address",
       },
       {
-        internalType: "int8[]",
+        internalType: "int16[]",
         name: "binIdxs",
-        type: "int8[]",
+        type: "int16[]",
       },
     ],
     name: "binStates",
@@ -137,17 +137,17 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "address",
       },
       {
-        internalType: "int8",
-        name: "binIdx",
-        type: "int8",
+        internalType: "int16[]",
+        name: "binIdxs",
+        type: "int16[]",
       },
     ],
     name: "binTotalShares",
     outputs: [
       {
-        internalType: "uint256",
+        internalType: "bytes32[]",
         name: "",
-        type: "uint256",
+        type: "bytes32[]",
       },
     ],
     stateMutability: "view",
@@ -161,17 +161,17 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "address",
       },
       {
-        internalType: "int8[]",
-        name: "binIdxs",
-        type: "int8[]",
+        internalType: "int16",
+        name: "binIdx",
+        type: "int16",
       },
     ],
     name: "binTotalShares",
     outputs: [
       {
-        internalType: "bytes32[]",
+        internalType: "uint256",
         name: "",
-        type: "bytes32[]",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -225,6 +225,11 @@ export const MetricOmmPoolDataProviderAbi = [
           },
           {
             internalType: "uint128",
+            name: "oracleReferenceX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
             name: "referenceBestBidX64",
             type: "uint128",
           },
@@ -236,9 +241,9 @@ export const MetricOmmPoolDataProviderAbi = [
           {
             components: [
               {
-                internalType: "int8",
+                internalType: "int16",
                 name: "binIdx",
-                type: "int8",
+                type: "int16",
               },
               {
                 internalType: "uint256",
@@ -268,9 +273,9 @@ export const MetricOmmPoolDataProviderAbi = [
           {
             components: [
               {
-                internalType: "int8",
+                internalType: "int16",
                 name: "binIdx",
-                type: "int8",
+                type: "int16",
               },
               {
                 internalType: "uint256",
@@ -322,9 +327,9 @@ export const MetricOmmPoolDataProviderAbi = [
     name: "positionBinShares",
     outputs: [
       {
-        internalType: "uint104",
+        internalType: "uint256",
         name: "",
-        type: "uint104",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -348,17 +353,17 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "uint80",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "bin",
-        type: "int8",
+        type: "int16",
       },
     ],
     name: "positionBinShares",
     outputs: [
       {
-        internalType: "uint104",
+        internalType: "uint256",
         name: "",
-        type: "uint104",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -399,9 +404,9 @@ export const MetricOmmPoolDataProviderAbi = [
         type: "uint8",
       },
       {
-        internalType: "int8",
+        internalType: "int16",
         name: "_curBinIdx",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint104",
@@ -422,6 +427,11 @@ export const MetricOmmPoolDataProviderAbi = [
         internalType: "uint24",
         name: "_notionalFeeE8",
         type: "uint24",
+      },
+      {
+        internalType: "uint16",
+        name: "_bidAskRefAsymmetryX8",
+        type: "uint16",
       },
     ],
     stateMutability: "view",

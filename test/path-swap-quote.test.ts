@@ -7,7 +7,6 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { parseUnits, type Address } from "viem";
 import * as sdk from "../src/index.js";
-import { POOL_ABI } from "../src/constants.js";
 import { addLiquidityToPool } from "./shared/poolLiquidity.js";
 import {
   erc20Balance,
@@ -62,14 +61,6 @@ async function setupTwoPoolPathEnv(viem: any, deployer: any): Promise<PathTestEn
     amountIn: 2_000_000_000_000n,
     quoterAddress: env.quoter.address,
   };
-}
-
-async function readPoolPrices(publicClient: any, pool: Address): Promise<[bigint, bigint]> {
-  return (await publicClient.readContract({
-    address: pool,
-    abi: POOL_ABI,
-    functionName: "getSellAndBuyPrices",
-  })) as [bigint, bigint];
 }
 
 async function token0Balance(
@@ -180,8 +171,8 @@ describe("two-hop path quote and swap", async () => {
     const ctx = await networkHelpers.loadFixture(pathFixture);
     const { env, poolA, poolB, token0, token1, recipient, amountIn, quoterAddress } = ctx;
 
-    const [bidA, askA] = await readPoolPrices(env.publicClient, poolA);
-    const [bidB, askB] = await readPoolPrices(env.publicClient, poolB);
+    const [bidA, askA, referenceA] = await env.priceProvider.read.getQuote();
+    const [bidB, askB, referenceB] = [bidA, askA, referenceA];
 
     const hop1 = await sdk.quoteHypotheticalExactInputSingle({
       publicClient: env.publicClient,
@@ -192,6 +183,7 @@ describe("two-hop path quote and swap", async () => {
       amountIn,
       bidPriceX64: bidA,
       askPriceX64: askA,
+      referencePriceX64: referenceA,
       quoterAddress,
     });
     const hop2 = await sdk.quoteHypotheticalExactInputSingle({
@@ -203,6 +195,7 @@ describe("two-hop path quote and swap", async () => {
       amountIn: hop1.amountOut,
       bidPriceX64: bidB,
       askPriceX64: askB,
+      referencePriceX64: referenceB,
       quoterAddress,
     });
 
@@ -213,6 +206,7 @@ describe("two-hop path quote and swap", async () => {
       pools: [poolA, poolB],
       bidPricesX64: [bidA, bidB],
       askPricesX64: [askA, askB],
+      referencePricesX64: [referenceA, referenceB],
       recipient,
       amountIn,
       quoterAddress,
@@ -312,7 +306,7 @@ describe("two-hop path quote and swap", async () => {
 
   it("exactOutput swap matches two sequential singles", async () => {
     const ctx = await networkHelpers.loadFixture(pathFixture);
-    const { env, poolA, poolB, token0, token1, recipient, quoterAddress, deadline } = ctx;
+    const { env, poolA, token0, token1, recipient, quoterAddress } = ctx;
 
     const hop1Quote = await sdk.quoteLiveExactInSingle({
       publicClient: env.publicClient,

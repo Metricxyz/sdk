@@ -300,6 +300,11 @@ export const SwapAllowlistExtensionAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "",
+        type: "uint128",
+      },
+      {
         internalType: "int128",
         name: "",
         type: "int128",
@@ -507,6 +512,11 @@ export const SwapAllowlistExtensionAbi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+      {
+        internalType: "uint128",
+        name: "",
+        type: "uint128",
       },
       {
         internalType: "uint128",

@@ -18,7 +18,7 @@ describe("extension pool create", async () => {
 
     const initData = sdk.encodeOracleStopLossInitData({
       drawdownE6: 50_000,
-      decayPerSecondE8: 100,
+      decayPerSecondE18: 100n,
       timelockSeconds: 3600,
     });
 
@@ -33,7 +33,7 @@ describe("extension pool create", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
       extensions: [stopLoss.address],

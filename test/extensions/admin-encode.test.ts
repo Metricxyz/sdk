@@ -62,16 +62,16 @@ describe("extension admin calldata encoders", () => {
       }),
     );
 
-    const midPriceViaSdk = sdk.encodeSetLastMidPriceCalldata({
+    const midPriceViaSdk = sdk.encodeSetAnchorMidPriceCalldata({
       extension,
       pool,
-      lastMidPriceX64: midPrice,
+      anchorMidPriceX64: midPrice,
     });
     assert.equal(
       midPriceViaSdk,
       encodeFunctionData({
         abi: PriceVelocityGuardExtensionAbi,
-        functionName: "setLastMidPrice",
+        functionName: "setAnchorMidPrice",
         args: [pool, midPrice],
       }),
     );
@@ -139,7 +139,7 @@ describe("extension admin calldata encoders", () => {
         viaSdk: sdk.encodeProposeOracleStopLossDecayCalldata({
           extension,
           pool,
-          newDecayPerSecondE8: 50n,
+          newDecayPerSecondE18: 50n,
         }),
         direct: encodeFunctionData({
           abi: OracleValueStopLossExtensionAbi,

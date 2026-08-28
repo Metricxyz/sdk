@@ -198,6 +198,11 @@ export const MetricOmmSwapQuoterAbi = [
             name: "askPricesX64",
             type: "uint128[]",
           },
+          {
+            internalType: "uint128[]",
+            name: "referencePricesX64",
+            type: "uint128[]",
+          },
         ],
         internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactInputParams",
         name: "params",
@@ -258,6 +263,11 @@ export const MetricOmmSwapQuoterAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
+      },
+      {
         internalType: "bytes",
         name: "extensionData",
         type: "bytes",
@@ -309,6 +319,11 @@ export const MetricOmmSwapQuoterAbi = [
       {
         internalType: "uint128",
         name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
         type: "uint128",
       },
     ],
@@ -362,6 +377,11 @@ export const MetricOmmSwapQuoterAbi = [
             name: "askPricesX64",
             type: "uint128[]",
           },
+          {
+            internalType: "uint128[]",
+            name: "referencePricesX64",
+            type: "uint128[]",
+          },
         ],
         internalType: "struct IMetricOmmSwapQuoter.QuoteHypotheticalExactOutputParams",
         name: "params",
@@ -378,55 +398,6 @@ export const MetricOmmSwapQuoterAbi = [
       {
         internalType: "uint256",
         name: "amountOut",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "uint128",
-        name: "amountOutDesired",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bidPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "askPriceX64",
-        type: "uint128",
-      },
-    ],
-    name: "quoteHypotheticalExactOutputSingle",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "",
         type: "uint256",
       },
     ],
@@ -471,9 +442,68 @@ export const MetricOmmSwapQuoterAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
+      },
+      {
         internalType: "bytes",
         name: "extensionData",
         type: "bytes",
+      },
+    ],
+    name: "quoteHypotheticalExactOutputSingle",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountOutDesired",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
       },
     ],
     name: "quoteHypotheticalExactOutputSingle",

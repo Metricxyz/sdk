@@ -8,16 +8,6 @@ export const MetricOmmPoolAbi = [
       },
       {
         internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "address",
         name: "token0",
         type: "address",
       },
@@ -137,7 +127,7 @@ export const MetricOmmPoolAbi = [
       },
       {
         internalType: "uint256",
-        name: "minimalMintableLiquidity",
+        name: "minimalOperationalLiquidity",
         type: "uint256",
       },
       {
@@ -219,6 +209,11 @@ export const MetricOmmPoolAbi = [
         name: "notionalFeeE8_",
         type: "uint24",
       },
+      {
+        internalType: "uint16",
+        name: "bidAskRefAsymmetryX8_",
+        type: "uint16",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -226,6 +221,11 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [],
     name: "AmountScaledExceedsMax",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BidAskRefAsymmetryOutOfBounds",
     type: "error",
   },
   {
@@ -241,6 +241,11 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [],
     name: "ExtensionCallFailed",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "FinalAmountIsZero",
     type: "error",
   },
   {
@@ -296,15 +301,15 @@ export const MetricOmmPoolAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "LiquidityDeltaLengthMismatch",
-    type: "error",
-  },
-  {
     inputs: [
       {
+        internalType: "int256",
+        name: "binIdx",
+        type: "int256",
+      },
+      {
         internalType: "uint256",
-        name: "afterOperation",
+        name: "leftovers",
         type: "uint256",
       },
       {
@@ -313,7 +318,12 @@ export const MetricOmmPoolAbi = [
         type: "uint256",
       },
     ],
-    name: "MinimalLiquidity",
+    name: "LeftoversSmallerThanMinimalOperationalLiquidity",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "LiquidityDeltaLengthMismatch",
     type: "error",
   },
   {
@@ -334,6 +344,17 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [],
     name: "OnlyFactory",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "attemptedScaledBalance",
+        type: "uint256",
+      },
+    ],
+    name: "OverflowedOnFittingBinBalances",
     type: "error",
   },
   {
@@ -365,6 +386,11 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [],
     name: "ReentrancyGuardReentrantCall",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ReferencePriceOutOfRange",
     type: "error",
   },
   {
@@ -425,6 +451,27 @@ export const MetricOmmPoolAbi = [
     inputs: [
       {
         internalType: "int256",
+        name: "binIdx",
+        type: "int256",
+      },
+      {
+        internalType: "uint256",
+        name: "sharesDelta",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "minimalRequired",
+        type: "uint256",
+      },
+    ],
+    name: "SharesDeltaSmallerThanMinimalOperationalLiquidity",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int256",
         name: "amount0Delta",
         type: "int256",
       },
@@ -441,10 +488,23 @@ export const MetricOmmPoolAbi = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        internalType: "uint16",
+        name: "bidAskRefAsymmetryX8",
+        type: "uint16",
+      },
+    ],
+    name: "BidAskRefAsymmetryUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: true,
-        internalType: "int8",
+        internalType: "int16",
         name: "bin",
-        type: "int8",
+        type: "int16",
       },
       {
         indexed: false,
@@ -472,27 +532,15 @@ export const MetricOmmPoolAbi = [
         type: "int256",
       },
       {
-        components: [
-          {
-            internalType: "int256",
-            name: "delta0Scaled",
-            type: "int256",
-          },
-          {
-            internalType: "int256",
-            name: "delta1Scaled",
-            type: "int256",
-          },
-        ],
         indexed: false,
-        internalType: "struct BinBalanceDelta",
-        name: "delta",
-        type: "tuple",
+        internalType: "Packed2Int128",
+        name: "binDeltas",
+        type: "uint256",
       },
       {
         indexed: false,
-        internalType: "uint256",
-        name: "lpFeeAmount",
+        internalType: "Packed2Uint128",
+        name: "fees",
         type: "uint256",
       },
     ],
@@ -703,38 +751,20 @@ export const MetricOmmPoolAbi = [
       },
       {
         indexed: false,
-        internalType: "bool",
-        name: "exactInput",
-        type: "bool",
+        internalType: "PackedSwapDetails",
+        name: "details",
+        type: "uint256",
       },
       {
         indexed: false,
-        internalType: "int256",
-        name: "amount0Delta",
-        type: "int256",
+        internalType: "Packed2Int128",
+        name: "amountDeltas",
+        type: "uint256",
       },
       {
         indexed: false,
-        internalType: "int256",
-        name: "amount1Delta",
-        type: "int256",
-      },
-      {
-        indexed: false,
-        internalType: "int8",
-        name: "newTick",
-        type: "int8",
-      },
-      {
-        indexed: false,
-        internalType: "uint104",
-        name: "newPositionInBin",
-        type: "uint104",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "protocolFeeAmount",
+        internalType: "Packed2Uint128",
+        name: "platformFees",
         type: "uint256",
       },
     ],
@@ -822,6 +852,11 @@ export const MetricOmmPoolAbi = [
       {
         internalType: "address",
         name: "adminFeeDestination_",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "protocolFeeDestination_",
         type: "address",
       },
     ],
@@ -935,7 +970,7 @@ export const MetricOmmPoolAbi = [
           },
           {
             internalType: "uint256",
-            name: "minimalMintableLiquidity",
+            name: "minimalOperationalLiquidity",
             type: "uint256",
           },
           {
@@ -1112,9 +1147,22 @@ export const MetricOmmPoolAbi = [
   {
     inputs: [
       {
-        internalType: "int8",
+        internalType: "uint16",
+        name: "newBidAskRefAsymmetryX8",
+        type: "uint16",
+      },
+    ],
+    name: "setBidAskRefAsymmetryX8",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int16",
         name: "bin",
-        type: "int8",
+        type: "int16",
       },
       {
         internalType: "uint16",
@@ -1206,6 +1254,11 @@ export const MetricOmmPoolAbi = [
       {
         internalType: "uint128",
         name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
         type: "uint128",
       },
       {

@@ -57,6 +57,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
 
     const wethDeployment = await viem.deployContract("MockWETH9", []);
     const liquidityAdderDeployment = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
       wethDeployment.address,
     ]);
     const liquidityAdder = liquidityAdderDeployment.address;
@@ -84,7 +85,7 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
         curBinDistFromProvidedPricePercent: 0,
         initialScaledToken0PerShareE18: parseUnits("1", 18),
         initialScaledToken1PerShareE18: parseUnits("1", 18),
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         nonNegativeBins: sdk.createUniformBins(20, 10000, 0, 0),
         negativeBins: sdk.createUniformBins(20, 10000, 0, 0),
       }),

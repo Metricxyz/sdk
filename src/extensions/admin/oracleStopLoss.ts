@@ -73,12 +73,12 @@ export function encodeCancelOracleStopLossDrawdownCalldata(params: {
 export function encodeProposeOracleStopLossDecayCalldata(params: {
   extension: Address;
   pool: Address;
-  newDecayPerSecondE8: bigint;
+  newDecayPerSecondE18: bigint;
 }): Hex {
   return encodeFunctionData({
     abi: OracleValueStopLossExtensionAbi,
     functionName: "proposeOracleStopLossDecay",
-    args: [params.pool, params.newDecayPerSecondE8],
+    args: [params.pool, params.newDecayPerSecondE18],
   });
 }
 

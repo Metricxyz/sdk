@@ -96,11 +96,11 @@ export const PriceVelocityGuardExtensionAbi = [
       {
         indexed: false,
         internalType: "uint128",
-        name: "newLastMidPriceX64",
+        name: "newAnchorMidPriceX64",
         type: "uint128",
       },
     ],
-    name: "LastMidPriceUpdated",
+    name: "AnchorMidPriceUpdated",
     type: "event",
   },
   {
@@ -305,6 +305,11 @@ export const PriceVelocityGuardExtensionAbi = [
         type: "uint128",
       },
       {
+        internalType: "uint128",
+        name: "",
+        type: "uint128",
+      },
+      {
         internalType: "int128",
         name: "",
         type: "int128",
@@ -472,12 +477,17 @@ export const PriceVelocityGuardExtensionAbi = [
       },
       {
         internalType: "uint128",
-        name: "bidPriceX64",
+        name: "",
         type: "uint128",
       },
       {
         internalType: "uint128",
-        name: "askPriceX64",
+        name: "",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
         type: "uint128",
       },
       {
@@ -533,12 +543,17 @@ export const PriceVelocityGuardExtensionAbi = [
     outputs: [
       {
         internalType: "uint128",
-        name: "lastMidPriceX64",
+        name: "anchorMidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "lastObservedMidPriceX64",
         type: "uint128",
       },
       {
         internalType: "uint64",
-        name: "lastUpdateBlock",
+        name: "lastInteractionBlock",
         type: "uint64",
       },
       {
@@ -559,11 +574,11 @@ export const PriceVelocityGuardExtensionAbi = [
       },
       {
         internalType: "uint128",
-        name: "newLastMidPriceX64",
+        name: "newAnchorMidPriceX64",
         type: "uint128",
       },
     ],
-    name: "setLastMidPrice",
+    name: "setAnchorMidPrice",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

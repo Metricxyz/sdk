@@ -15,7 +15,11 @@ npm install @metric.xyz/metric-omm-sdk-v1 viem
 Helpers are exported from the package root. Import them by name:
 
 ```typescript
-import { getAddressesOrThrow, ChainId, buildExactInputSingleParams } from "@metric.xyz/metric-omm-sdk-v1";
+import {
+  getAddressesOrThrow,
+  ChainId,
+  buildExactInputSingleParams,
+} from "@metric.xyz/metric-omm-sdk-v1";
 ```
 
 The examples below use a namespace import so every helper is visibly qualified:
@@ -34,30 +38,33 @@ const ethV1 = v1.getAddressesOrThrow(v1.ChainId.ETHEREUM);
 Committed ABIs live under the `/abis` subpath:
 
 ```typescript
-import { MetricOmmSimpleRouterAbi, MetricOmmSwapQuoterAbi } from "@metric.xyz/metric-omm-sdk-v1/abis";
+import {
+  MetricOmmSimpleRouterAbi,
+  MetricOmmSwapQuoterAbi,
+} from "@metric.xyz/metric-omm-sdk-v1/abis";
 ```
 
 ## What the v1 SDK covers
 
-| Topic | v1 |
-| ----- | --- |
-| **Swaps** | `MetricOmmSimpleRouter` |
-| **Quotes** | `MetricOmmSwapQuoter` (`quoteLiveExactInSingle`, multihop `quoteLiveExactIn`, …) |
-| **Add liquidity** | `MetricOmmPoolLiquidityAdder.addLiquidity*` |
-| **Remove liquidity** | Pool `removeLiquidity` |
-| **Swap builder needs** | `simpleRouter` + `quoterAddress` (until bundled quoter is set) |
-| **Addition builder needs** | `factoryAddress` + `dataProviderAddress` + pool |
-| **Pool immutables** | `getPoolImmutables(client, factory, pool)` |
-| **Create-pool admin fees** | `adminSpreadFeeE6`, `adminNotionalFeeE8` |
-| **Create-pool extras** | Optional deposit/swap allowlists, `priceProviderTimelock` |
-| **Chains in SDK** | Ethereum, Base, Robinhood, HyperEVM (bundled addresses) |
-| **Lens for reads** | `addresses.dataProvider` (MetricOmmPoolDataProvider) |
+| Topic                      | v1                                                                               |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| **Swaps**                  | `MetricOmmSimpleRouter`                                                          |
+| **Quotes**                 | `MetricOmmSwapQuoter` (`quoteLiveExactInSingle`, multihop `quoteLiveExactIn`, …) |
+| **Add liquidity**          | `MetricOmmPoolLiquidityAdder.addLiquidity*`                                      |
+| **Remove liquidity**       | Pool `removeLiquidity`                                                           |
+| **Swap builder needs**     | `simpleRouter` + `quoterAddress` (until bundled quoter is set)                   |
+| **Addition builder needs** | `factoryAddress` + `dataProviderAddress` + pool                                  |
+| **Pool immutables**        | `getPoolImmutables(client, factory, pool)`                                       |
+| **Create-pool admin fees** | `adminSpreadFeeE6`, `adminNotionalFeeE8`                                         |
+| **Create-pool extras**     | Optional deposit/swap allowlists, `priceProviderTimelock`                        |
+| **Chains in SDK**          | Ethereum, Base, Robinhood, HyperEVM (bundled addresses)                          |
+| **Lens for reads**         | `addresses.dataProvider` (MetricOmmPoolDataProvider)                             |
 
 Shared mental model:
 
 - **Bins:** `createUniformBins`, `createBins`, `packBinData` — packed `bigint[]` for factory `createPool`.
 - **Position key:** `salt` (uint256) + owner address; same salt can hold multiple bin positions.
-- **Planning types:** `LiquidityDelta` = `{ bin, deltaShares }` for *plans*; builders convert to on-chain structs.
+- **Planning types:** `LiquidityDelta` = `{ bin, deltaShares }` for _plans_; builders convert to on-chain structs.
 - **Slippage helper:** `NO_SLIPPAGE_LIMIT` for “no min/max caps” on add paths that support it.
 - **Distribution math:** `buildModifyLiquidityArgsForUniformAddition`, `buildModifyLiquidityArgsForRemoval`, etc. — names retained even though v1 does not call `modifyLiquidity` on-chain.
 
@@ -74,10 +81,10 @@ swap           → router.exactInputSingle / exactOutputSingle (or exactInput / 
 
 v1 splits “plan” from “wire format”:
 
-| Action | SDK plan | On-chain struct | Encoder |
-| ------ | -------- | ----------------- | -------- |
-| Add | `LiquidityDelta[]` (+ max token caps) | `{ int256[] binIdxs, uint256[] shares }` | `additionPlanToPoolLiquidityDelta` → `encodeAddLiquidityExactSharesSelfCalldata` |
-| Remove | negative `deltaShares` in plan | same struct, **positive** share amounts to burn | `removalPlanToPoolLiquidityDelta` → `encodeRemoveLiquidityCalldata` |
+| Action | SDK plan                              | On-chain struct                                 | Encoder                                                                          |
+| ------ | ------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------- |
+| Add    | `LiquidityDelta[]` (+ max token caps) | `{ int256[] binIdxs, uint256[] shares }`        | `additionPlanToPoolLiquidityDelta` → `encodeAddLiquidityExactSharesSelfCalldata` |
+| Remove | negative `deltaShares` in plan        | same struct, **positive** share amounts to burn | `removalPlanToPoolLiquidityDelta` → `encodeRemoveLiquidityCalldata`              |
 
 ---
 
@@ -113,19 +120,25 @@ const lensAddress = addresses.dataProvider;
 ```typescript
 import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 
+// For pools using OracleValueStopLossExtension, derive initialScaledToken{0,1}PerShareE18
+// from the opening price with recommendedInitialScaledAmounts instead of picking them by
+// hand — see metric-core docs/POOL_CONFIGURATION_AND_MANAGEMENT.md §2.5.
+const { initialScaledToken0PerShareE18, initialScaledToken1PerShareE18 } =
+  v1.recommendedInitialScaledAmounts(1 /* opening price: token1 per token0 */);
+
 const params: v1.CreatePoolFactoryParams = {
   token0,
   token1,
   priceProvider,
   admin,
-  reportSwapToPriceProvider: false,
   adminFeeDestination: admin,
-  adminSpreadFeeE6: 5_000,      // on-chain fee units, not “percent” strings
+  adminSpreadFeeE6: 5_000, // on-chain fee units, not “percent” strings
   adminNotionalFeeE8: 0,
   curBinDistFromProvidedPricePercent: 0,
-  initialScaledToken0PerShareE18: 10n ** 18n,
-  initialScaledToken1PerShareE18: 10n ** 18n,
-  minimalMintableLiquidity: 1000n,
+  initialScaledToken0PerShareE18,
+  initialScaledToken1PerShareE18,
+  // Must be >= PRECISION(1e6) * 1e18 / min(initialScaledToken0PerShareE18, initialScaledToken1PerShareE18).
+  minimalOperationalLiquidity: 300_000n,
   nonNegativeBins: v1.createUniformBins(10, 10_000),
   negativeBins: v1.createUniformBins(10, 10_000),
   // depositAllowlistProvider, swapAllowlistProvider, priceProviderTimelock optional
@@ -144,11 +157,11 @@ const data = v1.encodeCreatePoolCalldata(params);
 
 ## Read pool state
 
-| Data | Helper |
-| ---- | ------ |
-| Slot0 / bins / position shares | `getSlot0`, `getBinStatesScaled`, `getPositionBinSharesFromDataProvider` via **`addresses.dataProvider`** |
-| Pool immutables (tokens, scales, bin ranges) | `getPoolImmutables(publicClient, factory, pool)` |
-| Protocol / pool fees | `getPoolFeeConfig(client, factory, pool)` |
+| Data                                         | Helper                                                                                                    |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Slot0 / bins / position shares               | `getSlot0`, `getBinStatesScaled`, `getPositionBinSharesFromDataProvider` via **`addresses.dataProvider`** |
+| Pool immutables (tokens, scales, bin ranges) | `getPoolImmutables(publicClient, factory, pool)`                                                          |
+| Protocol / pool fees                         | `getPoolFeeConfig(client, factory, pool)`                                                                 |
 
 ```typescript
 const slot0 = await v1.getSlot0(publicClient, addresses.dataProvider, poolAddress);
@@ -188,7 +201,15 @@ await walletClient.writeContract({
   address: addresses.liquidityAdder,
   abi: v1.MetricOmmPoolLiquidityAdderAbi,
   functionName: "addLiquidityExactShares",
-  args: [pool, salt, poolLiquidityDelta, maxAmountToken0, maxAmountToken1],
+  args: [
+    pool,
+    salt,
+    poolLiquidityDelta,
+    maxAmountToken0,
+    maxAmountToken1,
+    v1.UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS, // or v1.prepareLiquidityCursorBounds(...) to guard the add
+    v1.EMPTY_EXTENSION_DATA,
+  ],
 });
 // or: v1.encodeAddLiquidityExactSharesSelfCalldata({ pool, salt, deltas: poolLiquidityDelta, maxAmountToken0, maxAmountToken1 })
 ```
@@ -269,13 +290,13 @@ Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`
 
 ## Practical footguns
 
-| Issue | Guidance |
-| ----- | -------- |
-| **Mixed-decimal pools (18/6)** | Use moderate share sizes (e.g. `10_000_000n`), not `parseUnits("100", 18)`, when minting into empty bins — scaled balances are `uint104`. |
-| **Invalid bin index** | If you create `N` bins per side, valid indices are roughly `-N…-1` and `0…N-1`. Do not address bin `N`. |
-| **Lens** | Use `addresses.dataProvider` (`MetricOmmPoolDataProvider`) for all pool reads. |
-| **Approvals** | liquidityAdder for adds, simpleRouter for swaps, pool only for remove. |
-| **Deterministic create tests** | Pass explicit `salt` in `CreatePoolFactoryParams`; otherwise each `encodeCreatePoolCalldata` differs. |
+| Issue                           | Guidance                                                                                                                                           |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mixed-decimal pools (18/6)**  | Use moderate share sizes (e.g. `10_000_000n`), not `parseUnits("100", 18)`, when minting into empty bins — scaled balances are `uint104`.          |
+| **Invalid bin index**           | If you create `N` bins per side, valid indices are roughly `-N…-1` and `0…N-1`. Do not address bin `N`.                                            |
+| **Lens**                        | Use `addresses.dataProvider` (`MetricOmmPoolDataProvider`) for all pool reads.                                                                     |
+| **Approvals**                   | liquidityAdder for adds, simpleRouter for swaps, pool only for remove.                                                                             |
+| **Deterministic create tests**  | Pass explicit `salt` in `CreatePoolFactoryParams`; otherwise each `encodeCreatePoolCalldata` differs.                                              |
 | **Type-only `ChainId` entries** | Exports many chain IDs for typing; only Ethereum, Base, Robinhood, and HyperEVM have `ADDRESSES`. Use `isChainSupported` / `getSupportedChainIds`. |
 
 ---

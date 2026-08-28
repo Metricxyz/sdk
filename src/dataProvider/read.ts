@@ -102,6 +102,7 @@ export async function getSlot0(
     curBinDistFromProvidedPrice: Number(result[3]),
     spreadFeeE6: Number(result[4]),
     notionalFeeE8: Number(result[5]),
+    bidAskRefAsymmetryX8: Number(result[6]),
   };
 }
 

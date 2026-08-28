@@ -4,11 +4,12 @@
  */
 
 import { Q64 } from "../../constants.js";
+import { toPriceE18 } from "../../utils/liquidityMath.js";
 
 export const STOP_LOSS_E6 = 1_000_000n;
-export const STOP_LOSS_E8 = 100_000_000n;
+export const STOP_LOSS_E18 = 1_000_000_000_000_000_000n;
 /** Per-share metric fixed-point scale (matches on-chain METRIC_SCALE). */
-export const STOP_LOSS_METRIC_SCALE = 1_000_000n;
+export const STOP_LOSS_METRIC_SCALE = STOP_LOSS_E18;
 /** Clamp for pathological oracle prices (matches on-chain METRIC_MAX = uint104.max). */
 export const STOP_LOSS_METRIC_MAX = (1n << 104n) - 1n;
 
@@ -29,21 +30,57 @@ export function clampStopLossMetric(metric: bigint): bigint {
   return metric > STOP_LOSS_METRIC_MAX ? STOP_LOSS_METRIC_MAX : metric;
 }
 
+/** Floor square root of a non-negative bigint (matches OpenZeppelin `Math.sqrt` rounding). */
+function isqrt(value: bigint): bigint {
+  if (value < 0n) throw new Error("isqrt: value must be >= 0");
+  if (value < 2n) return value;
+  let x0 = value;
+  let x1 = (x0 + 1n) / 2n;
+  while (x1 < x0) {
+    x0 = x1;
+    x1 = (x0 + value / x0) / 2n;
+  }
+  return x0;
+}
+
+export interface RecommendedInitialScaledAmounts {
+  /** Recommended `initialScaledAmount0PerE18Shares` / `initialScaledToken0PerShareE18` (P̂0). */
+  initialScaledToken0PerShareE18: bigint;
+  /** Recommended `initialScaledAmount1PerE18Shares` / `initialScaledToken1PerShareE18` (P̂1). */
+  initialScaledToken1PerShareE18: bigint;
+}
+
+/**
+ * Recommended initial per-share densities (P̂0, P̂1) for pools that use
+ * `OracleValueStopLossExtension`, per metric-core's
+ * `docs/POOL_CONFIGURATION_AND_MANAGEMENT.md` §2.5 "Choosing `initialScaledAmount{0,1}`":
+ */
+export function recommendedInitialScaledAmounts(
+  currentPrice: number,
+): RecommendedInitialScaledAmounts {
+  const pi0E18 = toPriceE18(currentPrice);
+  const K = STOP_LOSS_E6 * STOP_LOSS_METRIC_MAX;
+  return {
+    initialScaledToken0PerShareE18: isqrt(mulDiv(K, STOP_LOSS_E18, pi0E18)),
+    initialScaledToken1PerShareE18: isqrt(mulDiv(K, pi0E18, STOP_LOSS_E18)),
+  };
+}
+
 /**
  * Decayed high watermark at `dt` seconds after last touch.
- * Linear decay; floors at 0 when `rate * dt >= 1e8`.
+ * Linear decay; floors at 0 when `rate * dt >= 1e18`.
  */
 export function decayedHighWatermark(
   hwm: bigint,
-  decayPerSecondE8: bigint | number,
+  decayPerSecondE18: bigint | number,
   dtSeconds: bigint | number,
 ): bigint {
-  const rate = BigInt(decayPerSecondE8);
+  const rate = BigInt(decayPerSecondE18);
   const dt = BigInt(dtSeconds);
   if (rate === 0n || dt === 0n || hwm === 0n) return hwm;
   const factor = rate * dt;
-  if (factor >= STOP_LOSS_E8) return 0n;
-  return hwm - (hwm * factor) / STOP_LOSS_E8;
+  if (factor >= STOP_LOSS_E18) return 0n;
+  return hwm - (hwm * factor) / STOP_LOSS_E18;
 }
 
 /**
@@ -58,13 +95,13 @@ export function stopLossThreshold(hwm: bigint, drawdownE6: bigint | number): big
 
 /**
  * Per-share metrics at oracle bid/ask (bin scaled token balances).
- * Shares are floored at `minimalMintableLiquidity` (or 1 when that is 0).
+ * Shares are floored at `minimalOperationalLiquidity` (or 1 when that is 0).
  */
 export function computeOracleStopLossMetrics(params: {
   token0BalanceScaled: bigint;
   token1BalanceScaled: bigint;
   totalShares: bigint;
-  minimalMintableLiquidity: bigint;
+  minimalOperationalLiquidity: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
 }): OracleStopLossMetrics {
@@ -72,7 +109,7 @@ export function computeOracleStopLossMetrics(params: {
   if (bidPriceX64 === 0n) throw new Error("bidPriceX64 must be > 0");
   if (askPriceX64 === 0n) throw new Error("askPriceX64 must be > 0");
 
-  let minShares = params.minimalMintableLiquidity;
+  let minShares = params.minimalOperationalLiquidity;
   if (minShares === 0n) minShares = 1n;
   const shares = params.totalShares < minShares ? minShares : params.totalShares;
 
@@ -99,7 +136,7 @@ export function isStopLossMetricBreached(
 /**
  * Seconds of further watermark decay until `metric` is no longer breached vs `hwm`.
  * - `0n` — already clear (or drawdown disabled)
- * - `null` — cannot clear via decay (`decayPerSecondE8 === 0` while breached)
+ * - `null` — cannot clear via decay (`decayPerSecondE18 === 0` while breached)
  *
  * `hwm` should be the *current* (already decayed) watermark, e.g. from
  * `currentHighWatermarks`.
@@ -108,10 +145,10 @@ export function secondsUntilStopLossClears(params: {
   metric: bigint;
   hwm: bigint;
   drawdownE6: bigint | number;
-  decayPerSecondE8: bigint | number;
+  decayPerSecondE18: bigint | number;
 }): bigint | null {
   const drawdown = BigInt(params.drawdownE6);
-  const rate = BigInt(params.decayPerSecondE8);
+  const rate = BigInt(params.decayPerSecondE18);
   const { metric, hwm } = params;
 
   if (drawdown === 0n || !isStopLossMetricBreached(metric, hwm, drawdown)) {
@@ -119,8 +156,8 @@ export function secondsUntilStopLossClears(params: {
   }
   if (rate === 0n) return null;
 
-  // When rate * dt >= 1e8, watermark decays to 0 and the floor is 0.
-  const maxDt = (STOP_LOSS_E8 + rate - 1n) / rate;
+  // When rate * dt >= 1e18, watermark decays to 0 and the floor is 0.
+  const maxDt = (STOP_LOSS_E18 + rate - 1n) / rate;
 
   let lo = 0n;
   let hi = maxDt;
