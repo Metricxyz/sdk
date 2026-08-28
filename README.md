@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `d210a84daf694c52a591d371ceb9b82cece0f79f` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `6bb01830399a18c559067d53b73c749d89d7bd8d` (core via periphery `lib/metric-core`).
 
 ## Installation
 
@@ -16,39 +16,42 @@ Helpers are exported from the package root:
 import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 ```
 
-## Ethereum, Base, Robinhood, and HyperEVM addresses
+## Deployed addresses
 
-Protocol contracts use the **same addresses** on Ethereum, Base, Robinhood (4663), and HyperEVM (CREATE2). Wrapped native differs per chain.
+Protocol contracts use the **same addresses** on Ethereum, Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood (CREATE2). Wrapped native differs per chain.
 
 | Contract | Address |
 | -------- | ------- |
-| MetricOmmPoolFactory | `0x622911384e7973439b8be305f5e3Fc3c5736EDe4` |
-| MetricOmmPoolDeployer | `0x47D5C9df5e3419217471A9D12D932Dbed7B0B7f1` |
-| MetricOmmPoolLiquidityAdder | `0x9aA238a8319D20F6D8C3bcca45CA2F5e27C1e00f` |
-| MetricOmmPoolDataProvider | `0x19f85Eb0a450b429C9a700bE867CF284e7e685eC` |
-| MetricOmmSimpleRouter | `0x292DecA668291262341f92B840830f78dB35b6E5` |
-| MetricOmmSwapQuoter | `0xaB6C48D981B943F62A23bb4EB2db125182E6753c` |
-| DepositAllowlistExtension | `0x2229c48864d9aC877d23591fE99C3718Ef992F66` |
-| SwapAllowlistExtension | `0xAC6BA2d77279a7B26db57Be6f8bF234932547eEd` |
-| OracleValueStopLossExtension | `0x7D5D12aa06A025Fa37410F522F166070bA998e11` |
-| PriceVelocityGuardExtension | `0x225c402B55c63d081821aA9260179C0d35e25091` |
+| MetricOmmPoolFactory | `0xA32761549A1DE40060c194C86A8df24f0A29bA2d` |
+| MetricOmmPoolDeployer | `0x8b25C2c3Dc0C3A9DC1272FbBC09E064015097A5B` |
+| MetricOmmPoolLiquidityAdder | `0x6cd70697cca0586e80907cddC6e9304f910229DD` |
+| MetricOmmPoolDataProvider | `0x95ab07bCef6463712213D0845962FF4293E5acf7` |
+| MetricOmmSimpleRouter | `0x7D4fb51164288D2e1fdA2032D887517F71008b89` |
+| MetricOmmSwapQuoter | `0x45e72641A71A7eCcccF2Ef905e4159951cdeF8e0` |
+| DepositAllowlistExtension | `0x180c94f108dBa243FB74819fD1cC490dd82a2A2e` |
+| SwapAllowlistExtension | `0xe9c6C1f3b5a1994A7B66c844348b67086d33533b` |
+| OracleValueStopLossExtension | `0x022B57C96a337b12eAAB1b39AF9E8a07dE23eE67` |
+| PriceVelocityGuardExtension | `0x5e971600f5f7e9972631960CCF1F57AF53B5fE95` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
-| WETH (Base) | `0x4200000000000000000000000000000000000006` |
+| WETH (Base / MegaETH) | `0x4200000000000000000000000000000000000006` |
+| WETH (Arbitrum) | `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1` |
+| WAVAX (Avalanche) | `0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7` |
+| WBNB (BNB) | `0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c` |
+| WMATIC (Polygon) | `0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270` |
 | WETH (Robinhood) | `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73` |
 | WHYPE (HyperEVM) | `0x5555555555555555555555555555555555555555` |
+| WMON (Monad) | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
 
 `MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param). There is no separate StateView deployment — use `dataProvider` for all lens reads.
 
 ```typescript
-import { getAddressesOrThrow, ChainId, isChainSupported } from "@metric.xyz/metric-omm-sdk-v1";
+import { getAddressesOrThrow, ChainId } from "@metric.xyz/metric-omm-sdk-v1";
 
 const a = getAddressesOrThrow(ChainId.ETHEREUM);
-// getAddressesOrThrow(ChainId.BASE) — same protocol addresses as Ethereum
-// getAddressesOrThrow(ChainId.ROBINHOOD) / ChainId.HYPEREVM — same protocol addresses
-// isChainSupported(ChainId.ARBITRUM) === false — use DeployedChainId / getSupportedChainIds()
+// same protocol addresses on Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood
 ```
 
-`ChainId` lists future chain IDs for typing; **Ethereum, Base, Robinhood, and HyperEVM** have entries in `ADDRESSES` for this release.
+Use `isChainSupported` / `getSupportedChainIds` for the ten bundled chains.
 
 ## Swaps (SimpleRouter)
 
