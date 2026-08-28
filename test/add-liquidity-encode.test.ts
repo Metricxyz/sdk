@@ -33,6 +33,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         max0,
         max1,
+        bounds,
         "0x",
       ],
     });
@@ -58,6 +59,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         1n,
         2n,
+        bounds,
         "0x",
       ],
     });
@@ -81,10 +83,7 @@ describe("LiquidityAdder calldata encoders (v1)", () => {
         { binIdxs: [...deltas.binIdxs], shares: [...deltas.shares] },
         3n,
         4n,
-        bounds.minimalCurBin,
-        bounds.minimalPosition,
-        bounds.maximalCurBin,
-        bounds.maximalPosition,
+        bounds,
         "0x",
       ],
     });

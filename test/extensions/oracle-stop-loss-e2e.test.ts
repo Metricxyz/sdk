@@ -66,7 +66,13 @@ describe("OracleValueStopLossExtension E2E", async () => {
   const { viem } = (await network.connect("hardhat")) as any;
   const [deployer, trader] = await viem.getWalletClients();
 
-  async function setupPool(options?: { drawdownE6?: number; adminSpreadFeeE6?: number }): Promise<{
+  async function setupPool(options?: {
+    drawdownE6?: number;
+    binLengthE6?: number;
+    binFeeE6?: number;
+    protocolSpreadFeeE6?: number;
+    adminSpreadFeeE6?: number;
+  }): Promise<{
     env: MetricTestEnv;
     pool: Address;
     stopLoss: Address;
@@ -78,13 +84,26 @@ describe("OracleValueStopLossExtension E2E", async () => {
 
     const pool = await createPoolViaFactory(env, deployer, {
       adminSpreadFeeE6: options?.adminSpreadFeeE6 ?? 5_000,
+      protocolSpreadFeeE6: options?.protocolSpreadFeeE6,
       adminNotionalFeeE8: 0,
+      nonNegativeBins: sdk.createUniformBins(
+        10,
+        options?.binLengthE6 ?? 10_000,
+        options?.binFeeE6 ?? 0,
+        options?.binFeeE6 ?? 0,
+      ),
+      negativeBins: sdk.createUniformBins(
+        10,
+        options?.binLengthE6 ?? 10_000,
+        options?.binFeeE6 ?? 0,
+        options?.binFeeE6 ?? 0,
+      ),
       extensions: [stopLoss.address],
       extensionOrders: sdk.buildExtensionOrders({ afterSwap: [1] }),
       extensionInitData: [
         sdk.encodeOracleStopLossInitData({
           drawdownE6: options?.drawdownE6 ?? DRAWDOWN_E6,
-          decayPerSecondE8: 0,
+          decayPerSecondE18: 0n,
           timelockSeconds: 0,
         }),
       ],
@@ -150,8 +169,11 @@ describe("OracleValueStopLossExtension E2E", async () => {
     // At a fixed oracle mid, fat spread fees + tight drawdown make repeated
     // round-trips erode value/share until watermarks are breached and swaps freeze.
     const { env, pool, stopLoss } = await setupPool({
-      drawdownE6: 5_000, // 0.5%
-      adminSpreadFeeE6: 200_000, // 20%
+      drawdownE6: 1, // 0.0001%
+      binLengthE6: 100_000,
+      binFeeE6: 200_000, // 20%
+      protocolSpreadFeeE6: 500_000,
+      adminSpreadFeeE6: 500_000, // divert the full fee from LP bins
     });
 
     await setOracleMid(env, 1);

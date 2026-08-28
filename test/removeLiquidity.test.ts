@@ -29,7 +29,10 @@ describe("SDK Remove Liquidity", async () => {
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
     const weth = await viem.deployContract("MockWETH9", []);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
+      weth.address,
+    ]);
 
     const params: sdk.CreatePoolFactoryParams = {
       token0: token0.address,
@@ -42,7 +45,7 @@ describe("SDK Remove Liquidity", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
     };
@@ -356,7 +359,7 @@ describe("SDK Remove Liquidity", async () => {
 
         assert.ok(
           after.shares >= expectedRemaining - tolerance &&
-            after.shares <= expectedRemaining + tolerance,
+          after.shares <= expectedRemaining + tolerance,
           `Bin ${after.binIdx}: expected ~${expectedRemaining}, got ${after.shares}`,
         );
       }

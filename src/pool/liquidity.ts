@@ -780,9 +780,9 @@ export async function buildAddLiquidityExactSharesParamsFromBinTargets(
 
 /** Cursor bounds that disable weighted-add cursor checks (matches on-chain test helpers). */
 export const UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS = {
-  minimalCurBin: -128,
+  minimalCurBin: -32768,
   minimalPosition: 0n,
-  maximalCurBin: 127,
+  maximalCurBin: 32767,
   maximalPosition: MAX_UINT104,
 } as const;
 
@@ -793,22 +793,40 @@ export type LiquidityCursorBounds = {
   maximalPosition: bigint;
 };
 
+type OptionalLiquidityCursorBounds = Partial<LiquidityCursorBounds>;
+
+function resolveLiquidityCursorBounds(
+  bounds: OptionalLiquidityCursorBounds,
+): LiquidityCursorBounds {
+  return {
+    minimalCurBin: bounds.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
+    minimalPosition:
+      bounds.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
+    maximalCurBin: bounds.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
+    maximalPosition:
+      bounds.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
+  };
+}
+
 /**
  * Encode `LiquidityAdder.addLiquidityExactShares` for the transaction sender.
  *
  * Creates or increases the position `(msg.sender, salt)` — liquidity is credited to whoever
  * sends the transaction. Approve both pool tokens on the LiquidityAdder before sending.
  */
-export function encodeAddLiquidityExactSharesSelfCalldata(params: {
-  pool: Address;
-  salt: bigint;
-  deltas: PoolLiquidityDelta;
-  maxAmountToken0: bigint;
-  maxAmountToken1: bigint;
-  extensionData?: Hex;
-}): Hex {
+export function encodeAddLiquidityExactSharesSelfCalldata(
+  params: {
+    pool: Address;
+    salt: bigint;
+    deltas: PoolLiquidityDelta;
+    maxAmountToken0: bigint;
+    maxAmountToken1: bigint;
+    extensionData?: Hex;
+  } & OptionalLiquidityCursorBounds,
+): Hex {
+  const bounds = resolveLiquidityCursorBounds(params);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 6)],
+    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 7)],
     functionName: "addLiquidityExactShares",
     args: [
       params.pool,
@@ -816,6 +834,7 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -828,17 +847,20 @@ export function encodeAddLiquidityExactSharesSelfCalldata(params: {
  * (e.g. router, vault, or meta-transaction relayer acting on behalf of `owner`).
  * Approve both pool tokens on the LiquidityAdder before sending.
  */
-export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
-  pool: Address;
-  owner: Address;
-  salt: bigint;
-  deltas: PoolLiquidityDelta;
-  maxAmountToken0: bigint;
-  maxAmountToken1: bigint;
-  extensionData?: Hex;
-}): Hex {
+export function encodeAddLiquidityExactSharesWithOwnerCalldata(
+  params: {
+    pool: Address;
+    owner: Address;
+    salt: bigint;
+    deltas: PoolLiquidityDelta;
+    maxAmountToken0: bigint;
+    maxAmountToken1: bigint;
+    extensionData?: Hex;
+  } & OptionalLiquidityCursorBounds,
+): Hex {
+  const bounds = resolveLiquidityCursorBounds(params);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 7)],
+    abi: [getLiquidityAdderFunction("addLiquidityExactShares", 8)],
     functionName: "addLiquidityExactShares",
     args: [
       params.pool,
@@ -847,6 +869,7 @@ export function encodeAddLiquidityExactSharesWithOwnerCalldata(params: {
       { binIdxs: [...params.deltas.binIdxs], shares: [...params.deltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -871,8 +894,9 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
   maximalPosition?: bigint;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 10)],
+    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 7)],
     functionName: "addLiquidityWeighted",
     args: [
       params.pool,
@@ -880,10 +904,7 @@ export function encodeAddLiquidityWeightedSelfCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
-      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
-      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
-      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });
@@ -908,8 +929,9 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
   maximalPosition?: bigint;
   extensionData?: Hex;
 }): Hex {
+  const bounds = resolveLiquidityCursorBounds(params);
   return encodeFunctionData({
-    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 11)],
+    abi: [getLiquidityAdderFunction("addLiquidityWeighted", 8)],
     functionName: "addLiquidityWeighted",
     args: [
       params.pool,
@@ -918,10 +940,7 @@ export function encodeAddLiquidityWeightedWithOwnerCalldata(params: {
       { binIdxs: [...params.weightDeltas.binIdxs], shares: [...params.weightDeltas.shares] },
       params.maxAmountToken0,
       params.maxAmountToken1,
-      params.minimalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalCurBin,
-      params.minimalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.minimalPosition,
-      params.maximalCurBin ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalCurBin,
-      params.maximalPosition ?? UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS.maximalPosition,
+      bounds,
       params.extensionData ?? EMPTY_EXTENSION_DATA,
     ],
   });

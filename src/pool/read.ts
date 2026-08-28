@@ -26,7 +26,7 @@ export async function getPoolImmutables(
     token1ScaleMultiplier: bigint;
     initialScaledToken0PerShareE18: bigint;
     initialScaledToken1PerShareE18: bigint;
-    minimalMintableLiquidity: bigint;
+    minimalOperationalLiquidity: bigint;
     immutablePriceProvider: Address;
     lowestBin: bigint;
     highestBin: bigint;
@@ -53,7 +53,7 @@ export async function getPoolImmutables(
     token1ScaleMultiplier: imm.token1ScaleMultiplier,
     initialScaledToken0PerShareE18: imm.initialScaledToken0PerShareE18,
     initialScaledToken1PerShareE18: imm.initialScaledToken1PerShareE18,
-    minimalMintableLiquidity: imm.minimalMintableLiquidity,
+    minimalOperationalLiquidity: imm.minimalOperationalLiquidity,
     immutablePriceProvider: imm.immutablePriceProvider,
     extensions: {
       extension1: imm.extension1,
@@ -112,7 +112,7 @@ export async function getPoolState(
       abi: DATA_PROVIDER_ABI,
       functionName: "slot0",
       args: [poolAddress],
-    }) as Promise<readonly [number, number, bigint, number, number, number]>,
+    }) as Promise<readonly [number, number, bigint, number, number, number, number]>,
     publicClient.readContract({
       address: dataProviderAddress,
       abi: DATA_PROVIDER_ABI,
@@ -128,6 +128,7 @@ export async function getPoolState(
     curBinDistFromProvidedPrice: slot0[3],
     spreadFeeE6: slot0[4],
     notionalFeeE8: slot0[5],
+    bidAskRefAsymmetryX8: slot0[6],
     totalScaledToken0InBins: slot1[0],
     totalScaledToken1InBins: slot1[1],
   };

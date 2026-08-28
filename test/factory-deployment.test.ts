@@ -107,7 +107,7 @@ describe("Factory Deployment Flow", async () => {
       adminFeeDestination: admin.account.address,
       initialScaledToken0PerShareE18: 1000000000000000000n,
       initialScaledToken1PerShareE18: 1000000000000000000n,
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       curBinDistFromProvidedPricePercent: 0,
     };
 
@@ -151,7 +151,7 @@ describe("Factory Deployment Flow", async () => {
       adminNotionalFeeE8: 0,
       initialScaledToken0PerShareE18: 1000000000000000000n,
       initialScaledToken1PerShareE18: 1000000000000000000n,
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       curBinDistFromProvidedPricePercent: 0,
     };
 
@@ -220,12 +220,13 @@ describe("Factory Deployment Flow", async () => {
             token1ScaleMultiplier: 1n,
             initialScaledAmount0PerShareE18: 1_000_000_000_000_000_000n,
             initialScaledAmount1PerShareE18: 1_000_000_000_000_000_000n,
-            minimalMintableLiquidity: 1000n,
+            minimalOperationalLiquidity: 1_000_000n,
             spreadFeeE6: 5000,
             curBinDistFromProvidedPriceE6: 0,
             nonNegativeBinStates: [emptyBin],
             negativeBinStates: [emptyBin],
             notionalFeeE8: 0,
+            bidAskRefAsymmetryX8: 65_535,
           },
         ]);
       },

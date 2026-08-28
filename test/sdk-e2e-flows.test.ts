@@ -38,7 +38,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
       negativeBins: sdk.createUniformBins(10, 10_000),
       salt: fixedSalt,
@@ -90,6 +90,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
         { binIdxs: [...addDeltas.binIdxs], shares: [...addDeltas.shares] },
         sdk.NO_SLIPPAGE_LIMIT,
         sdk.NO_SLIPPAGE_LIMIT,
+        sdk.UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS,
         "0x",
       ],
     });
@@ -201,7 +202,7 @@ describe("SDK v1 E2E flows (calldata audit)", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
     };

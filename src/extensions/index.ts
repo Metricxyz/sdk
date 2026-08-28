@@ -13,7 +13,7 @@ export { encodeSetAllowedToDepositCalldata } from "./admin/depositAllowlist.js";
 export { encodeSetAllowedToSwapCalldata } from "./admin/swapAllowlist.js";
 export {
   encodeSetMaxChangePerBlockCalldata,
-  encodeSetLastMidPriceCalldata,
+  encodeSetAnchorMidPriceCalldata,
 } from "./admin/priceVelocityGuard.js";
 export {
   encodeProposeOracleStopLossTimelockCalldata,
@@ -32,7 +32,7 @@ export {
 
 export {
   STOP_LOSS_E6,
-  STOP_LOSS_E8,
+  STOP_LOSS_E18,
   STOP_LOSS_METRIC_SCALE,
   STOP_LOSS_METRIC_MAX,
   mulDiv,
@@ -42,11 +42,13 @@ export {
   computeOracleStopLossMetrics,
   isStopLossMetricBreached,
   secondsUntilStopLossClears,
+  recommendedInitialScaledAmounts,
   evaluateOracleStopLoss,
   getOracleStopLossConfig,
   getCurrentHighWatermarks,
   getOracleStopLossAnyBinStatus,
   type OracleStopLossMetrics,
+  type RecommendedInitialScaledAmounts,
   type OracleStopLossBinInput,
   type OracleStopLossBinStatus,
   type EvaluateOracleStopLossParams,

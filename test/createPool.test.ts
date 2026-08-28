@@ -93,7 +93,7 @@ describe("SDK createPool", async () => {
         adminNotionalFeeE8: 0,
         initialScaledToken0PerShareE18: 1000000000000000000n,
         initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -120,7 +120,7 @@ describe("SDK createPool", async () => {
         adminNotionalFeeE8: 0,
         initialScaledToken0PerShareE18: 1000000000000000000n,
         initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -179,7 +179,7 @@ describe("SDK createPool", async () => {
         adminNotionalFeeE8: 0,
         initialScaledToken0PerShareE18: 1000000000000000000n,
         initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -221,7 +221,7 @@ describe("SDK createPool", async () => {
         adminNotionalFeeE8: 0,
         initialScaledToken0PerShareE18: 1000000000000000000n,
         initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         curBinDistFromProvidedPricePercent: 0,
       };
 
@@ -257,7 +257,7 @@ describe("SDK createPool", async () => {
         adminNotionalFeeE8: 0,
         initialScaledToken0PerShareE18: 1000000000000000000n,
         initialScaledToken1PerShareE18: 1000000000000000000n,
-        minimalMintableLiquidity: 1000n,
+        minimalOperationalLiquidity: 1_000_000n,
         curBinDistFromProvidedPricePercent: 0,
       };
       const calldata = sdk.encodeCreatePoolCalldata(params);

@@ -12,7 +12,7 @@ import { evaluateOracleStopLoss, type OracleStopLossEvaluation } from "./evaluat
 
 export interface OracleStopLossConfig {
   drawdownE6: number;
-  decayPerSecondE8: number;
+  decayPerSecondE18: bigint;
   timelock: number;
   initialized: boolean;
 }
@@ -40,7 +40,7 @@ export interface OracleStopLossAnyBinStatus extends OracleStopLossEvaluation {
   curBinIdx: number;
   lowestBin: number;
   highestBin: number;
-  minimalMintableLiquidity: bigint;
+  minimalOperationalLiquidity: bigint;
 }
 
 export async function getOracleStopLossConfig(
@@ -53,11 +53,11 @@ export async function getOracleStopLossConfig(
     abi: OracleValueStopLossExtensionAbi,
     functionName: "oracleStopLossConfig",
     args: [pool],
-  })) as readonly [number, number, number, boolean];
+  })) as readonly [number, bigint, number, boolean];
 
   return {
     drawdownE6: Number(result[0]),
-    decayPerSecondE8: Number(result[1]),
+    decayPerSecondE18: result[1],
     timelock: Number(result[2]),
     initialized: result[3],
   };
@@ -84,7 +84,7 @@ function parseConfig(
 ): OracleStopLossConfig {
   return {
     drawdownE6: Number(result[0]),
-    decayPerSecondE8: Number(result[1]),
+    decayPerSecondE18: BigInt(result[1]),
     timelock: Number(result[2]),
     initialized: result[3],
   };
@@ -151,7 +151,7 @@ export async function getOracleStopLossAnyBinStatus(
   });
 
   const immutables = bootstrap[0] as unknown as {
-    minimalMintableLiquidity: bigint;
+    minimalOperationalLiquidity: bigint;
     lowestBin: number | bigint;
     highestBin: number | bigint;
   };
@@ -227,8 +227,8 @@ export async function getOracleStopLossAnyBinStatus(
     bidPriceX64,
     askPriceX64,
     drawdownE6: config.drawdownE6,
-    decayPerSecondE8: config.decayPerSecondE8,
-    minimalMintableLiquidity: immutables.minimalMintableLiquidity,
+    decayPerSecondE18: config.decayPerSecondE18,
+    minimalOperationalLiquidity: immutables.minimalOperationalLiquidity,
   });
 
   return {
@@ -239,6 +239,6 @@ export async function getOracleStopLossAnyBinStatus(
     curBinIdx: Number(slot0[1]),
     lowestBin,
     highestBin,
-    minimalMintableLiquidity: immutables.minimalMintableLiquidity,
+    minimalOperationalLiquidity: immutables.minimalOperationalLiquidity,
   };
 }

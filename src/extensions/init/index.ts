@@ -7,15 +7,15 @@ export const EMPTY_EXTENSION_INIT_DATA = EMPTY_EXTENSION_DATA;
 
 /**
  * Init data for `OracleValueStopLossExtension.initialize`.
- * `abi.encode(uint32 drawdownE6, uint32 decayPerSecondE8, uint32 timelockSeconds)`.
+ * `abi.encode(uint32 drawdownE6, uint64 decayPerSecondE18, uint40 timelockSeconds)`.
  */
 export function encodeOracleStopLossInitData(params: {
   drawdownE6: number;
-  decayPerSecondE8: number;
+  decayPerSecondE18: bigint;
   timelockSeconds: number;
 }): Hex {
   return encodeAbiParameters(
-    [{ type: "uint32" }, { type: "uint32" }, { type: "uint32" }],
-    [params.drawdownE6, params.decayPerSecondE8, params.timelockSeconds],
+    [{ type: "uint32" }, { type: "uint64" }, { type: "uint40" }],
+    [params.drawdownE6, params.decayPerSecondE18, params.timelockSeconds],
   );
 }

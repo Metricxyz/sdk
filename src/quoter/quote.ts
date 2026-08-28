@@ -45,6 +45,7 @@ export interface QuoteHypotheticalExactInputSingleParams {
   amountIn: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
+  referencePriceX64: bigint;
   priceLimitX64?: bigint;
   extensionData?: Hex;
   quoterAddress?: Address;
@@ -59,6 +60,7 @@ export interface QuoteHypotheticalExactOutputSingleParams {
   amountOut: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
+  referencePriceX64: bigint;
   priceLimitX64?: bigint;
   extensionData?: Hex;
   quoterAddress?: Address;
@@ -154,6 +156,7 @@ export async function quoteHypotheticalExactInputSingle(
       priceLimitX64,
       params.bidPriceX64,
       params.askPriceX64,
+      params.referencePriceX64,
       withQuoteExtensionData(params.extensionData),
     ],
   );
@@ -187,6 +190,7 @@ export async function quoteHypotheticalExactOutputSingle(
       priceLimitX64,
       params.bidPriceX64,
       params.askPriceX64,
+      params.referencePriceX64,
       withQuoteExtensionData(params.extensionData),
     ],
   );

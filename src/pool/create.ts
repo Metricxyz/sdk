@@ -28,16 +28,29 @@ export interface CreatePoolFactoryParams {
   priceProviderTimelock?: bigint;
   nonNegativeBins: bigint[];
   negativeBins: bigint[];
+  /**
+   * Empty-bin mint density (P̂0/P̂1) for 1e18 shares; `initialScaledToken1PerShareE18 /
+   * initialScaledToken0PerShareE18` must equal the opening price (deployer duty, not
+   * validated on-chain). For pools using `OracleValueStopLossExtension`, prefer
+   * {@link recommendedInitialScaledAmounts} to derive both fields — see metric-core's
+   * `docs/POOL_CONFIGURATION_AND_MANAGEMENT.md` §2.5.
+   */
   initialScaledToken0PerShareE18: bigint;
   initialScaledToken1PerShareE18: bigint;
-  minimalMintableLiquidity: bigint;
+  minimalOperationalLiquidity: bigint;
+  /** Protocol spread fee in E6 units; defaults to the factory floor. */
+  protocolSpreadFeeE6?: number;
   /** Admin spread fee in E6 units (same convention as on-chain pool fees). */
   adminSpreadFeeE6: number;
+  /** Protocol notional fee in E8 units; defaults to the factory floor. */
+  protocolNotionalFeeE8?: number;
   /** Admin notional fee in E8 units. */
   adminNotionalFeeE8: number;
   adminFeeDestination: Address;
   /** Distance from oracle price to bin anchor, in pool E6 units. */
   curBinDistFromProvidedPricePercent: number;
+  /** Bid/ask/reference asymmetry slack in X8; defaults to uint16 max (disabled). */
+  bidAskRefAsymmetryX8?: number;
   salt?: Hex;
 }
 
@@ -77,16 +90,19 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     extensionInitData: params.extensionInitData ?? [],
     priceProviderTimelock: params.priceProviderTimelock ?? 0n,
     admin: params.admin,
-    initialAmount0PerShareE18: params.initialScaledToken0PerShareE18,
-    initialAmount1PerShareE18: params.initialScaledToken1PerShareE18,
-    minimalMintableLiquidity: params.minimalMintableLiquidity,
+    initialScaledAmount0PerE18Shares: params.initialScaledToken0PerShareE18,
+    initialScaledAmount1PerE18Shares: params.initialScaledToken1PerShareE18,
+    minimalOperationalLiquidity: params.minimalOperationalLiquidity,
+    protocolSpreadFeeE6: params.protocolSpreadFeeE6 ?? 0,
     adminSpreadFeeE6: params.adminSpreadFeeE6,
+    protocolNotionalFeeE8: params.protocolNotionalFeeE8 ?? 0,
     adminNotionalFeeE8: params.adminNotionalFeeE8,
     adminFeeDestination: params.adminFeeDestination,
     curBinDistFromProvidedPriceE6: curBinDistFromProvidedPriceE6,
     nonNegativeBinDataArray: params.nonNegativeBins,
     negativeBinDataArray: params.negativeBins,
     salt,
+    bidAskRefAsymmetryX8: params.bidAskRefAsymmetryX8 ?? 65_535,
   };
 }
 

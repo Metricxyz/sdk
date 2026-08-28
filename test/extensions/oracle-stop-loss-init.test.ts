@@ -8,20 +8,20 @@ describe("extension initialize encoders", () => {
     assert.equal(sdk.EMPTY_EXTENSION_INIT_DATA, "0x");
   });
 
-  it("encodeOracleStopLossInitData matches abi.encode(uint32,uint32,uint32)", () => {
+  it("encodeOracleStopLossInitData matches abi.encode(uint32,uint64,uint40)", () => {
     const encoded = sdk.encodeOracleStopLossInitData({
       drawdownE6: 50_000,
-      decayPerSecondE8: 100,
+      decayPerSecondE18: 100n,
       timelockSeconds: 3600,
     });
 
-    const [drawdownE6, decayPerSecondE8, timelockSeconds] = decodeAbiParameters(
-      [{ type: "uint32" }, { type: "uint32" }, { type: "uint32" }],
+    const [drawdownE6, decayPerSecondE18, timelockSeconds] = decodeAbiParameters(
+      [{ type: "uint32" }, { type: "uint64" }, { type: "uint40" }],
       encoded,
     );
 
     assert.equal(drawdownE6, 50_000);
-    assert.equal(decayPerSecondE8, 100);
+    assert.equal(decayPerSecondE18, 100n);
     assert.equal(timelockSeconds, 3600);
   });
 });

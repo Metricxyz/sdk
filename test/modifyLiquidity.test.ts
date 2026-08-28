@@ -26,7 +26,10 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
     const weth = await viem.deployContract("MockWETH9", []);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
+      weth.address,
+    ]);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
@@ -40,7 +43,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
     };
@@ -199,7 +202,10 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
 
     const dataProvider = await viem.deployContract("MetricOmmPoolDataProvider", [factory.address]);
     const weth = await viem.deployContract("MockWETH9", []);
-    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [weth.address]);
+    const liquidityAdder = await viem.deployContract("MetricOmmPoolLiquidityAdder", [
+      factory.address,
+      weth.address,
+    ]);
 
     // Create pool using calldata
     const poolParams: sdk.CreatePoolFactoryParams = {
@@ -213,7 +219,7 @@ describe("SDK modifyLiquidity using prepared payload encoding", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(10, 10000),
       negativeBins: sdk.createUniformBins(10, 10000),
     };

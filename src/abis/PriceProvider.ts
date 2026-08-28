@@ -1,7 +1,7 @@
 export const PriceProviderAbi = [
   {
     inputs: [],
-    name: "getBidAndAskPrice",
+    name: "getQuote",
     outputs: [
       {
         internalType: "uint128",
@@ -11,6 +11,11 @@ export const PriceProviderAbi = [
       {
         internalType: "uint128",
         name: "askPrice",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePrice",
         type: "uint128",
       },
     ],

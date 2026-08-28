@@ -14,14 +14,14 @@ export function encodeSetMaxChangePerBlockCalldata(params: {
   });
 }
 
-export function encodeSetLastMidPriceCalldata(params: {
+export function encodeSetAnchorMidPriceCalldata(params: {
   extension: Address;
   pool: Address;
-  lastMidPriceX64: bigint;
+  anchorMidPriceX64: bigint;
 }): Hex {
   return encodeFunctionData({
     abi: PriceVelocityGuardExtensionAbi,
-    functionName: "setLastMidPrice",
-    args: [params.pool, params.lastMidPriceX64],
+    functionName: "setAnchorMidPrice",
+    args: [params.pool, params.anchorMidPriceX64],
   });
 }

@@ -36,3 +36,17 @@ export {
   scaledBalanceToExternal,
   type DecodedBinStateScaled,
 } from "./poolState.js";
+
+// Packed event field unpack (Swap / BinSwapped)
+export {
+  unpackPacked2Uint128,
+  unpackPacked2Int128,
+  unpackPackedSwapDetails,
+  unpackBinSwappedEvent,
+  unpackSwapEvent,
+  type UnpackedPacked2Uint128,
+  type UnpackedPacked2Int128,
+  type UnpackedPackedSwapDetails,
+  type UnpackedBinSwappedEvent,
+  type UnpackedSwapEvent,
+} from "./packedEvents.js";

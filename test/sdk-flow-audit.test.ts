@@ -44,7 +44,7 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(10, 10_000),
       negativeBins: sdk.createUniformBins(10, 10_000),
       salt: fixedSalt,
@@ -215,7 +215,7 @@ describe("SDK v1 flow audit (on-chain)", async () => {
       curBinDistFromProvidedPricePercent: 0,
       initialScaledToken0PerShareE18: parseUnits("1", 18),
       initialScaledToken1PerShareE18: parseUnits("1", 18),
-      minimalMintableLiquidity: 1000n,
+      minimalOperationalLiquidity: 1_000_000n,
       nonNegativeBins: sdk.createUniformBins(5, 10_000),
       negativeBins: sdk.createUniformBins(5, 10_000),
     };
