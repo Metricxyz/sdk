@@ -607,7 +607,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
     assert.ok(
       (selectedSlot0.curPosInBin >= minTargetPos && selectedSlot0.curPosInBin < maxUint104) ||
-      selectedSlot0.curPosInBin <= maxLowerEdgePos,
+        selectedSlot0.curPosInBin <= maxLowerEdgePos,
       `failed to move curPosInBin near an edge with specified-in setup; got ${selectedSlot0.curPosInBin}`,
     );
 
@@ -775,7 +775,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     const slot0AfterSwap = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
     assert.ok(
       slot0AfterSwap.curBinIdx !== slot0BeforeSwap.curBinIdx ||
-      slot0AfterSwap.curPosInBin !== slot0BeforeSwap.curPosInBin,
+        slot0AfterSwap.curPosInBin !== slot0BeforeSwap.curPosInBin,
       "expected current bin position to move after specified-out swap",
     );
 

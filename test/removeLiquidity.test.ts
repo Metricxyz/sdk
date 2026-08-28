@@ -359,7 +359,7 @@ describe("SDK Remove Liquidity", async () => {
 
         assert.ok(
           after.shares >= expectedRemaining - tolerance &&
-          after.shares <= expectedRemaining + tolerance,
+            after.shares <= expectedRemaining + tolerance,
           `Bin ${after.binIdx}: expected ~${expectedRemaining}, got ${after.shares}`,
         );
       }
