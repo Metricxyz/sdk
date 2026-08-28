@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **v0 package and dual-version support** — deleted the `v0/` tree and the `@metric.xyz/metric-omm-sdk-v0` package. This repo is **v1-only**.
+- **`@metric.xyz/metric-omm-sdk` combined wrapper** — deleted the `metric-omm-sdk/` package. With v0 gone it was a single re-export of `@metric.xyz/metric-omm-sdk-v1` carrying its own lockfile, tooling, CI job, and exact-version pin. Install `@metric.xyz/metric-omm-sdk-v1` directly and import helpers from the package root (no `v1.` namespace prefix required). The `@metric.xyz/metric-omm-sdk` name stays on npm frozen at `0.4.6`.
+
+### Changed
+
+- **Repo flattened** — the `v1/` package now lives at the repo root, so this repo is a single package. No import paths or published contents change; `npm ci` / `npm test` / `npm run verify` run from the root instead of `cd v1` first.
+- **`HOW_TO.md` moved** to the repo root, now targets `@metric.xyz/metric-omm-sdk-v1` directly, and ships with the package (added to `files`).
+- **Unreferenced dev scripts removed** — `get-quotes.ts`, `verify-rpcs.ts`, `hyperEvm/set-big-blocks.ts`, `utils/decodeError.ts`, and the `pool-config*.json` fixtures. None were reachable from an npm script, CI, or any import, and `set-big-blocks.ts` imported `@msgpack/msgpack`, which was never a declared dependency. `scripts/` now holds only `verify.mjs`, `init-submodules.mjs`, `sync-abis.mjs`, and `sync-versions-env.mjs`.
+
+### Fixed
+
+- **`init:submodules` on a moved checkout** — the `@metric/core` symlink is absolute, so relocating the repo left it dangling. `existsSync()` reports `false` for a dangling link, so the repair branch was skipped and `symlinkSync()` failed with `EEXIST`. Now detected with `lstatSync()` and re-linked. The same change fixes the "already correct" fast path, which used `statSync().isSymbolicLink()` (always `false`, since `statSync` follows links) and so destroyed and recreated a valid link on every run.
+
 ## [0.4.6] - 2026-08-04
 
 > OracleValueStopLoss helpers for front ends: detect whether any pool bin is stop-loss breached and estimate when trading may resume via watermark decay.
