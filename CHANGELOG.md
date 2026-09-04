@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — SDK (v1)
+
+- **Bid/ask depth interpretation** — `computePriceImpactExactIn`/`computePriceImpactExactOut` score a caller-supplied `amountIn`/`amountOut` against a pool's `bid_ask` depth ladder; `getBidAskPriceImpactExactIn`/`getBidAskPriceImpactExactOut` fetch (via `fetchBidAsk`) and compute in one call. Requires `token0ScaleMultiplier`/`token1ScaleMultiplier` (from `getPoolImmutables` — not on the `bid_ask` response) to convert the fill into the pool's scaled basis, which matters for any pool whose tokens have different decimals. Returns `executionPriceX64` (the post-fee price this size actually executes at, comparable to `referencePriceX64`/`depth[].price`), `effectivePriceX64` (the raw un-normalized ratio, inverse-oriented to `executionPriceX64` on the ask side), `priceImpactE6` (averaged over the whole fill), and `marginalPriceImpactE6` (the last-crossed level's own value, matching `/route`). `fetch` is optional, defaulting to `globalThis.fetch`. `parseBidAskResponse`/`isQuoteUnavailable` are exported for callers composing over JSON they already have.
+
 ## [0.6.7] - 2026-10-15
 
 ### Fixed
