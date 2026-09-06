@@ -110,13 +110,18 @@ export function parseBidAskResponse(response: BidAskResponse): BidAskQuote {
 
 /**
  * True when the quote is the server's fail-closed "no usable price" sentinel:
- * `bidAdj === 0` and `askAdj === MAX_UINT128`. This exact encoding is stable across the pending
- * oracle_suite #429 change to what `bidAdj`/`askAdj` mean day-to-day (see `BidAskResponse.bidAdj`)
- * — #429 only widens which server-side conditions produce it (e.g. a crossed feed), not the
- * values themselves.
+ * `bidAdj === 0` and `askAdj === MAX_UINT128`.
  *
  * This sentinel arrives as an ordinary HTTP 200, not an error status — callers must check
- * for it explicitly before using `bidAdj`/`askAdj` or attempting a depth fill.
+ * for it explicitly before using `bidAdj`/`askAdj` or attempting a depth fill. An unavailable
+ * quote also carries a non-null `depth` whose `asks`/`bids` are empty, so a fill attempt would
+ * otherwise fail as "no depth" rather than as "no price".
+ *
+ * `priceProviderStatus` says WHY: `"feed_down"` for a provider that reverted or returned its own
+ * fail-closed sentinel (expected, and what the server's backoff exists for), `"internal_error"`
+ * for anything on the server's side — a response it could not decode, an RPC failure, or a pool
+ * whose contract generation it cannot price. That last case is indistinguishable from a genuine
+ * decode bug here, because the server reports the distinction only in its own traces.
  */
 export function isQuoteUnavailable(quote: BidAskQuote): boolean {
   return quote.bidAdj === 0n && quote.askAdj === MAX_UINT128;

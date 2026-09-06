@@ -98,6 +98,169 @@ function buildDepthExhaustionError(params: {
   );
 }
 
+/** Floor integer square root (matches OpenZeppelin `Math.sqrt`'s rounding-down default). */
+function isqrt(value: bigint): bigint {
+  if (value < 0n) {
+    throw new Error("isqrt: value must be >= 0");
+  }
+  if (value < 2n) {
+    return value;
+  }
+  let x = value;
+  let y = (x + 1n) / 2n;
+  while (y < x) {
+    x = y;
+    y = (x + value / x) / 2n;
+  }
+  return x;
+}
+
+/** Q64.64 reciprocal, matching metric-core `SwapMath.invertPriceX64`. */
+function invertPriceX64(priceX64: bigint): bigint {
+  if (priceX64 <= 0n) {
+    throw new Error("invertPriceX64: price must be > 0");
+  }
+  return (Q64 * Q64) / priceX64;
+}
+
+/**
+ * A bin's price geometry in "input token per output token" space, Q64.64, over the pool's
+ * internal SCALED basis — the frame both partial-fill solves below work in.
+ *
+ * Within a bin the pool's price moves LINEARLY with bin position and a traverse executes at the
+ * arithmetic mean of the price where it starts and the price where it stops (metric-core
+ * `SwapMath.calculatePriceAtBinPosition` + `calculateArithmeticMean`). So a fill's cost is a
+ * *quadratic* function of how far into the bin it reaches, which is why the contract solves for
+ * its stopping position in closed form rather than interpolating linearly.
+ *
+ * Only one endpoint is on the wire: `level.price` is the bin's far boundary (its upper price on
+ * the ask side, its lower price on the bid side). The near endpoint is recovered from the bin's
+ * own totals — draining the whole bin costs `output * mean(qStart, qEnd)`, so
+ * `mean = input * Q64 / output` and `qStart = 2 * mean - qEnd`. That needs no extra RPC and makes
+ * no assumption about neighbouring bins, whose per-bin add-fees can make the effective prices
+ * discontinuous across a boundary.
+ *
+ * Sides differ only in orientation, exactly as metric-core's `computeAnalyticalTargetPosForSellToken0`
+ * mirrors `…ForBuyToken0` onto inverted prices: `depth[].price` is token1-per-token0 on BOTH
+ * sides, so the ask side (in=token1, out=token0) uses it directly while the bid side
+ * (in=token0, out=token1) inverts it.
+ *
+ * NOTE: on the bid side the contract interpolates the un-inverted price and inverts afterwards,
+ * while its analytical locate — like this one — treats the inverted endpoints as linear. The
+ * contract then recomputes the realized amounts from the located position, which this cannot do
+ * without `curPosInBin` and the bin balances. So these results are size-faithful and match the
+ * contract's geometry, but are not wei-exact: use the on-chain quoter (`../quoter/index.js`) when
+ * an exact per-amount quote is required.
+ */
+interface BinPriceGeometry {
+  /** Input-per-output price (Q64.64, scaled basis) where the fill starts. */
+  qStart: bigint;
+  /** Input-per-output price (Q64.64, scaled basis) at the bin's far boundary. */
+  qEnd: bigint;
+  /** Scale multiplier for the OUTPUT token on this side. */
+  outputScaleMultiplier: bigint;
+  /** Scale multiplier for the INPUT token on this side. */
+  inputScaleMultiplier: bigint;
+}
+
+function binPriceGeometry(params: {
+  bin: DepthBin;
+  zeroForOne: boolean;
+  token0ScaleMultiplier: bigint;
+  token1ScaleMultiplier: bigint;
+}): BinPriceGeometry {
+  const { bin, zeroForOne, token0ScaleMultiplier, token1ScaleMultiplier } = params;
+
+  // zeroForOne (bids): in=token0, out=token1, and `price` is token1-per-token0 — so the
+  // input-per-output price is its reciprocal. Otherwise (asks): in=token1, out=token0, used as-is.
+  const outputScaleMultiplier = zeroForOne ? token1ScaleMultiplier : token0ScaleMultiplier;
+  const inputScaleMultiplier = zeroForOne ? token0ScaleMultiplier : token1ScaleMultiplier;
+  const qEnd = zeroForOne ? invertPriceX64(bin.level.price) : bin.level.price;
+
+  const outputScaled = bin.output * outputScaleMultiplier;
+  const inputScaled = bin.input * inputScaleMultiplier;
+  if (outputScaled <= 0n) {
+    throw new Error(`bin at binIdx=${bin.level.binIdx} has no output to interpolate over`);
+  }
+
+  // mean(qStart, qEnd) over the whole bin, then reflect qEnd through it to get the near endpoint.
+  const meanQ = (inputScaled * Q64) / outputScaled;
+  const qStart = 2n * meanQ - qEnd;
+
+  return { qStart, qEnd, outputScaleMultiplier, inputScaleMultiplier };
+}
+
+/**
+ * Output produced by spending `fillInput` on a bin the fill does NOT drain, solved the way
+ * metric-core's `computeAnalyticalTargetPosForBuyToken0` does.
+ *
+ * With `y` the scaled output taken and `O` the bin's total scaled output, the fill reaches
+ * `f = y / O` of the way across, executing at `mean(qStart, qStart + f * dq)`, so
+ *
+ *   `fillInput * Q64 = y * (qStart + (y / O) * dq / 2)`
+ *
+ * which rearranges to `dq * y^2 + 2 * O * qStart * y - 2 * O * fillInput * Q64 = 0`. Taking the
+ * positive root and flooring keeps the quote pessimistic for the trader, matching the pro-rata
+ * path this replaces. A flat bin (`dq == 0`) degenerates to plain division.
+ */
+function partialFillOutput(params: {
+  bin: DepthBin;
+  fillInput: bigint;
+  geometry: BinPriceGeometry;
+}): bigint {
+  const { bin, fillInput, geometry } = params;
+  const { qStart, qEnd, outputScaleMultiplier, inputScaleMultiplier } = geometry;
+
+  const outputScaled = bin.output * outputScaleMultiplier;
+  const inputScaled = fillInput * inputScaleMultiplier;
+  const dq = qEnd - qStart;
+
+  let outScaled: bigint;
+  if (dq === 0n) {
+    outScaled = (inputScaled * Q64) / qStart;
+  } else {
+    const b = outputScaled * qStart;
+    const discriminant = b * b + 2n * outputScaled * dq * inputScaled * Q64;
+    if (discriminant < 0n) {
+      throw new Error(
+        `negative discriminant interpolating binIdx=${bin.level.binIdx}: the depth ladder's ` +
+          "price and volume fields are mutually inconsistent",
+      );
+    }
+    outScaled = (isqrt(discriminant) - b) / dq;
+  }
+
+  // Never award more than the bin holds (integer rounding in the solve can overshoot by a unit),
+  // then come back to the caller's raw base units.
+  return minBigint(outScaled, outputScaled) / outputScaleMultiplier;
+}
+
+/**
+ * Input required to take `fillOutput` from a bin the fill does NOT drain — the exact-out
+ * counterpart of {@link partialFillOutput}, and a direct evaluation rather than a solve:
+ * `fillInput = fillOutput * (qStart + (y / O) * dq / 2)`. Rounded UP, so realized output never
+ * falls short of the request.
+ */
+function partialFillInput(params: {
+  bin: DepthBin;
+  fillOutput: bigint;
+  geometry: BinPriceGeometry;
+}): bigint {
+  const { bin, fillOutput, geometry } = params;
+  const { qStart, qEnd, outputScaleMultiplier, inputScaleMultiplier } = geometry;
+
+  const outputScaled = bin.output * outputScaleMultiplier;
+  const takenScaled = fillOutput * outputScaleMultiplier;
+  const dq = qEnd - qStart;
+
+  // inputScaled = taken * (2 * O * qStart + taken * dq) / (2 * O * Q64)
+  const numerator = takenScaled * (2n * outputScaled * qStart + takenScaled * dq);
+  const denominator = 2n * outputScaled * Q64;
+  const inputScaled = ceilDiv(numerator, denominator);
+
+  return ceilDiv(inputScaled, inputScaleMultiplier);
+}
+
 /**
  * Result of walking a depth ladder to fill `amountRequested` of whichever quantity `capacity`
  * measures on each bin.
@@ -309,7 +472,21 @@ export function computePriceImpactExactIn(params: {
     bins,
     amountRequested: amountIn,
     capacity: (bin) => bin.input,
-    fill: (bin, fillInput) => (bin.output * fillInput) / bin.input,
+    // A fully-crossed bin yields its whole recorded output. A partial fill is interpolated over
+    // the bin's price geometry rather than pro-rata on its totals — see `partialFillOutput`.
+    fill: (bin, fillInput) =>
+      fillInput === bin.input
+        ? bin.output
+        : partialFillOutput({
+            bin,
+            fillInput,
+            geometry: binPriceGeometry({
+              bin,
+              zeroForOne,
+              token0ScaleMultiplier,
+              token1ScaleMultiplier,
+            }),
+          }),
   });
 
   if (remaining > 0n || firstLevel === null || lastLevel === null) {
@@ -373,7 +550,21 @@ export function computePriceImpactExactOut(params: {
     bins,
     amountRequested: amountOut,
     capacity: (bin) => bin.output,
-    fill: (bin, fillOutput) => ceilDiv(bin.input * fillOutput, bin.output),
+    // Mirror of the exact-in callback: a fully-crossed bin costs its whole recorded input, a
+    // partial one is priced over the bin's geometry — see `partialFillInput`.
+    fill: (bin, fillOutput) =>
+      fillOutput === bin.output
+        ? bin.input
+        : partialFillInput({
+            bin,
+            fillOutput,
+            geometry: binPriceGeometry({
+              bin,
+              zeroForOne,
+              token0ScaleMultiplier,
+              token1ScaleMultiplier,
+            }),
+          }),
   });
 
   if (remaining > 0n || firstLevel === null || lastLevel === null) {

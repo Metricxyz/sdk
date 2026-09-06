@@ -68,22 +68,21 @@ export type BidAskResponse = {
   /** Pool contract address (not guaranteed to be checksummed on the wire). */
   poolAddress: string;
   /**
-   * Q64.64. The pool's top-of-book bid, as oracle_api computes it right now — do NOT infer a
-   * fee-adjustment answer from the "Adj" suffix; that name is a leftover and not a reliable guide
-   * to what this value is. On oracle_suite `main` today this is the RAW oracle bid from
-   * `getBidAndAskPrice()` (the fee-adjusted pool bid only exists on the wire under `?debug=true`,
-   * as `debug.poolBid`, which this SDK deliberately never requests). A pending oracle_suite
-   * change (#429) repoints this field at the pool's executable sell price instead, specifically
-   * because callers were wrongly treating the raw value as executable. Since which of those two
-   * meanings applies depends on server deploy state this SDK cannot observe, treat the value as
-   * opaque beyond the `isQuoteUnavailable` sentinel — do not hard-code either interpretation.
+   * Q64.64. The pool's executable sell (bid) price for token0 — the contract's
+   * `getSellAndBuyPrices()` sell leg: the marginal price at the current bin position with the
+   * base fee, the bin's sell add-fee and the notional fee applied. Do NOT infer a
+   * fee-adjustment answer from the "Adj" suffix; that name is a leftover and not a reliable
+   * guide to what this value is.
+   *
+   * Do not treat this as the raw oracle feed: oracle_suite once returned the raw
+   * `getBidAndAskPrice()` value here, and repointed the field at the executable pool price
+   * precisely because callers were wrongly reading the raw value as executable.
    *
    * This SDK's price-impact output (`computePriceImpactExactIn`/`computePriceImpactExactOut`)
-   * never reads this field: it derives everything from `depth`, which is already fee-adjusted
-   * server-side under both the current behavior and #429. The only place this SDK reads
-   * `bidAdj`/`askAdj` at all is `isQuoteUnavailable`'s sentinel check (`bidAdj === 0` and
-   * `askAdj === MAX_UINT128`), and #429 preserves that exact sentinel encoding — so neither this
-   * field's current meaning nor #429's change to it affects any number this SDK computes.
+   * never reads this field: it derives everything from `depth`, which the server already
+   * fee-adjusts. The only place this SDK reads `bidAdj`/`askAdj` at all is
+   * `isQuoteUnavailable`'s sentinel check (`bidAdj === 0` and `askAdj === MAX_UINT128`), so
+   * nothing this SDK computes depends on which price this field carries.
    */
   bidAdj: string;
   /** Q64.64. Ask-side counterpart of `bidAdj` — see its doc comment; every caveat there applies here too. */
@@ -147,7 +146,23 @@ export interface DepthBin {
   level: DepthLevel;
 }
 
-/** Result of walking a depth ladder for a caller-supplied amount. */
+/**
+ * Result of walking a depth ladder for a caller-supplied amount.
+ *
+ * How faithful this is to the pool: fully-crossed bins come straight off the server's ladder,
+ * and the final partially-filled bin is interpolated over the pool's own within-bin geometry —
+ * price moves linearly with bin position and a traverse executes at the arithmetic mean of its
+ * start and stopping prices (metric-core `SwapMath`). So these numbers respond correctly to
+ * trade size.
+ *
+ * They are NOT wei-exact against the contract, for two reasons that cannot be resolved from the
+ * `bid_ask` response alone: the bin's near-edge price is reconstructed from its integer
+ * input/output totals rather than read directly, and the pool locates a partial fill's stopping
+ * position and then recomputes the realized amounts from it — which needs `curPosInBin` and the
+ * bin balances. When you need a quote that matches execution exactly, use the on-chain quoter
+ * (`quoteLiveExactInSingle` / `quoteHypotheticalExactInputSingle` in `../quoter/index.js`),
+ * which runs the contract's own math via `eth_call`.
+ */
 export interface PriceImpactResult {
   amountIn: bigint;
   amountOut: bigint;
@@ -170,7 +185,15 @@ export interface PriceImpactResult {
    * (those skip the notional fee this value bakes in).
    */
   referencePriceX64: bigint;
-  /** Signed E6 price impact AVERAGED over the whole fill; positive = worse for the trader. */
+  /**
+   * Signed E6 price impact AVERAGED over the whole fill; positive = worse for the trader. This
+   * is the impact of the requested size specifically: a partially-filled bin is priced over the
+   * pool's within-bin geometry, so halving the trade genuinely lowers this number rather than
+   * leaving it pinned to the bin's boundary.
+   *
+   * Close to, but not wei-identical with, what the pool would execute — see
+   * {@link PriceImpactResult} for why, and for when to use the on-chain quoter instead.
+   */
   priceImpactE6: bigint;
   /**
    * Signed E6 price impact of the LAST crossed level only — exactly what `/route` reports for a

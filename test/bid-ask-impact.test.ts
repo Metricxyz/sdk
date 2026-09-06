@@ -529,7 +529,7 @@ describe("computePriceImpactExactIn — implausible-impact guards", () => {
 });
 
 describe("computePriceImpactExactIn — ladder walk", () => {
-  it("fills a bin exactly on its boundary, then mid-bin with pro-rata floor rounding (ask side)", () => {
+  it("fills a bin exactly on its boundary, then mid-bin across a flat bin (ask side)", () => {
     const quote = quoteFixture({
       depth: {
         bids: [],
@@ -570,7 +570,9 @@ describe("computePriceImpactExactIn — ladder walk", () => {
     // for the ask side — it's the inverse here, not the same value.
     assert.equal(boundary.effectivePriceX64, H);
 
-    // Mid-bin1: fillOutput = floor(1,000,000 * 1,000,000 / 3,000,000) = 333,333 (pro-rata floor).
+    // Mid-bin1: bin1's mean price (3,000,000/1,000,000 = 3) equals its boundary price (3*Q64),
+    // so the bin is FLAT — qStart == qEnd, the interpolation's degenerate branch, where it
+    // reduces to plain division: floor(1,000,000 * Q64 / (3 * Q64)) = 333,333.
     const midBin = fill(2_000_000n);
     assert.equal(midBin.amountOut, 500_000n + 333_333n);
     assert.equal(midBin.binsCrossed, 2);
@@ -847,5 +849,218 @@ describe("computePriceImpactExactIn — input validation", () => {
         }),
       /unavailable.*feed_down/,
     );
+  });
+});
+
+// Within a bin the pool's price moves linearly with position and a fill executes at the
+// arithmetic mean of the price where it starts and the price where it stops (metric-core
+// `SwapMath.calculatePriceAtBinPosition` + `calculateArithmeticMean`). Interpolating a partial
+// fill pro-rata on the bin's whole (input, output) instead prices every partial fill as if the
+// trader crossed the entire bin, which makes the reported impact independent of trade size.
+//
+// Fixture below (ask side, one bin): p_lo = 1·Q64, p_hi = 3·Q64, so the bin's average price is
+// 2·Q64; draining it yields 1_000_000 token0 for 2_000_000 token1. The boundary impact is
+// p_hi/p_lo - 1 = 2_000_000 E6.
+function singleAskBinQuote(): BidAskQuote {
+  return quoteFixture({
+    depth: {
+      bids: [],
+      asks: [
+        depthLevel({
+          binIdx: 0,
+          price: 3n * Q64,
+          priceImpactE6: 2_000_000n,
+          cumulativeVolume: 1_000_000n,
+          cumulativeInputVolume: 2_000_000n,
+        }),
+      ],
+    },
+  });
+}
+
+describe("computePriceImpactExactIn — within-bin interpolation", () => {
+  it("reports a smaller impact for a smaller trade inside the same bin", () => {
+    const quote = singleAskBinQuote();
+    const fill = (amountIn: bigint) =>
+      computePriceImpactExactIn({
+        quote,
+        amountIn,
+        zeroForOne: false,
+        token0ScaleMultiplier: ONE,
+        token1ScaleMultiplier: ONE,
+      });
+
+    const wholeBin = fill(2_000_000n);
+    const partial = fill(750_000n);
+
+    assert.ok(
+      partial.priceImpactE6 < wholeBin.priceImpactE6,
+      `a partial fill must cost less than draining the bin: ` +
+        `partial=${partial.priceImpactE6} wholeBin=${wholeBin.priceImpactE6}`,
+    );
+  });
+
+  it("prices a half-output ask fill at the mean of the start and stopping price", () => {
+    // qStart = 1*Q64, qEnd = 3*Q64. Half the bin's output stops at q_t = 2*Q64, so the fill
+    // executes at mean(1, 2) = 1.5*Q64 and costs 500_000 * 1.5 = 750_000.
+    const result = computePriceImpactExactIn({
+      quote: singleAskBinQuote(),
+      amountIn: 750_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: ONE,
+    });
+
+    assert.equal(result.amountOut, 500_000n);
+    assert.equal(result.executionPriceX64, Q64 + H); // 1.5 * Q64
+    assert.equal(result.priceImpactE6, 500_000n); // 1.5 / 1.0 - 1
+    assert.equal(result.marginalPriceImpactE6, 2_000_000n); // 3.0 / 1.0 - 1, straight off the wire
+  });
+
+  it("recovers the same bin start price as inverting the wire impact does", () => {
+    // Two independent derivations of the pool's pre-trade price: the interpolation reflects
+    // qEnd through the bin's mean (input/output), while computeReferencePriceX64 inverts
+    // priceImpactE6. They must agree, or one of them is wrong.
+    const quote = singleAskBinQuote();
+    const level = quote.depth!.asks[0]!;
+    const [bin] = toDepthBins([level]);
+
+    const meanQ = (bin!.input * Q64) / bin!.output;
+    const qStartFromGeometry = 2n * meanQ - level.price;
+
+    assert.equal(qStartFromGeometry, computeReferencePriceX64(level, "ask"));
+  });
+
+  it("still consumes a fully crossed bin exactly, unchanged by interpolation", () => {
+    const result = computePriceImpactExactIn({
+      quote: singleAskBinQuote(),
+      amountIn: 2_000_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: ONE,
+    });
+
+    // Draining the bin yields its whole recorded output and averages the two boundaries.
+    assert.equal(result.amountOut, 1_000_000n);
+    assert.equal(result.priceImpactE6, 1_000_000n);
+    assert.equal(result.marginalPriceImpactE6, 2_000_000n);
+  });
+
+  it("is unchanged by an unequal-decimal basis expressing the same geometry", () => {
+    // t0s=1, t1s=1e12: the same qStart/qEnd as the equal-decimal fixture, so the impact must
+    // come out identical. Wrong multiplier handling here shifts qStart and changes the answer.
+    const quote = quoteFixture({
+      depth: {
+        bids: [],
+        asks: [
+          depthLevel({
+            binIdx: 0,
+            price: 3n * Q64,
+            priceImpactE6: 2_000_000n,
+            cumulativeVolume: 1_000_000_000_000_000_000n, // token0, t0s = 1
+            cumulativeInputVolume: 2_000_000n, // token1 raw (6dp), scaled = 2e18
+          }),
+        ],
+      },
+    });
+
+    const result = computePriceImpactExactIn({
+      quote,
+      amountIn: 750_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: 1_000_000_000_000n,
+    });
+
+    assert.equal(result.amountOut, 500_000_000_000_000_000n);
+    assert.equal(result.executionPriceX64, Q64 + H);
+    assert.equal(result.priceImpactE6, 500_000n);
+  });
+});
+
+describe("computePriceImpactExactOut — within-bin interpolation", () => {
+  it("round-trips the exact-in half-output fill (ask side)", () => {
+    const result = computePriceImpactExactOut({
+      quote: singleAskBinQuote(),
+      amountOut: 500_000n,
+      zeroForOne: false,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: ONE,
+    });
+
+    assert.equal(result.amountIn, 750_000n);
+    assert.equal(result.priceImpactE6, 500_000n);
+  });
+
+  it("reports a smaller impact for a smaller requested output", () => {
+    const fill = (amountOut: bigint) =>
+      computePriceImpactExactOut({
+        quote: singleAskBinQuote(),
+        amountOut,
+        zeroForOne: false,
+        token0ScaleMultiplier: ONE,
+        token1ScaleMultiplier: ONE,
+      });
+
+    assert.ok(fill(250_000n).priceImpactE6 < fill(1_000_000n).priceImpactE6);
+  });
+});
+
+describe("within-bin interpolation — bid side", () => {
+  // Bid side: in=token0, out=token1, and `price` is the bin's LOWER boundary. Chosen so the
+  // inverted geometry is exact: qStart = invert(2*Q64) = Q64/2, qEnd = invert(1*Q64) = Q64,
+  // mean = 0.75*Q64, so draining the bin trades 3_000_000 token0 for 4_000_000 token1.
+  function singleBidBinQuote(): BidAskQuote {
+    return quoteFixture({
+      depth: {
+        asks: [],
+        bids: [
+          depthLevel({
+            binIdx: 0,
+            price: Q64,
+            priceImpactE6: 500_000n, // 1 - 1.0/2.0
+            cumulativeVolume: 4_000_000n, // token1 out
+            cumulativeInputVolume: 3_000_000n, // token0 in
+          }),
+        ],
+      },
+    });
+  }
+
+  it("prices a half-output bid fill over the inverted geometry", () => {
+    // Half the output stops at q_t = 0.75*Q64, so the fill executes at mean(0.5, 0.75) = 0.625
+    // token0 per token1 and costs 2_000_000 * 0.625 = 1_250_000 token0.
+    const result = computePriceImpactExactIn({
+      quote: singleBidBinQuote(),
+      amountIn: 1_250_000n,
+      zeroForOne: true,
+      token0ScaleMultiplier: ONE,
+      token1ScaleMultiplier: ONE,
+    });
+
+    // The geometry itself is exact: 2_000_000 out for the 1_250_000 in that 0.625 implies.
+    assert.equal(result.amountOut, 2_000_000n);
+    assert.equal(result.referencePriceX64, 2n * Q64); // recovered pool bid, exact
+
+    // Ideal impact is 1 - 1.6/2.0 = 200_000 E6, but 1.6 * Q64 is not an integer (Q64 = 2^64 and
+    // 5 does not divide it), so executionPriceX64 floors and the E6 ratio floors again — landing
+    // one E6 unit pessimistic. Pinned exactly rather than with a tolerance so a real regression
+    // in the interpolation cannot hide inside a fuzzy assertion.
+    assert.equal(result.executionPriceX64, (8n * Q64) / 5n);
+    assert.equal(result.priceImpactE6, 200_001n);
+    assert.equal(result.marginalPriceImpactE6, 500_000n);
+  });
+
+  it("reports a smaller impact for a smaller trade inside the same bin", () => {
+    const fill = (amountIn: bigint) =>
+      computePriceImpactExactIn({
+        quote: singleBidBinQuote(),
+        amountIn,
+        zeroForOne: true,
+        token0ScaleMultiplier: ONE,
+        token1ScaleMultiplier: ONE,
+      });
+
+    assert.ok(fill(300_000n).priceImpactE6 < fill(3_000_000n).priceImpactE6);
   });
 });
