@@ -1064,3 +1064,45 @@ describe("within-bin interpolation — bid side", () => {
     assert.ok(fill(300_000n).priceImpactE6 < fill(3_000_000n).priceImpactE6);
   });
 });
+
+describe("within-bin interpolation — round-trip invariant", () => {
+  // The solve inverts one rule: a fill taking `y` of a bin's `O` output reaches `f = y / O` of
+  // the way across and pays `y * mean(qStart, qStart + f * dq)`. Re-applying that rule to the
+  // output the solve returns must reproduce the input it was given (up to floor rounding), for
+  // any fill fraction — a much stronger check than any single hand-derived case, and it fails
+  // loudly if the quadratic is rearranged wrongly.
+  it("recovers the requested input from the output it solved for, across many fill sizes", () => {
+    const quote = singleAskBinQuote(); // qStart = 1*Q64, qEnd = 3*Q64, O = 1e6, full input 2e6
+    const O = 1_000_000n;
+    const qStart = Q64;
+    const qEnd = 3n * Q64;
+    const dq = qEnd - qStart;
+
+    for (let pct = 1n; pct <= 100n; pct += 1n) {
+      const amountIn = (2_000_000n * pct) / 100n;
+      const { amountOut } = computePriceImpactExactIn({
+        quote,
+        amountIn,
+        zeroForOne: false,
+        token0ScaleMultiplier: ONE,
+        token1ScaleMultiplier: ONE,
+      });
+
+      // Price paid for `amountOut`, straight from the rule: mean of start and stopping price.
+      const qStop = qStart + (amountOut * dq) / O;
+      const impliedIn = (amountOut * (qStart + qStop)) / (2n * Q64);
+
+      // Flooring `amountOut` discards up to one output unit, which is worth up to the bin's
+      // highest price in input units, and flooring `impliedIn` costs up to one more. So the
+      // drift is bounded by ceil(qEnd / Q64) + 1 — derived, not guessed. It must never be
+      // negative: that would mean output awarded beyond what the input paid for.
+      const maxDrift = (qEnd + Q64 - 1n) / Q64 + 1n;
+      const drift = amountIn - impliedIn;
+      assert.ok(
+        drift >= 0n && drift <= maxDrift,
+        `fill ${pct}%: requested ${amountIn} but ${amountOut} out implies ${impliedIn} in ` +
+          `(drift ${drift}, bound ${maxDrift}); rounding must stay pessimistic for the trader`,
+      );
+    }
+  });
+});
