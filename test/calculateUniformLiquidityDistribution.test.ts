@@ -42,7 +42,13 @@ describe("buildModifyLiquidityArgsForUniformAddition (simplified matrix)", async
     await token0.write.mint([deployer.account.address, parseUnits("1000000000000", decimals0)]);
     await token1.write.mint([deployer.account.address, parseUnits("1000000000000", decimals1)]);
 
-    const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
+    const factory = await viem.deployContract("MetricOmmPoolFactory", [
+      deployer.account.address,
+      deployer.account.address,
+      0,
+      0,
+      65_535,
+    ]);
     const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
     await factory.write.setPoolDeployer([poolDeployer.address]);
 

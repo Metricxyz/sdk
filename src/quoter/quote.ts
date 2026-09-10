@@ -18,6 +18,8 @@ export interface QuoteLiveExactInSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  /** Address seen by swap extensions; defaults to recipient for backwards compatibility. */
+  sender?: Address;
   amountIn: bigint;
   priceLimitX64?: bigint;
   extensionData?: Hex;
@@ -30,6 +32,7 @@ export interface QuoteLiveExactOutSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   priceLimitX64?: bigint;
   extensionData?: Hex;
@@ -42,6 +45,7 @@ export interface QuoteHypotheticalExactInputSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  sender?: Address;
   amountIn: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
@@ -57,6 +61,7 @@ export interface QuoteHypotheticalExactOutputSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   bidPriceX64: bigint;
   askPriceX64: bigint;
@@ -88,6 +93,7 @@ export async function quoteLiveExactInSingle(
     "quoteLiveExactInSingle",
     [
       params.pool,
+      params.sender ?? params.recipient,
       params.recipient,
       zeroForOne,
       params.amountIn,
@@ -119,6 +125,7 @@ export async function quoteLiveExactOutSingle(
     "quoteLiveExactOutSingle",
     [
       params.pool,
+      params.sender ?? params.recipient,
       params.recipient,
       zeroForOne,
       params.amountOut,
@@ -150,6 +157,7 @@ export async function quoteHypotheticalExactInputSingle(
     "quoteHypotheticalExactInputSingle",
     [
       params.pool,
+      params.sender ?? params.recipient,
       params.recipient,
       zeroForOne,
       params.amountIn,
@@ -184,6 +192,7 @@ export async function quoteHypotheticalExactOutputSingle(
     "quoteHypotheticalExactOutputSingle",
     [
       params.pool,
+      params.sender ?? params.recipient,
       params.recipient,
       zeroForOne,
       params.amountOut,

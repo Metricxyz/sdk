@@ -22,7 +22,13 @@ describe("SDK createPool", async () => {
     await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
     // Deploy factory first
-    const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
+    const factory = await viem.deployContract("MetricOmmPoolFactory", [
+      deployer.account.address,
+      deployer.account.address,
+      0,
+      0,
+      65_535,
+    ]);
 
     // Deploy pool deployer with factory address
     const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);

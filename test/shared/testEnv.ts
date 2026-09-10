@@ -61,7 +61,13 @@ export async function deployMetricTestEnv(viem: any, deployer: any): Promise<Met
   await priceProvider.write.setTokens([token0.address, token1.address]);
   await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64(1)]);
 
-  const factory = await viem.deployContract("MetricOmmPoolFactory", [deployer.account.address]);
+  const factory = await viem.deployContract("MetricOmmPoolFactory", [
+    deployer.account.address,
+    deployer.account.address,
+    0,
+    0,
+    65_535,
+  ]);
   const poolDeployer = await deployLinkedPoolDeployer(viem, factory.address);
   await factory.write.setPoolDeployer([poolDeployer.address]);
 

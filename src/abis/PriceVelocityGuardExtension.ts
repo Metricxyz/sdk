@@ -553,7 +553,12 @@ export const PriceVelocityGuardExtensionAbi = [
       },
       {
         internalType: "uint64",
-        name: "lastInteractionBlock",
+        name: "anchorBlock",
+        type: "uint64",
+      },
+      {
+        internalType: "uint64",
+        name: "lastObservedBlock",
         type: "uint64",
       },
       {

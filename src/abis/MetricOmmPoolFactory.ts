@@ -6,6 +6,26 @@ export const MetricOmmPoolFactoryAbi = [
         name: "initialOwner",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "initialFeeReceiver",
+        type: "address",
+      },
+      {
+        internalType: "uint24",
+        name: "initialSpreadProtocolFeeE6",
+        type: "uint24",
+      },
+      {
+        internalType: "uint24",
+        name: "initialProtocolNotionalFeeE8",
+        type: "uint24",
+      },
+      {
+        internalType: "uint16",
+        name: "initialOnCreationMaxBidAskRefAsymmetryX8",
+        type: "uint16",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -17,7 +37,17 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "ArrayLengthMismatch",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "BidAskRefAsymmetryTooHigh",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BidAskRefAsymmetryTooLow",
     type: "error",
   },
   {
@@ -352,36 +382,11 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "oldReceiver",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
         name: "newReceiver",
         type: "address",
       },
     ],
     name: "FeeReceiverUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint16",
-        name: "oldMaxX8",
-        type: "uint16",
-      },
-      {
-        indexed: false,
-        internalType: "uint16",
-        name: "newMaxX8",
-        type: "uint16",
-      },
-    ],
-    name: "MaxBidAskRefAsymmetryUpdated",
     type: "event",
   },
   {
@@ -401,6 +406,19 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "ModeratorUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint16",
+        name: "newMaxX8",
+        type: "uint16",
+      },
+    ],
+    name: "OnCreationMaxBidAskRefAsymmetryUpdated",
     type: "event",
   },
   {
@@ -584,6 +602,19 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "PoolBidAskRefAsymmetryUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+    ],
+    name: "PoolCollectFeeFailed",
     type: "event",
   },
   {
@@ -858,12 +889,6 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: false,
         internalType: "uint24",
-        name: "oldFeeE8",
-        type: "uint24",
-      },
-      {
-        indexed: false,
-        internalType: "uint24",
         name: "newFeeE8",
         type: "uint24",
       },
@@ -874,12 +899,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: "uint24",
-        name: "oldFeeE6",
-        type: "uint24",
-      },
       {
         indexed: false,
         internalType: "uint24",
@@ -1325,19 +1344,6 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
-    name: "maxBidAskRefAsymmetryX8",
-    outputs: [
-      {
-        internalType: "uint16",
-        name: "",
-        type: "uint16",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "maxBinDistanceE6",
     outputs: [
       {
@@ -1448,6 +1454,19 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "onCreationMaxBidAskRefAsymmetryX8",
+    outputs: [
+      {
+        internalType: "uint16",
+        name: "",
+        type: "uint16",
       },
     ],
     stateMutability: "view",
@@ -1842,19 +1861,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [
       {
-        internalType: "uint16",
-        name: "newMaxX8",
-        type: "uint16",
-      },
-    ],
-    name: "setMaxBidAskRefAsymmetryX8",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "address",
         name: "moderator",
         type: "address",
@@ -1866,6 +1872,19 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "setModerator",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint16",
+        name: "newMaxX8",
+        type: "uint16",
+      },
+    ],
+    name: "setOnCreationMaxBidAskRefAsymmetryX8",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1932,6 +1951,24 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [
       {
+        internalType: "address[]",
+        name: "pools",
+        type: "address[]",
+      },
+      {
+        internalType: "uint16[]",
+        name: "newBidAskRefAsymmetryX8s",
+        type: "uint16[]",
+      },
+    ],
+    name: "setPoolBidAskRefAsymmetryX8Batch",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "address",
         name: "pool",
         type: "address",
@@ -1989,6 +2026,29 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "setPoolProtocolFee",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address[]",
+        name: "pools",
+        type: "address[]",
+      },
+      {
+        internalType: "uint24[]",
+        name: "newProtocolSpreadFeeE6s",
+        type: "uint24[]",
+      },
+      {
+        internalType: "uint24[]",
+        name: "newProtocolNotionalFeeE8s",
+        type: "uint24[]",
+      },
+    ],
+    name: "setPoolProtocolFeeBatch",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

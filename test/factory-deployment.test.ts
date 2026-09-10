@@ -34,6 +34,10 @@ describe("Factory Deployment Flow", async () => {
     // Deploy factory first
     const factory = await viem.deployContract("MetricOmmPoolFactory", [
       ownerClient.account.address,
+      ownerClient.account.address,
+      0,
+      0,
+      65_535,
     ]);
 
     // Deploy pool deployer with factory address

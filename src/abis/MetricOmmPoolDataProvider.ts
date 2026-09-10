@@ -11,8 +11,14 @@ export const MetricOmmPoolDataProviderAbi = [
     type: "constructor",
   },
   {
-    inputs: [],
-    name: "BidDepthBinAvgExecPriceZero",
+    inputs: [
+      {
+        internalType: "uint128",
+        name: "amount",
+        type: "uint128",
+      },
+    ],
+    name: "AmountTooLarge",
     type: "error",
   },
   {
@@ -42,7 +48,18 @@ export const MetricOmmPoolDataProviderAbi = [
   },
   {
     inputs: [],
-    name: "MaxBinsPerSideTooLarge",
+    name: "MaxBinsPerSideZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int256",
+        name: "value",
+        type: "int256",
+      },
+    ],
+    name: "SafeCastOverflowedIntToUint",
     type: "error",
   },
   {
@@ -59,6 +76,11 @@ export const MetricOmmPoolDataProviderAbi = [
       },
     ],
     name: "SafeCastOverflowedUintDowncast",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "SimulateSwapDidNotRevert",
     type: "error",
   },
   {
@@ -208,8 +230,23 @@ export const MetricOmmPoolDataProviderAbi = [
         name: "maxBinsPerSide",
         type: "uint8",
       },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
+      },
     ],
-    name: "getLiquidityDepth",
+    name: "getLiquidityDepthHypothetical",
     outputs: [
       {
         components: [
@@ -230,12 +267,12 @@ export const MetricOmmPoolDataProviderAbi = [
           },
           {
             internalType: "uint128",
-            name: "referenceBestBidX64",
+            name: "effectiveCurrentBidX64",
             type: "uint128",
           },
           {
             internalType: "uint128",
-            name: "referenceBestAskX64",
+            name: "effectiveCurrentAskX64",
             type: "uint128",
           },
           {
@@ -247,26 +284,36 @@ export const MetricOmmPoolDataProviderAbi = [
               },
               {
                 internalType: "uint256",
-                name: "amountInBin",
+                name: "lowerEffPriceX64",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "amountCumulative",
+                name: "upperEffPriceX64",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "binAvgExecPriceX64",
+                name: "amountAvailableInBin",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "cumulativeAvgExecPriceX64",
+                name: "amountTradeableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeOut",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeIn",
                 type: "uint256",
               },
             ],
-            internalType: "struct MetricOmmPoolDataProvider.DepthLevel[]",
+            internalType: "struct LiquidityLadder.DepthLevel[]",
             name: "asks",
             type: "tuple[]",
           },
@@ -279,31 +326,176 @@ export const MetricOmmPoolDataProviderAbi = [
               },
               {
                 internalType: "uint256",
-                name: "amountInBin",
+                name: "lowerEffPriceX64",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "amountCumulative",
+                name: "upperEffPriceX64",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "binAvgExecPriceX64",
+                name: "amountAvailableInBin",
                 type: "uint256",
               },
               {
                 internalType: "uint256",
-                name: "cumulativeAvgExecPriceX64",
+                name: "amountTradeableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeOut",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeIn",
                 type: "uint256",
               },
             ],
-            internalType: "struct MetricOmmPoolDataProvider.DepthLevel[]",
+            internalType: "struct LiquidityLadder.DepthLevel[]",
             name: "bids",
             type: "tuple[]",
           },
         ],
-        internalType: "struct MetricOmmPoolDataProvider.LiquidityDepth",
+        internalType: "struct LiquidityLadder.LiquidityDepth",
+        name: "depth",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "uint8",
+        name: "maxBinsPerSide",
+        type: "uint8",
+      },
+    ],
+    name: "getLiquidityDepthLive",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint128",
+            name: "oracleBidX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "oracleAskX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "oracleReferenceX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "effectiveCurrentBidX64",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "effectiveCurrentAskX64",
+            type: "uint128",
+          },
+          {
+            components: [
+              {
+                internalType: "int16",
+                name: "binIdx",
+                type: "int16",
+              },
+              {
+                internalType: "uint256",
+                name: "lowerEffPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "upperEffPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountAvailableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountTradeableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeOut",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeIn",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct LiquidityLadder.DepthLevel[]",
+            name: "asks",
+            type: "tuple[]",
+          },
+          {
+            components: [
+              {
+                internalType: "int16",
+                name: "binIdx",
+                type: "int16",
+              },
+              {
+                internalType: "uint256",
+                name: "lowerEffPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "upperEffPriceX64",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountAvailableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "amountTradeableInBin",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeOut",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "cumulativeIn",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct LiquidityLadder.DepthLevel[]",
+            name: "bids",
+            type: "tuple[]",
+          },
+        ],
+        internalType: "struct LiquidityLadder.LiquidityDepth",
         name: "depth",
         type: "tuple",
       },
