@@ -42,6 +42,16 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "Auth_InvalidOwner",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "Auth_Unauthorized",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "BidAskRefAsymmetryTooHigh",
     type: "error",
   },
@@ -138,11 +148,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "InvalidModerator",
-    type: "error",
-  },
-  {
     inputs: [
       {
         internalType: "uint8",
@@ -195,11 +200,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "NotOwnerOrModerator",
-    type: "error",
-  },
-  {
     inputs: [
       {
         internalType: "address",
@@ -223,28 +223,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [],
     name: "NotPoolAdmin",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-    ],
-    name: "OwnableInvalidOwner",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "OwnableUnauthorizedAccount",
     type: "error",
   },
   {
@@ -330,6 +308,25 @@ export const MetricOmmPoolFactoryAbi = [
     anonymous: false,
     inputs: [
       {
+        indexed: true,
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "contract Authority",
+        name: "newAuthority",
+        type: "address",
+      },
+    ],
+    name: "AuthorityUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: false,
         internalType: "int256",
         name: "newMinBinDistanceE6",
@@ -393,25 +390,6 @@ export const MetricOmmPoolFactoryAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
-        internalType: "address",
-        name: "moderator",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "ModeratorUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
         indexed: false,
         internalType: "uint16",
         name: "newMaxX8",
@@ -446,7 +424,7 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "previousOwner",
+        name: "user",
         type: "address",
       },
       {
@@ -955,6 +933,19 @@ export const MetricOmmPoolFactoryAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "authority",
+    outputs: [
+      {
+        internalType: "contract Authority",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -1273,25 +1264,6 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "address",
         name: "",
         type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "isModerator",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1767,8 +1739,14 @@ export const MetricOmmPoolFactoryAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
+    inputs: [
+      {
+        internalType: "contract Authority",
+        name: "newAuthority",
+        type: "address",
+      },
+    ],
+    name: "setAuthority",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1854,24 +1832,6 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "setFeeReceiver",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "moderator",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "setModerator",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
