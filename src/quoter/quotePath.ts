@@ -20,6 +20,8 @@ export interface QuoteLiveExactInParams {
   pools: readonly Address[];
   extensionDatas?: readonly Hex[];
   recipient: Address;
+  /** Address seen by swap extensions; defaults to recipient for backwards compatibility. */
+  sender?: Address;
   amountIn: bigint;
   quoterAddress?: Address;
 }
@@ -31,6 +33,7 @@ export interface QuoteLiveExactOutParams {
   pools: readonly Address[];
   extensionDatas?: readonly Hex[];
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   quoterAddress?: Address;
 }
@@ -45,6 +48,7 @@ export interface QuoteHypotheticalExactInputParams {
   askPricesX64: readonly bigint[];
   referencePricesX64: readonly bigint[];
   recipient: Address;
+  sender?: Address;
   amountIn: bigint;
   quoterAddress?: Address;
 }
@@ -59,6 +63,7 @@ export interface QuoteHypotheticalExactOutputParams {
   askPricesX64: readonly bigint[];
   referencePricesX64: readonly bigint[];
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   quoterAddress?: Address;
 }
@@ -148,6 +153,7 @@ export async function quoteLiveExactIn(params: QuoteLiveExactInParams): Promise<
   );
 
   return simulateQuote(params.publicClient, quoterAddress, params.recipient, "quoteLiveExactIn", [
+    params.sender ?? params.recipient,
     {
       pools: [...params.pools],
       extensionDatas,
@@ -171,6 +177,7 @@ export async function quoteLiveExactOut(params: QuoteLiveExactOutParams): Promis
   );
 
   return simulateQuote(params.publicClient, quoterAddress, params.recipient, "quoteLiveExactOut", [
+    params.sender ?? params.recipient,
     {
       pools: [...params.pools],
       extensionDatas,
@@ -207,6 +214,7 @@ export async function quoteHypotheticalExactInput(
     params.recipient,
     "quoteHypotheticalExactInput",
     [
+      params.sender ?? params.recipient,
       {
         pools: [...params.pools],
         extensionDatas,
@@ -247,6 +255,7 @@ export async function quoteHypotheticalExactOutput(
     params.recipient,
     "quoteHypotheticalExactOutput",
     [
+      params.sender ?? params.recipient,
       {
         pools: [...params.pools],
         extensionDatas,

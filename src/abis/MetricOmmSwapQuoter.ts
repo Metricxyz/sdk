@@ -22,11 +22,6 @@ export const MetricOmmSwapQuoterAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "HypotheticalQuoteDidNotRevert",
-    type: "error",
-  },
-  {
     inputs: [
       {
         internalType: "uint8",
@@ -91,6 +86,11 @@ export const MetricOmmSwapQuoterAbi = [
   },
   {
     inputs: [],
+    name: "InvalidPriceProvider",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidSwapDeltas",
     type: "error",
   },
@@ -102,22 +102,6 @@ export const MetricOmmSwapQuoterAbi = [
   {
     inputs: [],
     name: "QuoteDidNotRevert",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "int256",
-        name: "amount0Delta",
-        type: "int256",
-      },
-      {
-        internalType: "int256",
-        name: "amount1Delta",
-        type: "int256",
-      },
-    ],
-    name: "QuoteSwapResult",
     type: "error",
   },
   {
@@ -144,28 +128,10 @@ export const MetricOmmSwapQuoterAbi = [
   {
     inputs: [
       {
-        internalType: "int256",
-        name: "amount0Delta",
-        type: "int256",
+        internalType: "address",
+        name: "sender",
+        type: "address",
       },
-      {
-        internalType: "int256",
-        name: "amount1Delta",
-        type: "int256",
-      },
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    name: "metricOmmSwapCallback",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
       {
         components: [
           {
@@ -234,6 +200,70 @@ export const MetricOmmSwapQuoterAbi = [
       },
       {
         internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountIn",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
+      },
+    ],
+    name: "quoteHypotheticalExactInputSingle",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "address",
         name: "recipient",
         type: "address",
       },
@@ -293,58 +323,9 @@ export const MetricOmmSwapQuoterAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "pool",
+        name: "sender",
         type: "address",
       },
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "uint128",
-        name: "amountIn",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bidPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "askPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "referencePriceX64",
-        type: "uint128",
-      },
-    ],
-    name: "quoteHypotheticalExactInputSingle",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
       {
         components: [
           {
@@ -413,6 +394,70 @@ export const MetricOmmSwapQuoterAbi = [
       },
       {
         internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "zeroForOne",
+        type: "bool",
+      },
+      {
+        internalType: "uint128",
+        name: "amountOutDesired",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "priceLimitX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "bidPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "askPriceX64",
+        type: "uint128",
+      },
+      {
+        internalType: "uint128",
+        name: "referencePriceX64",
+        type: "uint128",
+      },
+    ],
+    name: "quoteHypotheticalExactOutputSingle",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "address",
         name: "recipient",
         type: "address",
       },
@@ -472,58 +517,9 @@ export const MetricOmmSwapQuoterAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "pool",
+        name: "sender",
         type: "address",
       },
-      {
-        internalType: "bool",
-        name: "zeroForOne",
-        type: "bool",
-      },
-      {
-        internalType: "uint128",
-        name: "amountOutDesired",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "priceLimitX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "bidPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "askPriceX64",
-        type: "uint128",
-      },
-      {
-        internalType: "uint128",
-        name: "referencePriceX64",
-        type: "uint128",
-      },
-    ],
-    name: "quoteHypotheticalExactOutputSingle",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
       {
         components: [
           {
@@ -577,6 +573,11 @@ export const MetricOmmSwapQuoterAbi = [
       },
       {
         internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "address",
         name: "recipient",
         type: "address",
       },
@@ -625,6 +626,11 @@ export const MetricOmmSwapQuoterAbi = [
         type: "address",
       },
       {
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
         internalType: "bool",
         name: "zeroForOne",
         type: "bool",
@@ -658,6 +664,11 @@ export const MetricOmmSwapQuoterAbi = [
   },
   {
     inputs: [
+      {
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
       {
         components: [
           {
@@ -710,6 +721,16 @@ export const MetricOmmSwapQuoterAbi = [
         type: "address",
       },
       {
+        internalType: "address",
+        name: "sender",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+      {
         internalType: "bool",
         name: "zeroForOne",
         type: "bool",
@@ -723,6 +744,11 @@ export const MetricOmmSwapQuoterAbi = [
         internalType: "uint128",
         name: "priceLimitX64",
         type: "uint128",
+      },
+      {
+        internalType: "bytes",
+        name: "extensionData",
+        type: "bytes",
       },
     ],
     name: "quoteLiveExactOutSingle",
@@ -750,7 +776,7 @@ export const MetricOmmSwapQuoterAbi = [
       },
       {
         internalType: "address",
-        name: "recipient",
+        name: "sender",
         type: "address",
       },
       {
@@ -767,11 +793,6 @@ export const MetricOmmSwapQuoterAbi = [
         internalType: "uint128",
         name: "priceLimitX64",
         type: "uint128",
-      },
-      {
-        internalType: "bytes",
-        name: "extensionData",
-        type: "bytes",
       },
     ],
     name: "quoteLiveExactOutSingle",

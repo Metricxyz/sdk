@@ -6,6 +6,26 @@ export const MetricOmmPoolFactoryAbi = [
         name: "initialOwner",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "initialFeeReceiver",
+        type: "address",
+      },
+      {
+        internalType: "uint24",
+        name: "initialSpreadProtocolFeeE6",
+        type: "uint24",
+      },
+      {
+        internalType: "uint24",
+        name: "initialProtocolNotionalFeeE8",
+        type: "uint24",
+      },
+      {
+        internalType: "uint16",
+        name: "initialOnCreationMaxBidAskRefAsymmetryX8",
+        type: "uint16",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -17,7 +37,27 @@ export const MetricOmmPoolFactoryAbi = [
   },
   {
     inputs: [],
+    name: "ArrayLengthMismatch",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "Auth_InvalidOwner",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "Auth_Unauthorized",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "BidAskRefAsymmetryTooHigh",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BidAskRefAsymmetryTooLow",
     type: "error",
   },
   {
@@ -108,11 +148,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "InvalidModerator",
-    type: "error",
-  },
-  {
     inputs: [
       {
         internalType: "uint8",
@@ -165,11 +200,6 @@ export const MetricOmmPoolFactoryAbi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "NotOwnerOrModerator",
-    type: "error",
-  },
-  {
     inputs: [
       {
         internalType: "address",
@@ -193,28 +223,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [],
     name: "NotPoolAdmin",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-    ],
-    name: "OwnableInvalidOwner",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "OwnableUnauthorizedAccount",
     type: "error",
   },
   {
@@ -300,6 +308,25 @@ export const MetricOmmPoolFactoryAbi = [
     anonymous: false,
     inputs: [
       {
+        indexed: true,
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "contract Authority",
+        name: "newAuthority",
+        type: "address",
+      },
+    ],
+    name: "AuthorityUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: false,
         internalType: "int256",
         name: "newMinBinDistanceE6",
@@ -352,12 +379,6 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "oldReceiver",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
         name: "newReceiver",
         type: "address",
       },
@@ -371,36 +392,11 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: false,
         internalType: "uint16",
-        name: "oldMaxX8",
-        type: "uint16",
-      },
-      {
-        indexed: false,
-        internalType: "uint16",
         name: "newMaxX8",
         type: "uint16",
       },
     ],
-    name: "MaxBidAskRefAsymmetryUpdated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "moderator",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "ModeratorUpdated",
+    name: "OnCreationMaxBidAskRefAsymmetryUpdated",
     type: "event",
   },
   {
@@ -428,7 +424,7 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "previousOwner",
+        name: "user",
         type: "address",
       },
       {
@@ -584,6 +580,19 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "PoolBidAskRefAsymmetryUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+    ],
+    name: "PoolCollectFeeFailed",
     type: "event",
   },
   {
@@ -858,12 +867,6 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: false,
         internalType: "uint24",
-        name: "oldFeeE8",
-        type: "uint24",
-      },
-      {
-        indexed: false,
-        internalType: "uint24",
         name: "newFeeE8",
         type: "uint24",
       },
@@ -874,12 +877,6 @@ export const MetricOmmPoolFactoryAbi = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: "uint24",
-        name: "oldFeeE6",
-        type: "uint24",
-      },
       {
         indexed: false,
         internalType: "uint24",
@@ -933,6 +930,19 @@ export const MetricOmmPoolFactoryAbi = [
     name: "acceptPoolAdmin",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "authority",
+    outputs: [
+      {
+        internalType: "contract Authority",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -1263,25 +1273,6 @@ export const MetricOmmPoolFactoryAbi = [
     inputs: [
       {
         internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "isModerator",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
         name: "pool",
         type: "address",
       },
@@ -1318,19 +1309,6 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "uint24",
         name: "",
         type: "uint24",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "maxBidAskRefAsymmetryX8",
-    outputs: [
-      {
-        internalType: "uint16",
-        name: "",
-        type: "uint16",
       },
     ],
     stateMutability: "view",
@@ -1448,6 +1426,19 @@ export const MetricOmmPoolFactoryAbi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "onCreationMaxBidAskRefAsymmetryX8",
+    outputs: [
+      {
+        internalType: "uint16",
+        name: "",
+        type: "uint16",
       },
     ],
     stateMutability: "view",
@@ -1748,8 +1739,14 @@ export const MetricOmmPoolFactoryAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
+    inputs: [
+      {
+        internalType: "contract Authority",
+        name: "newAuthority",
+        type: "address",
+      },
+    ],
+    name: "setAuthority",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1847,25 +1844,7 @@ export const MetricOmmPoolFactoryAbi = [
         type: "uint16",
       },
     ],
-    name: "setMaxBidAskRefAsymmetryX8",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "moderator",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "enabled",
-        type: "bool",
-      },
-    ],
-    name: "setModerator",
+    name: "setOnCreationMaxBidAskRefAsymmetryX8",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -1932,6 +1911,24 @@ export const MetricOmmPoolFactoryAbi = [
   {
     inputs: [
       {
+        internalType: "address[]",
+        name: "pools",
+        type: "address[]",
+      },
+      {
+        internalType: "uint16[]",
+        name: "newBidAskRefAsymmetryX8s",
+        type: "uint16[]",
+      },
+    ],
+    name: "setPoolBidAskRefAsymmetryX8Batch",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "address",
         name: "pool",
         type: "address",
@@ -1989,6 +1986,29 @@ export const MetricOmmPoolFactoryAbi = [
       },
     ],
     name: "setPoolProtocolFee",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address[]",
+        name: "pools",
+        type: "address[]",
+      },
+      {
+        internalType: "uint24[]",
+        name: "newProtocolSpreadFeeE6s",
+        type: "uint24[]",
+      },
+      {
+        internalType: "uint24[]",
+        name: "newProtocolNotionalFeeE8s",
+        type: "uint24[]",
+      },
+    ],
+    name: "setPoolProtocolFeeBatch",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

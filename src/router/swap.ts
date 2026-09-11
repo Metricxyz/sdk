@@ -73,6 +73,8 @@ export interface BuildExactInputSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  /** Address the quoter should forward to swap extensions; defaults to recipient. */
+  sender?: Address;
   /** Input amount in `tokenIn` decimals (wei for ETH / WETH). */
   amountIn: bigint;
   /** Human-readable slippage tolerance, e.g. `0.5` = 0.5%. */
@@ -94,6 +96,7 @@ export interface BuildExactOutputSingleParams {
   tokenIn: Address;
   tokenOut: Address;
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   slippagePercent: number;
   priceLimitX64?: bigint;
@@ -205,6 +208,7 @@ export async function buildExactInputSingleParams(
     tokenIn: params.tokenIn,
     tokenOut: params.tokenOut,
     recipient: params.recipient,
+    sender: params.sender,
     amountIn: params.amountIn,
     priceLimitX64,
     extensionData: params.extensionData,
@@ -251,6 +255,7 @@ export async function buildExactOutputSingleParams(
     tokenIn: params.tokenIn,
     tokenOut: params.tokenOut,
     recipient: params.recipient,
+    sender: params.sender,
     amountOut: params.amountOut,
     priceLimitX64,
     extensionData: params.extensionData,

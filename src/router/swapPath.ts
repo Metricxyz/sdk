@@ -54,6 +54,8 @@ export interface BuildExactInputParams {
   pools: readonly Address[];
   extensionDatas?: readonly Hex[];
   recipient: Address;
+  /** Address the quoter should forward to swap extensions; defaults to recipient. */
+  sender?: Address;
   amountIn: bigint;
   slippagePercent: number;
   deadline: bigint;
@@ -69,6 +71,7 @@ export interface BuildExactOutputParams {
   pools: readonly Address[];
   extensionDatas?: readonly Hex[];
   recipient: Address;
+  sender?: Address;
   amountOut: bigint;
   slippagePercent: number;
   deadline: bigint;
@@ -144,6 +147,7 @@ export async function buildExactInputParams(
     pools: params.pools,
     extensionDatas: params.extensionDatas,
     recipient: params.recipient,
+    sender: params.sender,
     amountIn: params.amountIn,
     quoterAddress: params.quoterAddress,
   });
@@ -182,6 +186,7 @@ export async function buildExactOutputParams(
     pools: params.pools,
     extensionDatas: params.extensionDatas,
     recipient: params.recipient,
+    sender: params.sender,
     amountOut: params.amountOut,
     quoterAddress: params.quoterAddress,
   });
