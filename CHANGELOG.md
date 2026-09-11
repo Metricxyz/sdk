@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-11
+
+> Sender-aware quoting and matching periphery deployment.
+
+### Added
+
+- **Sender-aware quotes** — `sender` param on all single-hop and multi-hop quote and swap-build helpers (`quoteLiveExactIn(Single)`, `quoteLiveExactOut(Single)`, `quoteHypotheticalExactInput(Single)`, `quoteHypotheticalExactOutput(Single)`, `buildExactInput(Single)Params`, `buildExactOutput(Single)Params`); the address forwarded to swap extensions, defaulting to `recipient` when omitted.
+
+### Changed
+
+- **Periphery ref** — bumped `metricPeripheryRef` to `e7ec0c89128980a4fad8da9d07c109f6b9640257` to match the updated quoter/pool ABIs.
+
 ## [0.5.0] - 2026-08-29
 
 > Align the SDK with the latest Metric OMM protocol, expand bundled deployments to ten chains, and ship as a single v1 package.
