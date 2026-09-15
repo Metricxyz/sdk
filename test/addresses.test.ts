@@ -35,16 +35,39 @@ describe("v1 addresses", () => {
     for (const chainId of getSupportedChainIds()) {
       const addresses = ADDRESSES[chainId];
       assert.equal(addresses.factory, eth.factory);
+      assert.equal(addresses.poolDeployer, eth.poolDeployer);
+      assert.equal(addresses.liquidityAdder, eth.liquidityAdder);
+      assert.equal(addresses.dataProvider, eth.dataProvider);
       assert.equal(addresses.simpleRouter, eth.simpleRouter);
       assert.equal(addresses.quoter, eth.quoter);
-      assert.equal(
-        addresses.extensions.depositAllowlistExtension,
-        eth.extensions.depositAllowlistExtension,
-      );
+      assert.deepEqual(addresses.extensions, eth.extensions);
     }
 
-    assert.equal(eth.factory, "0xA32761549A1DE40060c194C86A8df24f0A29bA2d");
-    assert.equal(eth.simpleRouter, "0x7D4fb51164288D2e1fdA2032D887517F71008b89");
+    assert.deepEqual(
+      {
+        factory: eth.factory,
+        poolDeployer: eth.poolDeployer,
+        liquidityAdder: eth.liquidityAdder,
+        dataProvider: eth.dataProvider,
+        simpleRouter: eth.simpleRouter,
+        quoter: eth.quoter,
+        extensions: eth.extensions,
+      },
+      {
+        factory: "0x2a53833cc95548cf52c7b159110e22D3a9018f32",
+        poolDeployer: "0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738",
+        liquidityAdder: "0x06Cb6C245Cd9219262442A7730D9484B3CfdD901",
+        dataProvider: "0x83d66c5934b1525ee82e6E772c76c7acC778bBB7",
+        simpleRouter: "0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2",
+        quoter: "0x803Dd787ef9734c34696877ca6F20194fBcBFbF8",
+        extensions: {
+          depositAllowlistExtension: "0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D",
+          swapAllowlistExtension: "0x4Ca8d78873f0a66445CC05f9A1E705f1a58A6582",
+          oracleValueStopLossExtension: "0xE4038fA09f0bB9963068afaF97BE0c045155090D",
+          priceVelocityGuardExtension: "0xEbc53e61078976118E384f110c262A263decB84B",
+        },
+      },
+    );
   });
 
   it("getAddressesOrThrow returns bundled deployment for configured chains", () => {
