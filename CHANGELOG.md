@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Contract sources** — bumped `metricPeripheryRef` to `d5d8c22d64c3102553a0848471e4a89d8d830303`, which includes the current-bin liquidity-depth fix and pins Metric Core `34376250661553240ed43f8908dbdcb11e13e8df`.
+- **Contract ABIs** — regenerated the pool and factory interfaces for pending fee payouts and oversized liquidity-share validation.
+
 ## [0.5.1] - 2026-09-11
 
 > Sender-aware quoting and matching periphery deployment.

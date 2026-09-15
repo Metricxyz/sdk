@@ -10,7 +10,6 @@ import {
   readFileSync,
   readlinkSync,
   rmSync,
-  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -20,7 +19,6 @@ import { fileURLToPath } from "node:url";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const metricDir = resolve(packageRoot, "node_modules/@metric");
 const peripheryDir = resolve(metricDir, "periphery");
-const ozMarker = "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 const PERIPHERY_REPO = "https://github.com/Metric-OMM/metric-periphery.git";
 
 function readPeripheryRef() {
@@ -74,13 +72,20 @@ function ensurePeripheryCheckout(ref) {
   git(peripheryDir, ["checkout", "--force", ref]);
 }
 
-function ozReady(packageDir) {
-  const file = resolve(packageDir, ozMarker);
-  return existsSync(file) && statSync(file).size > 0;
+function submodulesAtRecordedCommits(packageDir) {
+  try {
+    const status = execSync("git submodule status --recursive", {
+      cwd: packageDir,
+      encoding: "utf8",
+    }).trimEnd();
+    return status.length > 0 && status.split("\n").every((line) => line.startsWith(" "));
+  } catch {
+    return false;
+  }
 }
 
 function ensureSubmodules(packageDir, label) {
-  if (ozReady(packageDir)) {
+  if (submodulesAtRecordedCommits(packageDir)) {
     console.log(`${label} ready: ${packageDir}`);
     return;
   }
