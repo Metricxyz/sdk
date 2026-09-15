@@ -3,6 +3,7 @@
  */
 
 import type { Address, PublicClient, Hex } from "viem";
+import { zeroAddress } from "viem";
 import { getAddressesOrThrow } from "../addresses.js";
 import { MAX_UINT128, QUOTER_ABI } from "../constants.js";
 import { EMPTY_EXTENSION_DATA } from "../extensions/types.js";
@@ -94,6 +95,11 @@ export function withQuoteExtensionData(extensionData?: Hex): Hex {
   return extensionData ?? EMPTY_EXTENSION_DATA;
 }
 
+/** Preserve the quoter's zero-sender fallback when eth_call itself uses the zero address. */
+export function resolveLiveQuoteSender(sender: Address | undefined, recipient: Address): Address {
+  return sender === undefined || sender === zeroAddress ? recipient : sender;
+}
+
 export function validateHypotheticalPrices(
   pools: readonly Address[],
   bidPricesX64: readonly bigint[],
@@ -133,7 +139,11 @@ export async function simulateQuote(
     abi: QUOTER_ABI,
     functionName,
     args,
-    account: recipient,
+    // Live quoters read the provider outside pool.inSwap(). Attributed oracles
+    // permit that read only with tx.origin == 0. The trade's real sender and
+    // recipient remain in args; a quote does not replace wallet swap simulation.
+    // Hypothetical quotes do not read the oracle and keep their existing caller.
+    account: functionName.startsWith("quoteLive") ? zeroAddress : recipient,
   })) as unknown as { result: [bigint, bigint] };
 
   return { amountIn, amountOut };
@@ -153,7 +163,7 @@ export async function quoteLiveExactIn(params: QuoteLiveExactInParams): Promise<
   );
 
   return simulateQuote(params.publicClient, quoterAddress, params.recipient, "quoteLiveExactIn", [
-    params.sender ?? params.recipient,
+    resolveLiveQuoteSender(params.sender, params.recipient),
     {
       pools: [...params.pools],
       extensionDatas,
@@ -177,7 +187,7 @@ export async function quoteLiveExactOut(params: QuoteLiveExactOutParams): Promis
   );
 
   return simulateQuote(params.publicClient, quoterAddress, params.recipient, "quoteLiveExactOut", [
-    params.sender ?? params.recipient,
+    resolveLiveQuoteSender(params.sender, params.recipient),
     {
       pools: [...params.pools],
       extensionDatas,

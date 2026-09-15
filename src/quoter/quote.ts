@@ -7,6 +7,7 @@ import { resolveZeroForOne } from "../swap/path.js";
 import {
   defaultPriceLimitX64,
   resolveQuoterAddress,
+  resolveLiveQuoteSender,
   simulateQuote,
   withQuoteExtensionData,
   type QuoteSwapResult,
@@ -93,7 +94,7 @@ export async function quoteLiveExactInSingle(
     "quoteLiveExactInSingle",
     [
       params.pool,
-      params.sender ?? params.recipient,
+      resolveLiveQuoteSender(params.sender, params.recipient),
       params.recipient,
       zeroForOne,
       params.amountIn,
@@ -125,7 +126,7 @@ export async function quoteLiveExactOutSingle(
     "quoteLiveExactOutSingle",
     [
       params.pool,
-      params.sender ?? params.recipient,
+      resolveLiveQuoteSender(params.sender, params.recipient),
       params.recipient,
       zeroForOne,
       params.amountOut,
