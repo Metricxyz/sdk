@@ -588,19 +588,6 @@ export const MetricOmmPoolFactoryAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "pool",
-        type: "address",
-      },
-    ],
-    name: "PoolCollectFeeFailed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
         name: "poolAddress",
         type: "address",
       },

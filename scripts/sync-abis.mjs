@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 import prettier from "prettier";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-import prettierPluginEstree from "prettier/plugins/estree";
-import prettierPluginTypescript from "prettier/plugins/typescript";
+const prettierConfig =
+  (await prettier.resolveConfig(resolve(packageRoot, "src", "abis", "MetricOmmPool.ts"))) ?? {};
 
 const contracts = [
   {
@@ -158,9 +158,9 @@ async function renderAbiFile(outputPath, exportName, abi) {
   const fileContent = `export const ${exportName} = ${JSON.stringify(abi, null, 2)} as const;\n`;
 
   return prettier.format(fileContent, {
+    ...prettierConfig,
     filepath: outputPath,
     parser: "typescript",
-    plugins: [prettierPluginEstree, prettierPluginTypescript],
   });
 }
 

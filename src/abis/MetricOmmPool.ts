@@ -448,6 +448,11 @@ export const MetricOmmPoolAbi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "SharesAmountTooLarge",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "int256",
@@ -545,6 +550,31 @@ export const MetricOmmPoolAbi = [
       },
     ],
     name: "BinSwapped",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "destination",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "FeeTransferFailed",
     type: "event",
   },
   {
@@ -831,32 +861,32 @@ export const MetricOmmPoolAbi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "protocolSpreadFeeE6_",
+        name: "protocolSpreadFeeE6",
         type: "uint256",
       },
       {
         internalType: "uint256",
-        name: "adminSpreadFeeE6_",
+        name: "adminSpreadFeeE6",
         type: "uint256",
       },
       {
         internalType: "uint256",
-        name: "protocolNotionalFeeE8_",
+        name: "protocolNotionalFeeE8",
         type: "uint256",
       },
       {
         internalType: "uint256",
-        name: "adminNotionalFeeE8_",
+        name: "adminNotionalFeeE8",
         type: "uint256",
       },
       {
         internalType: "address",
-        name: "adminFeeDestination_",
+        name: "adminFeeDestination",
         type: "address",
       },
       {
         internalType: "address",
-        name: "protocolFeeDestination_",
+        name: "protocolFeeDestination",
         type: "address",
       },
     ],

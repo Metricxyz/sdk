@@ -2,7 +2,9 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `6bb01830399a18c559067d53b73c749d89d7bd8d` (core via periphery `lib/metric-core`).
+Pinned **metric-periphery** `f92a958c75c01ebef62a9e749ab037f6b813cf21`
+(Metric Core `d4d0e2a3a7d690fdfed9829239e5ec3d8c4c9575` via periphery
+`lib/metric-core`).
 
 ## Installation
 
@@ -18,20 +20,22 @@ import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 
 ## Deployed addresses
 
-Protocol contracts use the **same addresses** on Ethereum, Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood (CREATE2). Wrapped native differs per chain.
+Protocol contracts use the **same deterministic addresses** on Ethereum, Base,
+Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood.
+Deployments use CREATE2 and CREATE3; wrapped native differs per chain.
 
 | Contract | Address |
 | -------- | ------- |
-| MetricOmmPoolFactory | `0xA32761549A1DE40060c194C86A8df24f0A29bA2d` |
-| MetricOmmPoolDeployer | `0x8b25C2c3Dc0C3A9DC1272FbBC09E064015097A5B` |
-| MetricOmmPoolLiquidityAdder | `0x6cd70697cca0586e80907cddC6e9304f910229DD` |
-| MetricOmmPoolDataProvider | `0x95ab07bCef6463712213D0845962FF4293E5acf7` |
-| MetricOmmSimpleRouter | `0x7D4fb51164288D2e1fdA2032D887517F71008b89` |
-| MetricOmmSwapQuoter | `0x45e72641A71A7eCcccF2Ef905e4159951cdeF8e0` |
-| DepositAllowlistExtension | `0x180c94f108dBa243FB74819fD1cC490dd82a2A2e` |
-| SwapAllowlistExtension | `0xe9c6C1f3b5a1994A7B66c844348b67086d33533b` |
-| OracleValueStopLossExtension | `0x022B57C96a337b12eAAB1b39AF9E8a07dE23eE67` |
-| PriceVelocityGuardExtension | `0x5e971600f5f7e9972631960CCF1F57AF53B5fE95` |
+| MetricOmmPoolFactory | `0x2a53833cc95548cf52c7b159110e22D3a9018f32` |
+| MetricOmmPoolDeployer | `0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738` |
+| MetricOmmPoolLiquidityAdder | `0x06Cb6C245Cd9219262442A7730D9484B3CfdD901` |
+| MetricOmmPoolDataProvider | `0x83d66c5934b1525ee82e6E772c76c7acC778bBB7` |
+| MetricOmmSimpleRouter | `0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2` |
+| MetricOmmSwapQuoter | `0x803Dd787ef9734c34696877ca6F20194fBcBFbF8` |
+| DepositAllowlistExtension | `0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D` |
+| SwapAllowlistExtension | `0x4Ca8d78873f0a66445CC05f9A1E705f1a58A6582` |
+| OracleValueStopLossExtension | `0xE4038fA09f0bB9963068afaF97BE0c045155090D` |
+| PriceVelocityGuardExtension | `0xEbc53e61078976118E384f110c262A263decB84B` |
 | WETH (Ethereum) | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | WETH (Base / MegaETH) | `0x4200000000000000000000000000000000000006` |
 | WETH (Arbitrum) | `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1` |
