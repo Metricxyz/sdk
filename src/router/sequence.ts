@@ -1,22 +1,6 @@
+import type { SequenceCall } from "./types.js";
 import { encodeFunctionData, type Hex } from "viem";
 import { SIMPLE_ROUTER_ABI } from "../constants.js";
-
-export enum OnStepSuccess {
-  CONTINUE,
-  STOP,
-}
-
-export enum OnStepFailure {
-  CONTINUE,
-  STOP,
-  REVERT,
-}
-
-export type SequenceCall = {
-  data: Hex;
-  onSuccess: OnStepSuccess;
-  onFailure: OnStepFailure;
-};
 
 /** Delegatecalls router operations, preserving the transaction's caller and value. */
 export function encodeSequenceCalldata(calls: readonly SequenceCall[]): Hex {
@@ -26,3 +10,6 @@ export function encodeSequenceCalldata(calls: readonly SequenceCall[]): Hex {
     args: [calls],
   });
 }
+
+export type { SequenceCall } from "./types.js";
+export { OnStepSuccess, OnStepFailure } from "./types.js";

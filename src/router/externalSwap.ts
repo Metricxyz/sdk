@@ -1,3 +1,4 @@
+import type { ExternalSwapParams } from "./types.js";
 import { assertWrappedNativeToken } from "./wrappedNative.js";
 import { encodeFunctionData, type Address, type Hex } from "viem";
 import { SIMPLE_ROUTER_ABI } from "../constants.js";
@@ -6,18 +7,6 @@ import {
   encodeRefundETHCalldata,
   encodeUnwrapWETH9Calldata,
 } from "../peripheryPayments/index.js";
-
-export type ExternalSwapParams = {
-  tokenIn: Address;
-  tokenOut: Address;
-  amountInMaximum: bigint;
-  amountOutMinimum: bigint;
-  externalRouter: Address;
-  /** Must deliver output to the executor, which is the external router's caller. */
-  externalRouterCalldata: Hex;
-  recipient: Address;
-  deadline: bigint;
-};
 
 /** Approve the SimpleRouter, not the executor. The executor must be bound to that router. */
 export function encodeExternalSwapCalldata(executor: Address, params: ExternalSwapParams): Hex {
@@ -62,3 +51,5 @@ export function prepareExternalSwapAndUnwrapCalldata(
     encodeUnwrapWETH9Calldata(params.amountOutMinimum, params.recipient),
   ]);
 }
+
+export type { ExternalSwapParams } from "./types.js";

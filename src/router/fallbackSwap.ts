@@ -1,24 +1,23 @@
+import {
+  OnStepSuccess,
+  OnStepFailure,
+  type ExactInputParams,
+  type ExactOutputParams,
+  type ExactInputSingleParams,
+  type ExactOutputSingleParams,
+  type ExternalSwapFallback,
+} from "./types.js";
+import { toExternalSwapParams } from "./paramTransforms.js";
 import type { Address, Hex } from "viem";
 import { encodeMulticallCalldata } from "../peripheryPayments/index.js";
-import { encodeSequenceCalldata, OnStepSuccess, OnStepFailure } from "./sequence.js";
+import { encodeSequenceCalldata } from "./sequence.js";
 import {
   encodeExternalSwapCalldata,
   prepareExternalSwapSupportingNativePaymentCalldata,
   prepareExternalSwapAndUnwrapCalldata,
-  type ExternalSwapParams,
 } from "./externalSwap.js";
-import {
-  encodeExactInputSingleCalldata,
-  encodeExactOutputSingleCalldata,
-  type ExactInputSingleParams,
-  type ExactOutputSingleParams,
-} from "./swap.js";
-import {
-  encodeExactInputCalldata,
-  encodeExactOutputCalldata,
-  type ExactInputParams,
-  type ExactOutputParams,
-} from "./swapPath.js";
+import { encodeExactInputSingleCalldata, encodeExactOutputSingleCalldata } from "./swap.js";
+import { encodeExactInputCalldata, encodeExactOutputCalldata } from "./swapPath.js";
 import {
   prepareExactInputSupportingNativePaymentCalldata,
   prepareExactInputAndUnwrapCalldata,
@@ -30,12 +29,6 @@ import {
   prepareExactOutputSingleAndUnwrapCalldata,
 } from "./nativeSwap.js";
 
-/** External quote calldata must use the primary swap's tokens and limits and pay the executor. */
-export type ExternalSwapFallback = Pick<
-  ExternalSwapParams,
-  "externalRouter" | "externalRouterCalldata"
-> & { executor: Address };
-
 function encodeSwapFallback(primary: Hex, fallback: Hex): Hex {
   return encodeSequenceCalldata([
     { data: primary, onSuccess: OnStepSuccess.STOP, onFailure: OnStepFailure.CONTINUE },
@@ -43,22 +36,7 @@ function encodeSwapFallback(primary: Hex, fallback: Hex): Hex {
   ]);
 }
 
-function externalSwapParams(
-  params: ExactInputParams | ExactInputSingleParams | ExactOutputParams | ExactOutputSingleParams,
-  fallback: ExternalSwapFallback,
-): ExternalSwapParams {
-  return {
-    tokenIn: "tokens" in params ? params.tokens[0]! : params.tokenIn,
-    tokenOut: "tokens" in params ? params.tokens[params.tokens.length - 1]! : params.tokenOut,
-    amountInMaximum: "amountIn" in params ? params.amountIn : params.amountInMaximum,
-    amountOutMinimum: "amountOut" in params ? params.amountOut : params.amountOutMinimum,
-    recipient: params.recipient,
-    deadline: params.deadline,
-    externalRouter: fallback.externalRouter,
-    externalRouterCalldata: fallback.externalRouterCalldata,
-  };
-}
-
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputWithExternalSwapFallbackCalldata(
   params: ExactInputParams,
   fallback: ExternalSwapFallback,
@@ -66,11 +44,12 @@ export function prepareExactInputWithExternalSwapFallbackCalldata(
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactInputCalldata(params)]),
     encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, externalSwapParams(params, fallback)),
+      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
     ]),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata(
   params: ExactInputParams,
   fallback: ExternalSwapFallback,
@@ -81,13 +60,14 @@ export function prepareExactInputSupportingNativePaymentWithExternalSwapFallback
     prepareExactInputSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       chainId,
       wrappedNative,
     ),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata(
   params: ExactInputParams,
   fallback: ExternalSwapFallback,
@@ -99,7 +79,7 @@ export function prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata(
     prepareExactInputAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       simpleRouter,
       chainId,
       wrappedNative,
@@ -107,6 +87,7 @@ export function prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata(
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputSingleWithExternalSwapFallbackCalldata(
   params: ExactInputSingleParams,
   fallback: ExternalSwapFallback,
@@ -114,11 +95,12 @@ export function prepareExactInputSingleWithExternalSwapFallbackCalldata(
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactInputSingleCalldata(params)]),
     encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, externalSwapParams(params, fallback)),
+      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
     ]),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
   params: ExactInputSingleParams,
   fallback: ExternalSwapFallback,
@@ -129,13 +111,14 @@ export function prepareExactInputSingleSupportingNativePaymentWithExternalSwapFa
     prepareExactInputSingleSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       chainId,
       wrappedNative,
     ),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata(
   params: ExactInputSingleParams,
   fallback: ExternalSwapFallback,
@@ -147,7 +130,7 @@ export function prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata
     prepareExactInputSingleAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       simpleRouter,
       chainId,
       wrappedNative,
@@ -155,6 +138,7 @@ export function prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputWithExternalSwapFallbackCalldata(
   params: ExactOutputParams,
   fallback: ExternalSwapFallback,
@@ -162,11 +146,12 @@ export function prepareExactOutputWithExternalSwapFallbackCalldata(
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactOutputCalldata(params)]),
     encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, externalSwapParams(params, fallback)),
+      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
     ]),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata(
   params: ExactOutputParams,
   fallback: ExternalSwapFallback,
@@ -177,13 +162,14 @@ export function prepareExactOutputSupportingNativePaymentWithExternalSwapFallbac
     prepareExactOutputSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       chainId,
       wrappedNative,
     ),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata(
   params: ExactOutputParams,
   fallback: ExternalSwapFallback,
@@ -195,7 +181,7 @@ export function prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata(
     prepareExactOutputAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       simpleRouter,
       chainId,
       wrappedNative,
@@ -203,6 +189,7 @@ export function prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata(
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputSingleWithExternalSwapFallbackCalldata(
   params: ExactOutputSingleParams,
   fallback: ExternalSwapFallback,
@@ -210,11 +197,12 @@ export function prepareExactOutputSingleWithExternalSwapFallbackCalldata(
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactOutputSingleCalldata(params)]),
     encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, externalSwapParams(params, fallback)),
+      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
     ]),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
   params: ExactOutputSingleParams,
   fallback: ExternalSwapFallback,
@@ -225,13 +213,14 @@ export function prepareExactOutputSingleSupportingNativePaymentWithExternalSwapF
     prepareExactOutputSingleSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       chainId,
       wrappedNative,
     ),
   );
 }
 
+/** See {@link ExternalSwapFallback} for external swap requirements. */
 export function prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata(
   params: ExactOutputSingleParams,
   fallback: ExternalSwapFallback,
@@ -243,10 +232,12 @@ export function prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldat
     prepareExactOutputSingleAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      externalSwapParams(params, fallback),
+      toExternalSwapParams(params, fallback),
       simpleRouter,
       chainId,
       wrappedNative,
     ),
   );
 }
+
+export type { ExternalSwapFallback } from "./types.js";

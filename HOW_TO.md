@@ -334,8 +334,20 @@ failure reverts the transaction. Both branches use the primary token pair,
 recipient, deadline, and limits (`amountIn` / `amountOutMinimum` for exact input,
 `amountInMaximum` / `amountOut` for exact output).
 
-External quote calldata must send output to the **executor**, which calls the
-external router. The executor then pays the requested recipient. The SDK does
+The primary swap and external fallback **MUST use the same input and output
+tokens**. For multihop swaps, these are the first and last entries in `params.tokens`;
+intermediate tokens and routes may differ. The caller must ensure the external
+quote calldata uses this pair; the SDK cannot validate token addresses encoded
+inside arbitrary external calldata.
+
+The **ExternalSwapExecutor performs the external swap**: the SimpleRouter funds
+it, then it calls `externalRouter` with `externalRouterCalldata`.
+
+The external swap's payer **MUST be the executor**, not the SimpleRouter or the
+user. Request or encode the external quote with the executor as its payer/sender
+and output recipient: the executor calls the external router and approves it to
+spend the funded input tokens. The user still approves the SimpleRouter, which
+funds the executor before execution. The executor then pays the requested recipient. The SDK does
 not obtain or rewrite aggregator quotes. For exact output, the external quote
 must implement exact-output behavior; the router enforces a minimum output and
 maximum input, so excess output is also delivered to the recipient.
