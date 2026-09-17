@@ -241,8 +241,9 @@ export type ExternalSwapParams = {
 /**
  * externalRouterCalldata MUST be built with primary input/output tokens and limits.
  * externalRouterCalldata MUST be built with executor as payer, NOT router, NOT user.
- * externalRouterCalldata MUST be build with executor OR final receipient as receipient
- * it is user responsibility to ensure above that, sdk can't do this.
+ * externalRouterCalldata MUST send output to the executor so it can measure the
+ * output balance increase and forward the tokens to the final recipient.
+ * The SDK cannot validate addresses encoded inside arbitrary external calldata.
  */
 export type ExternalSwapFallback = {
   externalRouter: Address;
