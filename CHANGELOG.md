@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-09-15
+
 ### Fixed
 
 - **Live oracle quotes** — single-hop and multihop exact-input/output quotes use a zero-address `eth_call` origin so attributed price providers can be read outside an active pool swap. Trade sender/recipient arguments and hypothetical quote callers are preserved. Actual swaps still require normal wallet simulation and oracle registration.
