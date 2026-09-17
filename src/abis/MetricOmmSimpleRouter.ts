@@ -425,17 +425,17 @@ export const MetricOmmSimpleRouterAbi = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "index",
-        type: "uint256",
+        internalType: "bytes[]",
+        name: "results",
+        type: "bytes[]",
       },
       {
-        internalType: "bytes",
-        name: "reason",
-        type: "bytes",
+        internalType: "enum ISequence.StepStatus[]",
+        name: "statuses",
+        type: "uint8[]",
       },
     ],
-    name: "StepFailed",
+    name: "SequenceFailed",
     type: "error",
   },
   {
@@ -1023,9 +1023,9 @@ export const MetricOmmSimpleRouterAbi = [
         type: "bytes[]",
       },
       {
-        internalType: "bool[]",
-        name: "successes",
-        type: "bool[]",
+        internalType: "enum ISequence.StepStatus[]",
+        name: "statuses",
+        type: "uint8[]",
       },
     ],
     stateMutability: "payable",

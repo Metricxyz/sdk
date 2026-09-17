@@ -306,11 +306,7 @@ Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`
 
 ---
 
-## Further reading
-
-- [README.md](./README.md) — deployment address table, SimpleRouter and SwapQuoter examples, development, and publishing.
-
-### Router sequences and external swap fallback
+## Router sequences and external swap fallback
 
 These helpers require the sequence-enabled SimpleRouter and an ExternalSwapExecutor
 bound to that router. Existing router deployments without `sequence` / `externalSwap`
@@ -333,6 +329,25 @@ failure rolls back that whole multicall and runs the external swap. Fallback
 failure reverts the transaction. Both branches use the primary token pair,
 recipient, deadline, and limits (`amountIn` / `amountOutMinimum` for exact input,
 `amountInMaximum` / `amountOut` for exact output).
+
+Fallback helpers infer the swap shape from params. They throw if params contain
+both exact-input and exact-output amount fields, or both `tokens` and
+`tokenIn`/`tokenOut`. Supply one complete shape; unrelated quote metadata is allowed.
+
+If both branches fail, the transaction reverts with `SequenceFailed(results, statuses)`.
+Both revert reasons are available: `results[0]` is the primary error and
+`results[1]` is the fallback error. For an expired deadline, these decode to
+`TransactionExpired` and `DeadlineExpired`, respectively; no external router
+call is made. The fallback does not bypass the primary deadline.
+
+Both successful sequence returns and `SequenceFailed` use `uint8[] statuses`:
+`StepStatus.NOT_EXECUTED = 0`, `SUCCESS = 1`, and `FAILURE = 2`.
+Both arrays retain the number of sequence calls. Unexecuted steps have `"0x"`
+results and status `NOT_EXECUTED`; the last executed entry identifies the step
+that triggered a revert. Each result is capped at 4,096 bytes and may be truncated.
+For these fallback helpers, primary success yields `[1, 0]`, fallback success
+`[2, 1]`, and both failing `[2, 2]` in the revert payload. Decode each error in
+`results` with the ABI of the contract that produced it.
 
 The primary swap and external fallback **MUST use the same input and output
 tokens**. For multihop swaps, these are the first and last entries in `params.tokens`;
@@ -392,3 +407,7 @@ const data = prepareExternalSwapAndUnwrapCalldata(
   null,
 );
 ```
+
+## Further reading
+
+- [README.md](./README.md) — deployment address table, SimpleRouter and SwapQuoter examples, development, and publishing.

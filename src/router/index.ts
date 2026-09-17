@@ -84,7 +84,7 @@ export type {
   ExternalSwapFallback,
   SequenceCall,
 } from "./types.js";
-export { OnStepSuccess, OnStepFailure } from "./types.js";
+export { OnStepSuccess, OnStepFailure, StepStatus } from "./types.js";
 export {
   buildExactInputSingleParams,
   buildExactOutputSingleParams,

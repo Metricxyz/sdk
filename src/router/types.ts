@@ -239,10 +239,10 @@ export type ExternalSwapParams = {
 };
 
 /**
- * externalRouterCalldata MUST be build with primary input/output tokens and limits.
- * The executor calls the external router and pays for the swap.
- * External calldata MUST use the executor as payer and output recipient, not the router/user.
- * Caller must ensure calldata matches; the SDK cannot validate it.
+ * externalRouterCalldata MUST be built with primary input/output tokens and limits.
+ * externalRouterCalldata MUST be built with executor as payer, NOT router, NOT user.
+ * externalRouterCalldata MUST be build with executor OR final receipient as receipient
+ * it is user responsibility to ensure above that, sdk can't do this.
  */
 export type ExternalSwapFallback = {
   externalRouter: Address;
@@ -260,6 +260,12 @@ export enum OnStepFailure {
   CONTINUE,
   STOP,
   REVERT,
+}
+
+export enum StepStatus {
+  NOT_EXECUTED,
+  SUCCESS,
+  FAILURE,
 }
 
 export type SequenceCall = {

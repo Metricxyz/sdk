@@ -28,7 +28,12 @@ export function assertWrappedNativeToken(
     expected = chainWrappedNative;
   }
 
-  if (!token || !expected || !isAddressEqual(token, expected)) {
+  if (
+    !token ||
+    !isAddress(token, { strict: false }) ||
+    !expected ||
+    !isAddressEqual(token, expected)
+  ) {
     throw new Error(`${tokenName} must be wrappedNative`);
   }
 }

@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
-import { decodeFunctionResult, encodeFunctionData, parseUnits, type Hex } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  decodeErrorResult,
+  decodeFunctionData,
+  decodeFunctionResult,
+  encodeFunctionData,
+  parseUnits,
+  type Hex,
+} from "viem";
 import * as sdk from "../src/index.js";
 import { deployMetricTestEnv, createPoolViaFactory } from "./shared/testEnv.js";
 import { seedPoolLiquidity } from "./shared/poolLiquidity.js";
@@ -44,10 +53,6 @@ describe("external swap fallback execution", () => {
           priceLimitX64: 0n,
           recipient: recipient.account.address,
           deadline,
-          amountIn: 100n,
-          amountOutMinimum: 80n,
-          amountInMaximum: 100n,
-          amountOut: 80n,
         };
         const fallback = {
           executor: executor.address,
@@ -58,21 +63,26 @@ describe("external swap fallback execution", () => {
             args: [tokenIn.address, tokenOut.address, 90n, 80n],
           }),
         };
+        const inputParams = { ...params, amountIn: 100n, amountOutMinimum: 80n };
+        const outputParams = { ...params, amountInMaximum: 100n, amountOut: 80n };
         const builders =
           mode === "input"
             ? {
                 erc20: () =>
-                  sdk.prepareExactInputSingleWithExternalSwapFallbackCalldata(params, fallback),
+                  sdk.prepareExactInputSingleWithExternalSwapFallbackCalldata(
+                    inputParams,
+                    fallback,
+                  ),
                 native: () =>
                   sdk.prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
-                    params,
+                    inputParams,
                     fallback,
                     null,
                     weth.address,
                   ),
                 unwrap: () =>
                   sdk.prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata(
-                    params,
+                    inputParams,
                     fallback,
                     router.address,
                     null,
@@ -81,17 +91,20 @@ describe("external swap fallback execution", () => {
               }
             : {
                 erc20: () =>
-                  sdk.prepareExactOutputSingleWithExternalSwapFallbackCalldata(params, fallback),
+                  sdk.prepareExactOutputSingleWithExternalSwapFallbackCalldata(
+                    outputParams,
+                    fallback,
+                  ),
                 native: () =>
                   sdk.prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
-                    params,
+                    outputParams,
                     fallback,
                     null,
                     weth.address,
                   ),
                 unwrap: () =>
                   sdk.prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata(
-                    params,
+                    outputParams,
                     fallback,
                     router.address,
                     null,
@@ -110,12 +123,12 @@ describe("external swap fallback execution", () => {
           data,
           value,
         });
-        const [, successes] = decodeFunctionResult({
+        const [, statuses] = decodeFunctionResult({
           abi: sdk.MetricOmmSimpleRouterAbi,
           functionName: "sequence",
           data: simulation.data as Hex,
         });
-        assert.deepEqual(successes, [false, true]);
+        assert.deepEqual(statuses, [sdk.StepStatus.FAILURE, sdk.StepStatus.SUCCESS]);
         const hash = await payer.sendTransaction({ to: router.address, data, value });
         assert.equal((await client.waitForTransactionReceipt({ hash })).status, "success");
         const outputAfter = unwrap
@@ -162,15 +175,88 @@ describe("external swap fallback execution", () => {
       to: env.simpleRouter.address,
       data,
     });
-    const [, successes] = decodeFunctionResult({
+    const [, statuses] = decodeFunctionResult({
       abi: sdk.MetricOmmSimpleRouterAbi,
       functionName: "sequence",
       data: result.data,
     });
-    assert.deepEqual(successes, [true, false]);
+    assert.deepEqual(statuses, [sdk.StepStatus.SUCCESS, sdk.StepStatus.NOT_EXECUTED]);
     const hash = await payer.sendTransaction({ to: env.simpleRouter.address, data });
     assert.equal((await env.publicClient.waitForTransactionReceipt({ hash })).status, "success");
     assert.ok((await env.token1.read.balanceOf([payer.account.address])) > before);
+  });
+
+  it("reports both deadline errors when primary and fallback expire", async () => {
+    const { payer, recipient, client, weth, token, router, executor, target } = await setup();
+    const timestamp = (await client.getBlock()).timestamp;
+    const params = {
+      pool: payer.account.address,
+      tokenIn: weth.address,
+      tokenOut: token.address,
+      zeroForOne: true,
+      priceLimitX64: 0n,
+      amountIn: 100n,
+      amountOutMinimum: 80n,
+      recipient: recipient.account.address,
+      deadline: timestamp - 1n,
+      extensionData: "0x" as Hex,
+    };
+    await assert.rejects(
+      client.simulateContract({
+        account: payer.account.address,
+        address: router.address,
+        abi: sdk.MetricOmmSimpleRouterAbi,
+        functionName: "exactInputSingle",
+        args: [params],
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof BaseError);
+        const revert = error.walk((cause) => cause instanceof ContractFunctionRevertedError);
+        assert.ok(revert instanceof ContractFunctionRevertedError);
+        assert.equal(revert.data?.errorName, "TransactionExpired");
+        assert.deepEqual(revert.data?.args, [params.deadline, timestamp]);
+        return true;
+      },
+    );
+    const data = sdk.prepareExactInputSingleWithExternalSwapFallbackCalldata(params, {
+      executor: executor.address,
+      externalRouter: target.address,
+      externalRouterCalldata: "0x",
+    });
+    const decoded = decodeFunctionData({ abi: sdk.MetricOmmSimpleRouterAbi, data });
+    assert.equal(decoded.functionName, "sequence");
+    if (decoded.functionName !== "sequence") assert.fail("Expected sequence");
+    await assert.rejects(
+      client.simulateContract({
+        account: payer.account.address,
+        address: router.address,
+        abi: sdk.MetricOmmSimpleRouterAbi,
+        functionName: "sequence",
+        args: decoded.args,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof BaseError);
+        const revert = error.walk((cause) => cause instanceof ContractFunctionRevertedError);
+        assert.ok(revert instanceof ContractFunctionRevertedError);
+        assert.equal(revert.data?.errorName, "SequenceFailed");
+        const [results, statuses] = revert.data!.args as [readonly Hex[], readonly number[]];
+        assert.deepEqual(statuses, [sdk.StepStatus.FAILURE, sdk.StepStatus.FAILURE]);
+        assert.equal(results.length, 2);
+        const primaryError = decodeErrorResult({
+          abi: sdk.MetricOmmSimpleRouterAbi,
+          data: results[0],
+        });
+        assert.equal(primaryError.errorName, "TransactionExpired");
+        assert.deepEqual(primaryError.args, [params.deadline, timestamp]);
+        const fallbackError = decodeErrorResult({
+          abi: sdk.MetricOmmSimpleRouterAbi,
+          data: results[1],
+        });
+        assert.equal(fallbackError.errorName, "DeadlineExpired");
+        assert.deepEqual(fallbackError.args, [params.deadline, timestamp]);
+        return true;
+      },
+    );
   });
 
   it("rolls back external transfers when both branches fail", async () => {
@@ -201,7 +287,7 @@ describe("external swap fallback execution", () => {
         }),
       },
     );
-    await assert.rejects(payer.sendTransaction({ to: router.address, data }), /StepFailed/);
+    await assert.rejects(payer.sendTransaction({ to: router.address, data }), /SequenceFailed/);
     assert.equal(await weth.read.balanceOf([payer.account.address]), 100n);
     assert.equal(await token.read.balanceOf([target.address]), 100n);
     assert.equal(await token.read.balanceOf([recipient.account.address]), 0n);

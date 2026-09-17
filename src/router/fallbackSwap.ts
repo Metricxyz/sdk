@@ -16,8 +16,12 @@ import {
   prepareExternalSwapSupportingNativePaymentCalldata,
   prepareExternalSwapAndUnwrapCalldata,
 } from "./externalSwap.js";
-import { encodeExactInputSingleCalldata, encodeExactOutputSingleCalldata } from "./swap.js";
-import { encodeExactInputCalldata, encodeExactOutputCalldata } from "./swapPath.js";
+import {
+  encodeExactInputSingleCalldata,
+  encodeExactOutputSingleCalldata,
+  encodeExactInputCalldata,
+  encodeExactOutputCalldata,
+} from "./swap.js";
 import {
   prepareExactInputSupportingNativePaymentCalldata,
   prepareExactInputAndUnwrapCalldata,
@@ -41,11 +45,10 @@ export function prepareExactInputWithExternalSwapFallbackCalldata(
   params: ExactInputParams,
   fallback: ExternalSwapFallback,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactInputCalldata(params)]),
-    encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
-    ]),
+    encodeMulticallCalldata([encodeExternalSwapCalldata(fallback.executor, externalParams)]),
   );
 }
 
@@ -56,11 +59,12 @@ export function prepareExactInputSupportingNativePaymentWithExternalSwapFallback
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactInputSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       chainId,
       wrappedNative,
     ),
@@ -75,11 +79,12 @@ export function prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata(
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactInputAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       simpleRouter,
       chainId,
       wrappedNative,
@@ -92,11 +97,10 @@ export function prepareExactInputSingleWithExternalSwapFallbackCalldata(
   params: ExactInputSingleParams,
   fallback: ExternalSwapFallback,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactInputSingleCalldata(params)]),
-    encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
-    ]),
+    encodeMulticallCalldata([encodeExternalSwapCalldata(fallback.executor, externalParams)]),
   );
 }
 
@@ -107,11 +111,12 @@ export function prepareExactInputSingleSupportingNativePaymentWithExternalSwapFa
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactInputSingleSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       chainId,
       wrappedNative,
     ),
@@ -126,11 +131,12 @@ export function prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactInputSingleAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       simpleRouter,
       chainId,
       wrappedNative,
@@ -143,11 +149,10 @@ export function prepareExactOutputWithExternalSwapFallbackCalldata(
   params: ExactOutputParams,
   fallback: ExternalSwapFallback,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactOutputCalldata(params)]),
-    encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
-    ]),
+    encodeMulticallCalldata([encodeExternalSwapCalldata(fallback.executor, externalParams)]),
   );
 }
 
@@ -158,11 +163,12 @@ export function prepareExactOutputSupportingNativePaymentWithExternalSwapFallbac
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactOutputSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       chainId,
       wrappedNative,
     ),
@@ -177,11 +183,12 @@ export function prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata(
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactOutputAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       simpleRouter,
       chainId,
       wrappedNative,
@@ -194,11 +201,10 @@ export function prepareExactOutputSingleWithExternalSwapFallbackCalldata(
   params: ExactOutputSingleParams,
   fallback: ExternalSwapFallback,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     encodeMulticallCalldata([encodeExactOutputSingleCalldata(params)]),
-    encodeMulticallCalldata([
-      encodeExternalSwapCalldata(fallback.executor, toExternalSwapParams(params, fallback)),
-    ]),
+    encodeMulticallCalldata([encodeExternalSwapCalldata(fallback.executor, externalParams)]),
   );
 }
 
@@ -209,11 +215,12 @@ export function prepareExactOutputSingleSupportingNativePaymentWithExternalSwapF
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactOutputSingleSupportingNativePaymentCalldata(params, chainId, wrappedNative),
     prepareExternalSwapSupportingNativePaymentCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       chainId,
       wrappedNative,
     ),
@@ -228,11 +235,12 @@ export function prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldat
   chainId: number | null,
   wrappedNative: Address | null,
 ): Hex {
+  const externalParams = toExternalSwapParams(params, fallback);
   return encodeSwapFallback(
     prepareExactOutputSingleAndUnwrapCalldata(params, simpleRouter, chainId, wrappedNative),
     prepareExternalSwapAndUnwrapCalldata(
       fallback.executor,
-      toExternalSwapParams(params, fallback),
+      externalParams,
       simpleRouter,
       chainId,
       wrappedNative,

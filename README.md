@@ -130,10 +130,16 @@ These swap helpers take `chainId: number | null` and `wrappedNative: Address | n
 
 ```typescript
 import {
+  ChainId,
+  getAddressesOrThrow,
   buildExactInputSingleParams,
   prepareExactInputSingleSupportingNativePaymentCalldata,
   prepareExactInputSingleAndUnwrapCalldata,
 } from "@metric.xyz/metric-omm-sdk-v1";
+
+const chainId = ChainId.ETHEREUM;
+const addresses = getAddressesOrThrow(chainId);
+const quoterAddress = addresses.quoter;
 
 // ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
 const params = await buildExactInputSingleParams({ /* … */, quoterAddress });

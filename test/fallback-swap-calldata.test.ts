@@ -41,9 +41,9 @@ const cases = [
     name: "prepareExactInputWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInput",
     suffix: "",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...input },
+        { ...extraParams, ...common, ...path, ...input },
         fallback,
       ),
   },
@@ -51,9 +51,9 @@ const cases = [
     name: "prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInput",
     suffix: "SupportingNativePayment",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...input },
+        { ...extraParams, ...common, ...path, ...input },
         fallback,
         null,
         address(2),
@@ -63,9 +63,9 @@ const cases = [
     name: "prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInput",
     suffix: "AndUnwrap",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...input },
+        { ...extraParams, ...common, ...path, ...input },
         fallback,
         router,
         null,
@@ -76,9 +76,9 @@ const cases = [
     name: "prepareExactInputSingleWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInputSingle",
     suffix: "",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputSingleWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...input },
+        { ...extraParams, ...common, ...single, ...input },
         fallback,
       ),
   },
@@ -86,9 +86,9 @@ const cases = [
     name: "prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInputSingle",
     suffix: "SupportingNativePayment",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...input },
+        { ...extraParams, ...common, ...single, ...input },
         fallback,
         null,
         address(2),
@@ -98,9 +98,9 @@ const cases = [
     name: "prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata",
     primaryFunction: "exactInputSingle",
     suffix: "AndUnwrap",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...input },
+        { ...extraParams, ...common, ...single, ...input },
         fallback,
         router,
         null,
@@ -111,9 +111,9 @@ const cases = [
     name: "prepareExactOutputWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutput",
     suffix: "",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...output },
+        { ...extraParams, ...common, ...path, ...output },
         fallback,
       ),
   },
@@ -121,9 +121,9 @@ const cases = [
     name: "prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutput",
     suffix: "SupportingNativePayment",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...output },
+        { ...extraParams, ...common, ...path, ...output },
         fallback,
         null,
         address(2),
@@ -133,9 +133,9 @@ const cases = [
     name: "prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutput",
     suffix: "AndUnwrap",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata(
-        { ...common, ...path, ...output },
+        { ...extraParams, ...common, ...path, ...output },
         fallback,
         router,
         null,
@@ -146,9 +146,9 @@ const cases = [
     name: "prepareExactOutputSingleWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutputSingle",
     suffix: "",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputSingleWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...output },
+        { ...extraParams, ...common, ...single, ...output },
         fallback,
       ),
   },
@@ -156,9 +156,9 @@ const cases = [
     name: "prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutputSingle",
     suffix: "SupportingNativePayment",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...output },
+        { ...extraParams, ...common, ...single, ...output },
         fallback,
         null,
         address(2),
@@ -168,9 +168,9 @@ const cases = [
     name: "prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata",
     primaryFunction: "exactOutputSingle",
     suffix: "AndUnwrap",
-    build: () =>
+    build: (extraParams: object = {}) =>
       sdk.prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata(
-        { ...common, ...single, ...output },
+        { ...extraParams, ...common, ...single, ...output },
         fallback,
         router,
         null,
@@ -180,47 +180,92 @@ const cases = [
 ];
 
 describe("external swap fallback calldata", () => {
-  for (const { name, primaryFunction, suffix, build } of cases) {
-    it(name, () => {
-      const decoded = decode(build());
-      if (decoded.functionName !== "sequence") assert.fail("Expected sequence");
-      const [primary, secondary] = decoded.args[0];
-      assert.equal(decoded.args[0].length, 2);
-      assert.equal(primary.onSuccess, 1);
-      assert.equal(primary.onFailure, 0);
-      assert.equal(secondary.onSuccess, 1);
-      assert.equal(secondary.onFailure, 2);
-      const primaryCalls = multicall(primary.data);
-      const fallbackCalls = multicall(secondary.data);
-      assert.equal(primaryCalls.length, suffix ? 2 : 1);
-      assert.equal(fallbackCalls.length, suffix ? 2 : 1);
-      const swap = decode(primaryCalls[0]);
-      assert.equal(swap.functionName, primaryFunction);
-      const external = decode(fallbackCalls[0]);
-      if (external.functionName !== "externalSwap") assert.fail("Expected external swap");
-      assert.deepEqual(external.args, [
-        fallback.executor,
-        {
-          tokenIn: address(2),
-          tokenOut: address(3),
-          amountInMaximum: 100n,
-          amountOutMinimum: 80n,
-          recipient: suffix === "AndUnwrap" ? router : common.recipient,
-          deadline: 123n,
-          externalRouter: fallback.externalRouter,
-          externalRouterCalldata: "0x1234",
-        },
-      ]);
-      if (suffix) {
-        for (const calls of [primaryCalls, fallbackCalls]) {
-          assert.deepEqual(
-            decode(calls[1]),
-            suffix === "AndUnwrap"
-              ? { functionName: "unwrapWETH9", args: [80n, common.recipient] }
-              : { functionName: "refundETH", args: undefined },
-          );
-        }
-      }
+  for (const field of ["amountIn", "amountOutMinimum", "tokenIn", "tokenOut"]) {
+    it(`rejects incomplete exact-input single params missing ${field}`, () => {
+      const params = { ...common, ...single, ...input };
+      Reflect.deleteProperty(params, field);
+      assert.throws(
+        () => sdk.prepareExactInputSingleWithExternalSwapFallbackCalldata(params, fallback),
+        /Swap params must contain/,
+      );
     });
+  }
+  for (const field of ["amountOut", "amountInMaximum", "tokens"]) {
+    it(`rejects incomplete exact-output path params missing ${field}`, () => {
+      const params = { ...common, ...path, ...output };
+      Reflect.deleteProperty(params, field);
+      assert.throws(
+        () => sdk.prepareExactOutputWithExternalSwapFallbackCalldata(params, fallback),
+        /Swap params must contain/,
+      );
+    });
+  }
+  for (const { name, primaryFunction, suffix, build } of cases) {
+    for (const extraParams of [
+      { amountIn: 150n, amountInMaximum: 200n, amountOut: 120n, amountOutMinimum: 60n },
+      ...(primaryFunction.startsWith("exactInput")
+        ? [{ amountOut: 80n }, { amountInMaximum: undefined }]
+        : [{ amountIn: 100n }, { amountOutMinimum: undefined }]),
+    ]) {
+      it(`${name}: rejects mixed amount fields ${Object.keys(extraParams).join(", ")}`, () => {
+        assert.throws(
+          () => build(extraParams),
+          /exactly one complete exact-input or exact-output amount pair/,
+        );
+      });
+    }
+    for (const extraParams of primaryFunction.endsWith("Single")
+      ? [{ tokens: [address(12), address(13)] }, { tokens: undefined }]
+      : [{ tokenIn: address(10) }, { tokenOut: undefined }]) {
+      it(`${name}: rejects mixed token fields ${Object.keys(extraParams).join(", ")}`, () => {
+        assert.throws(() => build(extraParams), /either tokens or both tokenIn and tokenOut/);
+      });
+    }
+    for (const { label, extraParams } of [
+      { label: "declared fields", extraParams: {} },
+      { label: "unrelated quote metadata", extraParams: { quoteId: "quote-1" } },
+    ]) {
+      it(`${name}: ${label}`, () => {
+        const decoded = decode(build(extraParams));
+        if (decoded.functionName !== "sequence") assert.fail("Expected sequence");
+        const [primary, secondary] = decoded.args[0];
+        assert.equal(decoded.args[0].length, 2);
+        assert.equal(primary.onSuccess, 1);
+        assert.equal(primary.onFailure, 0);
+        assert.equal(secondary.onSuccess, 1);
+        assert.equal(secondary.onFailure, 2);
+        const primaryCalls = multicall(primary.data);
+        const fallbackCalls = multicall(secondary.data);
+        assert.equal(primaryCalls.length, suffix ? 2 : 1);
+        assert.equal(fallbackCalls.length, suffix ? 2 : 1);
+        const swap = decode(primaryCalls[0]);
+        assert.equal(swap.functionName, primaryFunction);
+        const external = decode(fallbackCalls[0]);
+        if (external.functionName !== "externalSwap") assert.fail("Expected external swap");
+        assert.deepEqual(external.args, [
+          fallback.executor,
+          {
+            tokenIn: address(2),
+            tokenOut: address(3),
+            amountInMaximum: 100n,
+            amountOutMinimum: 80n,
+            recipient: suffix === "AndUnwrap" ? router : common.recipient,
+            deadline: 123n,
+            externalRouter: fallback.externalRouter,
+            externalRouterCalldata: "0x1234",
+          },
+        ]);
+        if (suffix) {
+          for (const calls of [primaryCalls, fallbackCalls]) {
+            assert.deepEqual(
+              decode(calls[1]),
+              suffix === "AndUnwrap"
+                ? { functionName: "unwrapWETH9", args: [80n, common.recipient] }
+                : { functionName: "refundETH", args: undefined },
+            );
+          }
+        }
+      });
+    }
   }
 });

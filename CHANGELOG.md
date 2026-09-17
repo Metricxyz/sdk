@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-17
+
+### Breaking changes
+
+- **Native swap helpers** — `prepareExact{Input,Output}{,Single}{SupportingNativePayment,AndUnwrap}Calldata` now require final `chainId` and `wrappedNative` arguments. Pass `chainId, null` to resolve and validate the wrapped-native token, or `null, null` to explicitly skip validation.
+
+### Added
+
+- **Router sequences and external swap fallback** — compose router swaps with an external fallback, including native payment and unwrap variants. Fallback params infer the swap shape and reject mixed exact-input/output amounts or mixed single-hop/multihop token fields.
+
+### Changed
+
+- **Periphery** — pinned `ec2bb3187ea0ca22ac9b30e5d4597de5643793a0`. Sequence results and `SequenceFailed` preserve per-step return/revert data and statuses (`NOT_EXECUTED`, `SUCCESS`, `FAILURE`), including both failures when a fallback fails.
+
+### Fixed
+
+- **Native token validation** — malformed input/output addresses produce the same wrapped-native validation message as mismatched tokens.
+
 ## [0.5.2] - 2026-09-15
 
 ### Fixed

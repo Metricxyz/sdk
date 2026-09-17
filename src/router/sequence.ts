@@ -12,4 +12,4 @@ export function encodeSequenceCalldata(calls: readonly SequenceCall[]): Hex {
 }
 
 export type { SequenceCall } from "./types.js";
-export { OnStepSuccess, OnStepFailure } from "./types.js";
+export { OnStepSuccess, OnStepFailure, StepStatus } from "./types.js";

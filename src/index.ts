@@ -305,6 +305,7 @@ export {
   encodeSequenceCalldata,
   OnStepSuccess,
   OnStepFailure,
+  StepStatus,
   type SequenceCall,
 } from "./router/sequence.js";
 export {

@@ -284,6 +284,19 @@ describe("native swap token validation", () => {
       );
     });
 
+    it(`${name} rejects malformed ${tokenName} with the validation message`, () => {
+      for (const token of ["0x0", "0xgggggggggggggggggggggggggggggggggggggggg"] as Address[]) {
+        for (const [chainId, expected] of [
+          [1, null],
+          [null, wrappedNative],
+        ] as const) {
+          assert.throws(() => build(token, chainId, expected), {
+            message: `${tokenName} must be wrappedNative`,
+          });
+        }
+      }
+    });
+
     it(`${name} validates ${tokenName}`, () => {
       assert.ok(build(wrappedNative, null, wrappedNative).startsWith("0x"));
       assert.throws(
