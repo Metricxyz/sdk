@@ -97,7 +97,7 @@ describe("SimpleRouter calldata builders (v1)", () => {
       priceLimitX64: sdk.priceToQ64(0.99),
     };
 
-    const data = sdk.prepareExactInputSingleSupportingNativePaymentCalldata(params);
+    const data = sdk.prepareExactInputSingleSupportingNativePaymentCalldata(params, null, weth);
     assert.ok(data.startsWith("0x"));
     assert.notEqual(data, sdk.encodeExactInputSingleCalldata(params));
   });
@@ -117,7 +117,7 @@ describe("SimpleRouter calldata builders (v1)", () => {
       priceLimitX64: sdk.MAX_UINT128,
     };
 
-    const data = sdk.prepareExactInputSingleAndUnwrapCalldata(params, router);
+    const data = sdk.prepareExactInputSingleAndUnwrapCalldata(params, router, null, weth);
     assert.ok(data.startsWith("0x"));
   });
 
@@ -142,7 +142,7 @@ describe("SimpleRouter calldata builders (v1)", () => {
       deadline: 123n,
     };
 
-    const data = sdk.prepareExactInputAndUnwrapCalldata(params, router);
+    const data = sdk.prepareExactInputAndUnwrapCalldata(params, router, null, weth);
     assert.ok(data.startsWith("0x"));
   });
 });

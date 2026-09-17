@@ -124,6 +124,8 @@ Approve the **SimpleRouter** for input tokens (ERC-20 path). Swap allowlist exte
 
 **Exact output + native payment:** use `prepareExactOutputSingleSupportingNativePaymentCalldata` / `prepareExactOutputSupportingNativePaymentCalldata` (multicall + `refundETH`). Set `msg.value` on the transaction yourself.
 
+These swap helpers take `chainId: number | null` and `wrappedNative: Address | null` as their final arguments. Supply a chain ID to resolve the wrapped-native address, an explicit address to check against, or both (which must agree). Pass `null, null` to explicitly skip token validation.
+
 **ETH output (unwrap):** use `prepareExactInputSingleAndUnwrapCalldata` / `prepareExactInputAndUnwrapCalldata` (or exact-output variants).
 
 ```typescript
@@ -135,11 +137,11 @@ import {
 
 // ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
 const params = await buildExactInputSingleParams({ /* … */, quoterAddress });
-const swapData = prepareExactInputSingleSupportingNativePaymentCalldata(params);
+const swapData = prepareExactInputSingleSupportingNativePaymentCalldata(params, chainId, null);
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data: swapData, value: params.amountIn, account });
 
 // ERC-20 → ETH: tokenOut = wrappedNative, then unwrap via multicall:
-const unwrapData = prepareExactInputSingleAndUnwrapCalldata(params, addresses.simpleRouter);
+const unwrapData = prepareExactInputSingleAndUnwrapCalldata(params, addresses.simpleRouter, chainId, null);
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data: unwrapData, account });
 ```
 

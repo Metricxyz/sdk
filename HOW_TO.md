@@ -309,3 +309,74 @@ Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`
 ## Further reading
 
 - [README.md](./README.md) — deployment address table, SimpleRouter and SwapQuoter examples, development, and publishing.
+
+### Router sequences and external swap fallback
+
+These helpers require the sequence-enabled SimpleRouter and an ExternalSwapExecutor
+bound to that router. Existing router deployments without `sequence` / `externalSwap`
+are not compatible. Approve input tokens on the SimpleRouter.
+
+Build the primary params with the existing quote or route helpers, then pass an
+external quote to the matching fallback helper:
+
+```ts
+const data = prepareExactInputSingleWithExternalSwapFallbackCalldata(params, {
+  executor,
+  externalRouter,
+  externalRouterCalldata,
+});
+await walletClient.sendTransaction({ account, to: simpleRouter, data });
+```
+
+The sequence contains two multicalls. Primary success stops execution. Primary
+failure rolls back that whole multicall and runs the external swap. Fallback
+failure reverts the transaction. Both branches use the primary token pair,
+recipient, deadline, and limits (`amountIn` / `amountOutMinimum` for exact input,
+`amountInMaximum` / `amountOut` for exact output).
+
+External quote calldata must send output to the **executor**, which calls the
+external router. The executor then pays the requested recipient. The SDK does
+not obtain or rewrite aggregator quotes. For exact output, the external quote
+must implement exact-output behavior; the router enforces a minimum output and
+maximum input, so excess output is also delivered to the recipient.
+
+All existing variants have matching helpers: `prepareExactInput`,
+`prepareExactInputSingle`, `prepareExactOutput`, and `prepareExactOutputSingle`,
+optionally followed by `SupportingNativePayment` or `AndUnwrap`, then
+`WithExternalSwapFallbackCalldata`. Unwrap fallback helpers take `simpleRouter` as the third argument and
+`chainId` / `wrappedNative` as the fourth and fifth arguments. Native-payment
+fallback helpers take `chainId` / `wrappedNative` as the third and fourth arguments. Native payment helpers use wrappedNative as the input token and
+accept the native contribution through transaction `value`. Both branches refund
+unused router ETH. The external executor returns unused funded input as
+**wrappedNative**, not ETH. Unwrap helpers require wrappedNative output and unwrap
+inside each branch, making swap and unwrap atomic together.
+
+For standalone external swaps, use `encodeExternalSwapCalldata(executor, params)`,
+`prepareExternalSwapSupportingNativePaymentCalldata(executor, params, chainId, wrappedNative)`, or
+`prepareExternalSwapAndUnwrapCalldata(executor, params, simpleRouter, chainId, wrappedNative)`.
+`encodeSequenceCalldata` and the `OnStepSuccess` / `OnStepFailure` enums are also
+exported for custom sequences.
+
+All swap helpers with `SupportingNativePayment` or `AndUnwrap` take two final
+arguments: `chainId: number | null` and `wrappedNative: Address | null`.
+
+- `chainId, null`: resolve wrapped native from the SDK's chain addresses.
+- `null, wrappedNative`: validate against the explicitly supplied address.
+- `chainId, wrappedNative`: require the address to match the chain, then validate the token.
+- `null, null`: explicitly skip token validation; the caller is responsible for correctness.
+
+Unknown chain IDs throw, including when an explicit address is also supplied.
+A supplied wrapped-native address must be valid and non-zero. Address comparisons
+ignore letter case. Native-payment helpers validate the input token; unwrap
+helpers validate the output token. Multihop helpers check the corresponding
+first or last path token.
+
+```ts
+const data = prepareExternalSwapAndUnwrapCalldata(
+  executor,
+  params,
+  simpleRouter,
+  chainId,
+  null,
+);
+```

@@ -224,6 +224,11 @@ export const MetricOmmPoolLiquidityAdderAbi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "ReentrancyGuardReentrantCall",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "address",

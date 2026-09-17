@@ -63,3 +63,32 @@ export {
   prepareExactOutputSingleAndUnwrapCalldata,
   prepareExactOutputAndUnwrapCalldata,
 } from "./nativeSwap.js";
+
+export {
+  encodeSequenceCalldata,
+  OnStepSuccess,
+  OnStepFailure,
+  type SequenceCall,
+} from "./sequence.js";
+export {
+  encodeExternalSwapCalldata,
+  prepareExternalSwapCalldata,
+  prepareExternalSwapSupportingNativePaymentCalldata,
+  prepareExternalSwapAndUnwrapCalldata,
+  type ExternalSwapParams,
+} from "./externalSwap.js";
+export {
+  prepareExactInputWithExternalSwapFallbackCalldata,
+  prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputWithExternalSwapFallbackCalldata,
+  prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+  type ExternalSwapFallback,
+} from "./fallbackSwap.js";

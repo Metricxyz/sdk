@@ -31,6 +31,7 @@ const config: HardhatUserConfig = {
       "@metric/periphery/contracts/lens/MetricOmmPoolDataProvider.sol",
       "@metric/periphery/contracts/lens/MetricOmmSwapQuoter.sol",
       "@metric/periphery/contracts/MetricOmmSimpleRouter.sol",
+      "@metric/periphery/contracts/base/ExternalSwapExecutor.sol",
       "@metric/periphery/contracts/MetricOmmPoolLiquidityAdder.sol",
       "@metric/periphery/contracts/extensions/DepositAllowlistExtension.sol",
       "@metric/periphery/contracts/extensions/SwapAllowlistExtension.sol",
