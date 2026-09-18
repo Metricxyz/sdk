@@ -244,6 +244,8 @@ describe("external swap fallback calldata", () => {
         if (external.functionName !== "externalSwap") assert.fail("Expected external swap");
         assert.deepEqual(external.args, [
           fallback.executor,
+          false,
+          suffix === "SupportingNativePayment",
           {
             tokenIn: address(2),
             tokenOut: address(3),

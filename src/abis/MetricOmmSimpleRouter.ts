@@ -101,22 +101,6 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "amountSpent",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "amountInMaximum",
-        type: "uint256",
-      },
-    ],
-    name: "ExternalSwapExcessiveInput",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "ExternalSwapFailed",
     type: "error",
@@ -239,6 +223,17 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+    ],
+    name: "InvalidExternalSwapRecipient",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "InvalidFactory",
     type: "error",
@@ -262,6 +257,17 @@ export const MetricOmmSimpleRouterAbi = [
       },
     ],
     name: "InvalidInputAmountAtHop",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+    ],
+    name: "InvalidNativeRefundToken",
     type: "error",
   },
   {
@@ -724,6 +730,16 @@ export const MetricOmmSimpleRouterAbi = [
         internalType: "address",
         name: "executor",
         type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "payerIsRouter",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "refundAsNative",
+        type: "bool",
       },
       {
         components: [

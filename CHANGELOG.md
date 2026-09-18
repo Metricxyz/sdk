@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [0.6.0] - 2026-09-17
+## [0.6.0] - Unreleased
 
 ### Breaking changes
 
@@ -15,11 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Router sequences and external swap fallback** — compose router swaps with an external fallback, including native payment and unwrap variants. Fallback params infer the swap shape and reject mixed exact-input/output amounts or mixed single-hop/multihop token fields.
+- **Router sequences** — encode ordered router calls with configurable success/failure policies. Results and `SequenceFailed` preserve per-step return/revert data and statuses (`NOT_EXECUTED`, `SUCCESS`, `FAILURE`).
+- **External swaps** — encode swaps through an external executor, with native-payment and output-unwrap helpers. Caller-funded swaps automatically refund unused input; native-payment helpers request ETH refunds. External routes can deliver output directly to the settlement recipient or through the executor, which cannot be the final recipient.
+- **External swap fallback** — compose a primary router swap and an external fallback as two multicalls in a sequence, including exact-input/output, single-hop/multihop, native-payment, and unwrap variants. Both revert reasons remain available if both branches fail. Fallback params infer the swap shape and reject mixed amount or token fields.
+- **Router-funded external swaps** — optional `payerIsRouter` and `refundAsNative` encoder arguments, plus `encodeSweepTokenCalldata` for atomic cleanup of retained router funds.
 
 ### Changed
 
-- **Periphery** — pinned `ec2bb3187ea0ca22ac9b30e5d4597de5643793a0`. Sequence results and `SequenceFailed` preserve per-step return/revert data and statuses (`NOT_EXECUTED`, `SUCCESS`, `FAILURE`), including both failures when a fallback fails.
+- **Periphery** — pinned `f10fd9db1a447414b164fa4d7331a088f61d3154` and regenerated the router ABI for sequences and external swaps.
 
 ### Fixed
 

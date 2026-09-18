@@ -7,6 +7,11 @@ interface IExternalSwapTestToken {
 }
 
 contract MockExternalSwapTarget {
+  function swapTo(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address recipient) external {
+    require(IExternalSwapTestToken(tokenIn).transferFrom(msg.sender, address(this), amountIn));
+    require(IExternalSwapTestToken(tokenOut).transfer(recipient, amountOut));
+  }
+
   function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) external {
     require(IExternalSwapTestToken(tokenIn).transferFrom(msg.sender, address(this), amountIn));
     require(IExternalSwapTestToken(tokenOut).transfer(msg.sender, amountOut));

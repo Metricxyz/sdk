@@ -29,3 +29,16 @@ export function encodeUnwrapWETH9Calldata(amountMinimum: bigint, recipient: Addr
     args: [amountMinimum, recipient],
   });
 }
+
+/** Sweeps the router's entire token balance after checking the minimum. */
+export function encodeSweepTokenCalldata(
+  token: Address,
+  amountMinimum: bigint,
+  recipient: Address,
+): Hex {
+  return encodeFunctionData({
+    abi: SIMPLE_ROUTER_ABI,
+    functionName: "sweepToken",
+    args: [token, amountMinimum, recipient],
+  });
+}

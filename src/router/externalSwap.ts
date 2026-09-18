@@ -8,12 +8,21 @@ import {
   encodeUnwrapWETH9Calldata,
 } from "../peripheryPayments/index.js";
 
-/** Approve the SimpleRouter, not the executor. The executor must be bound to that router. */
-export function encodeExternalSwapCalldata(executor: Address, params: ExternalSwapParams): Hex {
+/**
+ * Caller-funded by default; unused input is refunded automatically.
+ * Router-funded calls retain leftovers: fund and clean up atomically in a multicall.
+ * refundAsNative requires wrapped-native input. Approve the SimpleRouter.
+ */
+export function encodeExternalSwapCalldata(
+  executor: Address,
+  params: ExternalSwapParams,
+  payerIsRouter = false,
+  refundAsNative = false,
+): Hex {
   return encodeFunctionData({
     abi: SIMPLE_ROUTER_ABI,
     functionName: "externalSwap",
-    args: [executor, params],
+    args: [executor, payerIsRouter, refundAsNative, params],
   });
 }
 
@@ -22,7 +31,7 @@ export const prepareExternalSwapCalldata = encodeExternalSwapCalldata;
 /**
  * tokenIn must be wrappedNative. Set transaction value to the native contribution;
  * approve the router for any remaining wrappedNative needed to fund amountInMaximum.
- * Executor refunds arrive as wrappedNative; only unused router ETH is refunded as ETH.
+ * Unused input is refunded as ETH; refundETH returns any ETH never wrapped.
  */
 export function prepareExternalSwapSupportingNativePaymentCalldata(
   executor: Address,
@@ -32,7 +41,7 @@ export function prepareExternalSwapSupportingNativePaymentCalldata(
 ): Hex {
   assertWrappedNativeToken(params.tokenIn, chainId, wrappedNative, "tokenIn");
   return encodeMulticallCalldata([
-    encodeExternalSwapCalldata(executor, params),
+    encodeExternalSwapCalldata(executor, params, false, true),
     encodeRefundETHCalldata(),
   ]);
 }

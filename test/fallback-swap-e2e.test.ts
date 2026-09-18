@@ -129,15 +129,22 @@ describe("external swap fallback execution", () => {
           data: simulation.data as Hex,
         });
         assert.deepEqual(statuses, [sdk.StepStatus.FAILURE, sdk.StepStatus.SUCCESS]);
+        const nativeBefore = await client.getBalance({ address: payer.account.address });
         const hash = await payer.sendTransaction({ to: router.address, data, value });
-        assert.equal((await client.waitForTransactionReceipt({ hash })).status, "success");
+        const receipt = await client.waitForTransactionReceipt({ hash });
+        assert.equal(receipt.status, "success");
+        const nativeAfter = await client.getBalance({ address: payer.account.address });
+        assert.equal(
+          nativeBefore - nativeAfter - receipt.gasUsed * receipt.effectiveGasPrice,
+          variant === "native" ? 90n : 0n,
+        );
         const outputAfter = unwrap
           ? await client.getBalance({ address: recipient.account.address })
           : await tokenOut.read.balanceOf([recipient.account.address]);
         assert.equal(outputAfter - outputBefore, 80n);
         assert.equal(
           await tokenIn.read.balanceOf([payer.account.address]),
-          inputBefore + (variant === "native" ? 10n : -90n),
+          inputBefore + (variant === "native" ? 0n : -90n),
         );
         assert.equal(await client.getBalance({ address: router.address }), 0n);
         assert.equal(await weth.read.balanceOf([router.address]), 0n);
@@ -291,6 +298,207 @@ describe("external swap fallback execution", () => {
     assert.equal(await weth.read.balanceOf([payer.account.address]), 100n);
     assert.equal(await token.read.balanceOf([target.address]), 100n);
     assert.equal(await token.read.balanceOf([recipient.account.address]), 0n);
+    assert.equal(await client.getBalance({ address: router.address }), 0n);
+  });
+});
+
+describe("external swap funding and refunds", () => {
+  for (const delivery of ["executor", "direct"] as const) {
+    for (const flow of ["erc20", "native", "wrappedRefund", "mixed", "unwrap"] as const) {
+      it(`${flow}: refunds only unused input with ${delivery} output`, async () => {
+        const { payer, recipient, client, weth, token, router, executor, target, deadline } =
+          await setup();
+        const tokenIn = flow === "unwrap" ? token : weth;
+        const tokenOut = flow === "unwrap" ? weth : token;
+        const settlementRecipient = flow === "unwrap" ? router.address : recipient.account.address;
+        await weth.write.deposit({ value: 1000n });
+        await token.write.mint([payer.account.address, 1000n]);
+        await tokenOut.write.transfer([target.address, 200n]);
+        await tokenIn.write.transfer([router.address, 7n]);
+        if (flow !== "native" && flow !== "wrappedRefund") {
+          await tokenIn.write.approve([router.address, 100n]);
+        }
+        const params = {
+          tokenIn: tokenIn.address,
+          tokenOut: tokenOut.address,
+          amountInMaximum: 100n,
+          amountOutMinimum: 80n,
+          recipient: recipient.account.address,
+          deadline,
+          externalRouter: target.address,
+          externalRouterCalldata:
+            delivery === "direct"
+              ? encodeFunctionData({
+                  abi: target.abi,
+                  functionName: "swapTo",
+                  args: [tokenIn.address, tokenOut.address, 90n, 80n, settlementRecipient],
+                })
+              : encodeFunctionData({
+                  abi: target.abi,
+                  functionName: "swap",
+                  args: [tokenIn.address, tokenOut.address, 90n, 80n],
+                }),
+        };
+        const data =
+          flow === "unwrap"
+            ? sdk.prepareExternalSwapAndUnwrapCalldata(
+                executor.address,
+                params,
+                router.address,
+                null,
+                weth.address,
+              )
+            : flow === "native" || flow === "mixed"
+              ? sdk.prepareExternalSwapSupportingNativePaymentCalldata(
+                  executor.address,
+                  params,
+                  null,
+                  weth.address,
+                )
+              : flow === "wrappedRefund"
+                ? sdk.encodeMulticallCalldata([
+                    sdk.encodeExternalSwapCalldata(executor.address, params),
+                    sdk.encodeRefundETHCalldata(),
+                  ])
+                : sdk.prepareExternalSwapCalldata(executor.address, params);
+        const value =
+          flow === "native" || flow === "wrappedRefund" ? 110n : flow === "mixed" ? 30n : 0n;
+        const inputBefore = await tokenIn.read.balanceOf([payer.account.address]);
+        const outputBefore =
+          flow === "unwrap"
+            ? await client.getBalance({ address: recipient.account.address })
+            : await tokenOut.read.balanceOf([recipient.account.address]);
+        const simulation = await client.call({
+          account: payer.account.address,
+          to: router.address,
+          data,
+          value,
+        });
+        const swapResult =
+          flow === "erc20"
+            ? simulation.data!
+            : decodeFunctionResult({
+                abi: sdk.MetricOmmSimpleRouterAbi,
+                functionName: "multicall",
+                data: simulation.data!,
+              })[0];
+        assert.deepEqual(
+          decodeFunctionResult({
+            abi: sdk.MetricOmmSimpleRouterAbi,
+            functionName: "externalSwap",
+            data: swapResult,
+          }),
+          [80n, 90n],
+        );
+        const nativeBefore = await client.getBalance({ address: payer.account.address });
+        const hash = await payer.sendTransaction({ to: router.address, data, value });
+        const receipt = await client.waitForTransactionReceipt({ hash });
+        assert.equal(receipt.status, "success");
+        const nativeAfter = await client.getBalance({ address: payer.account.address });
+        assert.equal(
+          nativeBefore - nativeAfter - receipt.gasUsed * receipt.effectiveGasPrice,
+          flow === "native" ? 90n : flow === "wrappedRefund" ? 100n : flow === "mixed" ? 20n : 0n,
+        );
+        const expectedInputChange =
+          flow === "native" ? 0n : flow === "wrappedRefund" ? 10n : flow === "mixed" ? -70n : -90n;
+        assert.equal(
+          await tokenIn.read.balanceOf([payer.account.address]),
+          inputBefore + expectedInputChange,
+        );
+        const outputAfter =
+          flow === "unwrap"
+            ? await client.getBalance({ address: recipient.account.address })
+            : await tokenOut.read.balanceOf([recipient.account.address]);
+        assert.equal(outputAfter - outputBefore, 80n);
+        assert.equal(await tokenIn.read.balanceOf([router.address]), 7n);
+        assert.equal(await tokenOut.read.balanceOf([router.address]), 0n);
+        assert.equal(await tokenIn.read.balanceOf([executor.address]), 0n);
+        assert.equal(await tokenOut.read.balanceOf([executor.address]), 0n);
+        assert.equal(await tokenIn.read.allowance([executor.address, target.address]), 0n);
+        assert.equal(await client.getBalance({ address: router.address }), 0n);
+      });
+    }
+  }
+
+  it("uses preceding output to fund a router-paid swap and sweeps retained input atomically", async () => {
+    const { payer, recipient, client, weth, token, router, executor, target, deadline } =
+      await setup();
+    await weth.write.deposit({ value: 100n });
+    await weth.write.approve([router.address, 100n]);
+    await token.write.mint([target.address, 200n]);
+    const first = {
+      tokenIn: weth.address,
+      tokenOut: token.address,
+      amountInMaximum: 100n,
+      amountOutMinimum: 80n,
+      recipient: router.address,
+      deadline,
+      externalRouter: target.address,
+      externalRouterCalldata: encodeFunctionData({
+        abi: target.abi,
+        functionName: "swap",
+        args: [weth.address, token.address, 90n, 80n],
+      }),
+    };
+    const second = {
+      tokenIn: token.address,
+      tokenOut: weth.address,
+      amountInMaximum: 70n,
+      amountOutMinimum: 50n,
+      recipient: recipient.account.address,
+      deadline,
+      externalRouter: target.address,
+      externalRouterCalldata: encodeFunctionData({
+        abi: target.abi,
+        functionName: "swap",
+        args: [token.address, weth.address, 60n, 50n],
+      }),
+    };
+    const data = sdk.encodeMulticallCalldata([
+      sdk.encodeExternalSwapCalldata(executor.address, first),
+      sdk.encodeExternalSwapCalldata(executor.address, second, true),
+      sdk.encodeSweepTokenCalldata(token.address, 20n, payer.account.address),
+    ]);
+    const hash = await payer.sendTransaction({ to: router.address, data });
+    assert.equal((await client.waitForTransactionReceipt({ hash })).status, "success");
+    assert.equal(await weth.read.balanceOf([payer.account.address]), 10n);
+    assert.equal(await weth.read.balanceOf([recipient.account.address]), 50n);
+    assert.equal(await token.read.balanceOf([payer.account.address]), 20n);
+    assert.equal(await token.read.balanceOf([router.address]), 0n);
+    assert.equal(await token.read.allowance([payer.account.address, router.address]), 0n);
+  });
+
+  it("rolls back a native-output swap when unwrapping cannot pay the recipient", async () => {
+    const { payer, client, weth, token, router, executor, target, deadline } = await setup();
+    await weth.write.deposit({ value: 100n });
+    await weth.write.transfer([target.address, 100n]);
+    await token.write.mint([payer.account.address, 100n]);
+    await token.write.approve([router.address, 100n]);
+    const data = sdk.prepareExternalSwapAndUnwrapCalldata(
+      executor.address,
+      {
+        tokenIn: token.address,
+        tokenOut: weth.address,
+        amountInMaximum: 100n,
+        amountOutMinimum: 80n,
+        recipient: token.address,
+        deadline,
+        externalRouter: target.address,
+        externalRouterCalldata: encodeFunctionData({
+          abi: target.abi,
+          functionName: "swap",
+          args: [token.address, weth.address, 90n, 80n],
+        }),
+      },
+      router.address,
+      null,
+      weth.address,
+    );
+    await assert.rejects(payer.sendTransaction({ to: router.address, data }), /ETHTransferFailed/);
+    assert.equal(await token.read.balanceOf([payer.account.address]), 100n);
+    assert.equal(await weth.read.balanceOf([target.address]), 100n);
+    assert.equal(await token.read.balanceOf([router.address]), 0n);
+    assert.equal(await weth.read.balanceOf([router.address]), 0n);
     assert.equal(await client.getBalance({ address: router.address }), 0n);
   });
 });

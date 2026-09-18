@@ -308,7 +308,8 @@ Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`
 
 ## Router sequences and external swap fallback
 
-These helpers require the sequence-enabled SimpleRouter and an ExternalSwapExecutor
+These helpers require the SimpleRouter from periphery `f10fd9d` (or a compatible
+version) with the four-argument `externalSwap` entrypoint, plus an ExternalSwapExecutor
 bound to that router. Existing router deployments without `sequence` / `externalSwap`
 are not compatible. Approve input tokens on the SimpleRouter.
 
@@ -360,10 +361,11 @@ it, then it calls `externalRouter` with `externalRouterCalldata`.
 
 The external swap's payer **MUST be the executor**, not the SimpleRouter or the
 user. Request or encode the external quote with the executor as its payer/sender
-and output recipient: the executor calls the external router and approves it to
-spend the funded input tokens. The user still approves the SimpleRouter, which
-funds the executor before execution. The executor then pays the requested recipient. The SDK does
-not obtain or rewrite aggregator quotes. For exact output, the external quote
+and send output to either the executor or the swap's settlement recipient
+(SimpleRouter for `AndUnwrap`, otherwise `params.recipient`). The executor forwards
+any output it receives to that settlement recipient; `params.recipient` itself
+must not be the executor. The user approves SimpleRouter, which funds the executor.
+The SDK does not obtain or rewrite aggregator quotes. For exact output, the external quote
 must implement exact-output behavior; the router enforces a minimum output and
 maximum input, so excess output is also delivered to the recipient.
 
@@ -374,8 +376,8 @@ optionally followed by `SupportingNativePayment` or `AndUnwrap`, then
 `chainId` / `wrappedNative` as the fourth and fifth arguments. Native-payment
 fallback helpers take `chainId` / `wrappedNative` as the third and fourth arguments. Native payment helpers use wrappedNative as the input token and
 accept the native contribution through transaction `value`. Both branches refund
-unused router ETH. The external executor returns unused funded input as
-**wrappedNative**, not ETH. Unwrap helpers require wrappedNative output and unwrap
+unused router ETH. The external branch also requests automatic ETH refunds of
+unused wrapped-native input. Unwrap helpers require wrappedNative output and unwrap
 inside each branch, making swap and unwrap atomic together.
 
 For standalone external swaps, use `encodeExternalSwapCalldata(executor, params)`,
@@ -383,6 +385,34 @@ For standalone external swaps, use `encodeExternalSwapCalldata(executor, params)
 `prepareExternalSwapAndUnwrapCalldata(executor, params, simpleRouter, chainId, wrappedNative)`.
 `encodeSequenceCalldata` and the `OnStepSuccess` / `OnStepFailure` enums are also
 exported for custom sequences.
+
+`encodeExternalSwapCalldata(executor, params, payerIsRouter = false, refundAsNative = false)`
+(and its alias `prepareExternalSwapCalldata`) encodes the new four-argument contract
+entrypoint. Caller-funded swaps temporarily fund `amountInMaximum`, then automatically
+return unused input to the caller, so net spend is only the amount consumed. They
+preserve pre-existing router input-token balances; no input sweep is needed.
+
+| Flow | Flags (`payerIsRouter`, `refundAsNative`) | Follow-up in the same multicall |
+| --- | --- | --- |
+| Token input, token output | `false, false` | None |
+| ETH input, ETH refund | `false, true` | `refundETH()` for ETH never wrapped |
+| ETH input, WETH refund | `false, false` | `refundETH()` for ETH never wrapped |
+| Token input, ETH output | `false, false`; recipient = SimpleRouter | `unwrapWETH9(amountOutMinimum, finalRecipient)` |
+
+The native-payment helper chooses ETH refunds, including for mixed ETH/WETH funding.
+To keep refunds wrapped, compose `encodeExternalSwapCalldata(executor, params)` and
+`encodeRefundETHCalldata()` with `encodeMulticallCalldata` instead. Both native flows
+require WETH input. `refundAsNative = true` with another input token reverts.
+
+For output from a preceding swap, set that swap's recipient to SimpleRouter and
+encode the external swap with `payerIsRouter = true` in the same multicall. This
+spends `amountInMaximum` from the router's token balance without wrapping ETH or
+pulling a shortfall from the caller. Leftovers stay in the router, even with
+`refundAsNative = true` (which still requires WETH). Consume them in a later step or
+append `encodeSweepTokenCalldata(tokenIn, 0n, recipient)` / `encodeUnwrapWETH9Calldata`.
+Router balances are publicly accessible; keep funding and spending atomic.
+Sweep and unwrap helpers transfer the entire corresponding token balance;
+`refundETH` transfers the entire ETH balance to the transaction caller.
 
 All swap helpers with `SupportingNativePayment` or `AndUnwrap` take two final
 arguments: `chainId: number | null` and `wrappedNative: Address | null`.

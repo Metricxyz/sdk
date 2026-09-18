@@ -232,7 +232,7 @@ export type ExternalSwapParams = {
   amountInMaximum: bigint;
   amountOutMinimum: bigint;
   externalRouter: Address;
-  /** Executor MUST be the external swap's payer and output recipient, not the router/user. */
+  /** Executor must pay; output must go to the executor or params.recipient. */
   externalRouterCalldata: Hex;
   recipient: Address;
   deadline: bigint;
