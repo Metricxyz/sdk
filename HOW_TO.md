@@ -313,16 +313,25 @@ version) with the four-argument `externalSwap` entrypoint, plus an ExternalSwapE
 bound to that router. Existing router deployments without `sequence` / `externalSwap`
 are not compatible. Approve input tokens on the SimpleRouter.
 
+The bundled compatible router/executor pair is currently Ethereum-only.
+`getAddressesOrThrow(chainId).externalSwapExecutor` is `undefined` on the other
+bundled chains; chain support alone does not imply support for fallback swaps.
+
 Build the primary params with the existing quote or route helpers, then pass an
 external quote to the matching fallback helper:
 
 ```ts
+const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
+const executor = addresses.externalSwapExecutor;
+if (!executor) throw new Error("No external swap executor configured for this chain");
+
+// Obtain externalRouterCalldata with the executor as payer and output recipient.
 const data = prepareExactInputSingleWithExternalSwapFallbackCalldata(params, {
   executor,
   externalRouter,
   externalRouterCalldata,
 });
-await walletClient.sendTransaction({ account, to: simpleRouter, data });
+await walletClient.sendTransaction({ account, to: addresses.simpleRouter, data });
 ```
 
 The sequence contains two multicalls. Primary success stops execution. Primary

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Periphery** — pinned `f10fd9db1a447414b164fa4d7331a088f61d3154` and regenerated the router ABI for sequences and external swaps.
+- **Ethereum deployment** — updated `simpleRouter` to `0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910` and exposed its bound executor as optional `externalSwapExecutor` (`0xFAf77585aC2FbD6777Baca30c1dB99ce8Bca3248`). Other chains retain their existing routers and return no executor. Calldata builders still take addresses explicitly; applications must update their transaction and approval targets.
 
 ### Fixed
 

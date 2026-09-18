@@ -1,7 +1,8 @@
 /**
  * MetricAMM SDK — v1 deployed addresses.
  *
- * All configured chains share the same protocol deployment addresses (CREATE2).
+ * Protocol deployments are shared across chains, except Ethereum's upgraded
+ * SimpleRouter and ExternalSwapExecutor for sequences and external swaps.
  * Pool state reads (slot0, bins, position shares) and
  * depth/quote views use dataProvider (MetricOmmPoolDataProvider — the single
  * deployed lens per factory).
@@ -52,6 +53,8 @@ export interface ChainAddresses {
   dataProvider: Address;
   /** MetricOmmSimpleRouter (single- and multi-hop swaps). */
   simpleRouter: Address;
+  /** ExternalSwapExecutor bound to simpleRouter; absent where no compatible deployment is configured. */
+  externalSwapExecutor?: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
   quoter: Address;
   /** Wrapped native token for this chain. */
@@ -84,10 +87,12 @@ const PROTOCOL_ADDRESSES = {
   },
 } as const satisfies Omit<ChainAddresses, "wrappedNative">;
 
-/** Same protocol addresses on each chain below. */
+/** Shared protocol addresses with chain-specific router/executor overrides. */
 export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
   [ChainId.ETHEREUM]: {
     ...PROTOCOL_ADDRESSES,
+    simpleRouter: "0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910",
+    externalSwapExecutor: "0xFAf77585aC2FbD6777Baca30c1dB99ce8Bca3248",
     wrappedNative: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   },
   [ChainId.BASE]: {
