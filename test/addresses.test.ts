@@ -30,7 +30,7 @@ describe("v1 addresses", () => {
     }
   });
 
-  it("deployed chains share protocol addresses except the Ethereum swap deployment", () => {
+  it("deployed chains share protocol addresses", () => {
     const eth = ADDRESSES[ChainId.ETHEREUM];
     for (const chainId of getSupportedChainIds()) {
       const addresses = ADDRESSES[chainId];
@@ -38,10 +38,8 @@ describe("v1 addresses", () => {
       assert.equal(addresses.poolDeployer, eth.poolDeployer);
       assert.equal(addresses.liquidityAdder, eth.liquidityAdder);
       assert.equal(addresses.dataProvider, eth.dataProvider);
-      if (chainId !== ChainId.ETHEREUM) {
-        assert.equal(addresses.simpleRouter, "0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2");
-        assert.equal(addresses.externalSwapExecutor, undefined);
-      }
+      assert.equal(addresses.simpleRouter, eth.simpleRouter);
+      assert.equal(addresses.externalSwapExecutor, eth.externalSwapExecutor);
       assert.equal(addresses.quoter, eth.quoter);
       assert.deepEqual(addresses.extensions, eth.extensions);
     }
@@ -62,8 +60,8 @@ describe("v1 addresses", () => {
         poolDeployer: "0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738",
         liquidityAdder: "0x06Cb6C245Cd9219262442A7730D9484B3CfdD901",
         dataProvider: "0x83d66c5934b1525ee82e6E772c76c7acC778bBB7",
-        simpleRouter: "0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910",
-        externalSwapExecutor: "0xFAf77585aC2FbD6777Baca30c1dB99ce8Bca3248",
+        simpleRouter: "0x02201E6f13c41506c7Bb635d7543F98826229aB7",
+        externalSwapExecutor: "0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2",
         quoter: "0x803Dd787ef9734c34696877ca6F20194fBcBFbF8",
         extensions: {
           depositAllowlistExtension: "0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D",

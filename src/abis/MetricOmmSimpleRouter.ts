@@ -49,22 +49,6 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "deadline",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "timestamp",
-        type: "uint256",
-      },
-    ],
-    name: "DeadlineExpired",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "ETHTransferFailed",
     type: "error",
@@ -459,6 +443,31 @@ export const MetricOmmSimpleRouterAbi = [
     ],
     name: "TransactionExpired",
     type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "caller",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "index",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "bytes4",
+        name: "reason",
+        type: "bytes4",
+      },
+    ],
+    name: "SequenceStepFailed",
+    type: "event",
   },
   {
     inputs: [

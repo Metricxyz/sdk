@@ -308,14 +308,13 @@ Quote without sending a swap: `v1.quoteLiveExactInSingle`, `v1.quoteLiveExactIn`
 
 ## Router sequences and external swap fallback
 
-These helpers require the SimpleRouter from periphery `f10fd9d` (or a compatible
+These helpers require the SimpleRouter from periphery `ed58520` (or a compatible
 version) with the four-argument `externalSwap` entrypoint, plus an ExternalSwapExecutor
 bound to that router. Existing router deployments without `sequence` / `externalSwap`
 are not compatible. Approve input tokens on the SimpleRouter.
 
-The bundled compatible router/executor pair is currently Ethereum-only.
-`getAddressesOrThrow(chainId).externalSwapExecutor` is `undefined` on the other
-bundled chains; chain support alone does not imply support for fallback swaps.
+Every bundled chain uses the same SimpleRouter and its bound ExternalSwapExecutor
+(`getAddressesOrThrow(chainId).externalSwapExecutor`).
 
 Build the primary params with the existing quote or route helpers, then pass an
 external quote to the matching fallback helper:
@@ -323,7 +322,6 @@ external quote to the matching fallback helper:
 ```ts
 const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
 const executor = addresses.externalSwapExecutor;
-if (!executor) throw new Error("No external swap executor configured for this chain");
 
 // Obtain externalRouterCalldata with the executor as payer and output recipient.
 const data = prepareExactInputSingleWithExternalSwapFallbackCalldata(params, {
@@ -346,9 +344,8 @@ both exact-input and exact-output amount fields, or both `tokens` and
 
 If both branches fail, the transaction reverts with `SequenceFailed(results, statuses)`.
 Both revert reasons are available: `results[0]` is the primary error and
-`results[1]` is the fallback error. For an expired deadline, these decode to
-`TransactionExpired` and `DeadlineExpired`, respectively; no external router
-call is made. The fallback does not bypass the primary deadline.
+`results[1]` is the fallback error. For an expired deadline, both decode to
+`TransactionExpired`; no external router call is made. The fallback does not bypass the primary deadline.
 
 Both successful sequence returns and `SequenceFailed` use `uint8[] statuses`:
 `StepStatus.NOT_EXECUTED = 0`, `SUCCESS = 1`, and `FAILURE = 2`.

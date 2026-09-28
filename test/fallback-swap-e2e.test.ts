@@ -259,7 +259,7 @@ describe("external swap fallback execution", () => {
           abi: sdk.MetricOmmSimpleRouterAbi,
           data: results[1],
         });
-        assert.equal(fallbackError.errorName, "DeadlineExpired");
+        assert.equal(fallbackError.errorName, "TransactionExpired");
         assert.deepEqual(fallbackError.args, [params.deadline, timestamp]);
         return true;
       },

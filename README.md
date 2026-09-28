@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `f10fd9db1a447414b164fa4d7331a088f61d3154`
+Pinned **metric-periphery** `ed58520348f2eb05ba1903145c0a91f69cd0afde`
 (Metric Core `d4d0e2a3a7d690fdfed9829239e5ec3d8c4c9575` via periphery
 `lib/metric-core`).
 
@@ -21,8 +21,7 @@ import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 ## Deployed addresses
 
 Protocol contracts share deterministic addresses on Ethereum, Base, Arbitrum,
-Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood, except for
-Ethereum's upgraded SimpleRouter and ExternalSwapExecutor below. Deployments
+Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood. Deployments
 use CREATE2 and CREATE3; wrapped native differs per chain.
 
 | Contract | Address |
@@ -31,9 +30,8 @@ use CREATE2 and CREATE3; wrapped native differs per chain.
 | MetricOmmPoolDeployer | `0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738` |
 | MetricOmmPoolLiquidityAdder | `0x06Cb6C245Cd9219262442A7730D9484B3CfdD901` |
 | MetricOmmPoolDataProvider | `0x83d66c5934b1525ee82e6E772c76c7acC778bBB7` |
-| MetricOmmSimpleRouter (Ethereum) | `0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910` |
-| ExternalSwapExecutor (Ethereum) | `0xFAf77585aC2FbD6777Baca30c1dB99ce8Bca3248` |
-| MetricOmmSimpleRouter (other configured chains) | `0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2` |
+| MetricOmmSimpleRouter | `0x02201E6f13c41506c7Bb635d7543F98826229aB7` |
+| ExternalSwapExecutor | `0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2` |
 | MetricOmmSwapQuoter | `0x803Dd787ef9734c34696877ca6F20194fBcBFbF8` |
 | DepositAllowlistExtension | `0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D` |
 | SwapAllowlistExtension | `0x4Ca8d78873f0a66445CC05f9A1E705f1a58A6582` |
@@ -55,23 +53,18 @@ use CREATE2 and CREATE3; wrapped native differs per chain.
 import { getAddressesOrThrow, ChainId } from "@metric.xyz/metric-omm-sdk-v1";
 
 const a = getAddressesOrThrow(ChainId.ETHEREUM);
-// a.simpleRouter is Ethereum's upgraded router.
-// a.externalSwapExecutor is its bound executor (undefined on other bundled chains).
+// same protocol addresses on Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood
 ```
 
 Use `isChainSupported` / `getSupportedChainIds` for the ten bundled chains.
 
-Sequence and external-swap helpers have a compatible bundled deployment only on
-Ethereum. Both contracts were deployed in block `26006279`:
-[SimpleRouter deployment](https://etherscan.io/tx/0x3725f985225ebda1c4e36fc3a2f6e4eac17eb844ea4a404bb0da416dfd6b777a)
-and [ExternalSwapExecutor deployment](https://etherscan.io/tx/0xf170a0ae799f2795d86f3f910f6dbf3cf81b4d002b7a6e9ab8bb27920d94cd97).
-The executor's `router()` points to the Ethereum SimpleRouter above.
+The SimpleRouter supports sequences and external swaps on every bundled chain.
+The ExternalSwapExecutor's `router()` points to the SimpleRouter above.
 
 Calldata builders use addresses supplied by the caller; they do not select the
 transaction's `to` address or update application runtime configuration. Use the
 same router for the transaction target, user token approval, and unwrap helpers,
-and pass its `externalSwapExecutor` as `fallback.executor`. Other chains retain
-their existing routers and have no bundled executor.
+and pass its `externalSwapExecutor` as `fallback.executor`.
 
 ## Swaps (SimpleRouter)
 

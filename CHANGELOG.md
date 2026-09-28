@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] - Unreleased
+## [0.6.0-rc.0] - 2026-09-28
+
+### Breaking changes
+
+- **Router deployment** — `simpleRouter` is now `0x02201E6f13c41506c7Bb635d7543F98826229aB7` on every bundled chain (was `0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910` on Ethereum and `0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2` elsewhere). `externalSwapExecutor` is now required on `ChainAddresses` and set to `0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2` on every chain. Applications must update their transaction and approval targets.
+- **Router ABI** — `DeadlineExpired` is removed; expired external swaps revert with `TransactionExpired`.
+
+### Added
+
+- **Sequence step failures** — the router ABI includes `SequenceStepFailed(caller, index, reason)`, emitted when a step fails without reverting the sequence.
+
+### Changed
+
+- **Periphery** — pinned `ed58520348f2eb05ba1903145c0a91f69cd0afde` and regenerated the router ABI.
+
+## [0.6.0-alpha.1] - 2026-09-22
 
 ### Breaking changes
 
