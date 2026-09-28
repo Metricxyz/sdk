@@ -7,49 +7,26 @@
  */
 
 export {
-  buildExactInputParams,
-  buildExactOutputParams,
   encodeExactInputCalldata,
   encodeExactOutputCalldata,
   encodeZeroForOneBitMap,
   prepareExactInputCalldata,
   prepareExactOutputCalldata,
-  type ExactInputParams,
-  type ExactOutputParams,
-  type BuildExactInputParams,
-  type BuildExactOutputParams,
-} from "./swapPath.js";
-
-export {
-  buildExactInputSingleParams,
-  buildExactOutputSingleParams,
   encodeExactInputSingleCalldata,
   encodeExactOutputSingleCalldata,
   prepareExactInputSingleCalldata,
   prepareExactOutputSingleCalldata,
-  type ExactInputSingleParams,
-  type ExactOutputSingleParams,
-  type BuildExactInputSingleParams,
-  type BuildExactOutputSingleParams,
 } from "./swap.js";
 
 export {
   routeToExactInputParams as prepareExactInputFromRoute,
   routeToExactOutputParams as prepareExactOutputFromRoute,
-  type TradeType,
-  type RouteType,
-  type RouteLegResponse,
-  type RouteOptionResponse,
-  type RouteResponse,
-  type PrepareExactInputFromRouteParams,
-  type PrepareExactOutputFromRouteParams,
-  type PreparedExactInputFromRoute,
-  type PreparedExactOutputFromRoute,
 } from "./fromRoute.js";
 
 export {
   encodeMulticallCalldata,
   encodeRefundETHCalldata,
+  encodeSweepTokenCalldata,
   encodeUnwrapWETH9Calldata,
 } from "../peripheryPayments/index.js";
 
@@ -63,3 +40,55 @@ export {
   prepareExactOutputSingleAndUnwrapCalldata,
   prepareExactOutputAndUnwrapCalldata,
 } from "./nativeSwap.js";
+
+export { encodeSequenceCalldata } from "./sequence.js";
+export {
+  encodeExternalSwapCalldata,
+  prepareExternalSwapCalldata,
+  prepareExternalSwapSupportingNativePaymentCalldata,
+  prepareExternalSwapAndUnwrapCalldata,
+} from "./externalSwap.js";
+export {
+  prepareExactInputWithExternalSwapFallbackCalldata,
+  prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputWithExternalSwapFallbackCalldata,
+  prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+} from "./fallbackSwap.js";
+
+export type {
+  ExactInputSingleParams,
+  ExactOutputSingleParams,
+  BuildExactInputSingleParams,
+  BuildExactOutputSingleParams,
+  ExactInputParams,
+  ExactOutputParams,
+  BuildExactInputParams,
+  BuildExactOutputParams,
+  TradeType,
+  RouteType,
+  RouteLegResponse,
+  RouteOptionResponse,
+  RouteResponse,
+  PrepareExactInputFromRouteParams,
+  PrepareExactOutputFromRouteParams,
+  PreparedExactInputFromRoute,
+  PreparedExactOutputFromRoute,
+  ExternalSwapParams,
+  ExternalSwapFallback,
+  SequenceCall,
+} from "./types.js";
+export { OnStepSuccess, OnStepFailure, StepStatus } from "./types.js";
+export {
+  buildExactInputSingleParams,
+  buildExactOutputSingleParams,
+  buildExactInputParams,
+  buildExactOutputParams,
+} from "./buildParams.js";

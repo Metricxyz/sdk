@@ -2,7 +2,7 @@
 
 TypeScript SDK for **v1** Metric OMM contracts: **SimpleRouter**, **SwapQuoter**, **LiquidityAdder**, pool `addLiquidity` / `removeLiquidity`, **extensions**, and factory-backed reads.
 
-Pinned **metric-periphery** `f92a958c75c01ebef62a9e749ab037f6b813cf21`
+Pinned **metric-periphery** `ed58520348f2eb05ba1903145c0a91f69cd0afde`
 (Metric Core `d4d0e2a3a7d690fdfed9829239e5ec3d8c4c9575` via periphery
 `lib/metric-core`).
 
@@ -20,9 +20,9 @@ import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 
 ## Deployed addresses
 
-Protocol contracts use the **same deterministic addresses** on Ethereum, Base,
-Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood.
-Deployments use CREATE2 and CREATE3; wrapped native differs per chain.
+Protocol contracts share deterministic addresses on Ethereum, Base, Arbitrum,
+Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, and Robinhood. Deployments
+use CREATE2 and CREATE3; wrapped native differs per chain.
 
 | Contract | Address |
 | -------- | ------- |
@@ -30,7 +30,8 @@ Deployments use CREATE2 and CREATE3; wrapped native differs per chain.
 | MetricOmmPoolDeployer | `0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738` |
 | MetricOmmPoolLiquidityAdder | `0x06Cb6C245Cd9219262442A7730D9484B3CfdD901` |
 | MetricOmmPoolDataProvider | `0x83d66c5934b1525ee82e6E772c76c7acC778bBB7` |
-| MetricOmmSimpleRouter | `0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2` |
+| MetricOmmSimpleRouter | `0x02201E6f13c41506c7Bb635d7543F98826229aB7` |
+| ExternalSwapExecutor | `0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2` |
 | MetricOmmSwapQuoter | `0x803Dd787ef9734c34696877ca6F20194fBcBFbF8` |
 | DepositAllowlistExtension | `0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D` |
 | SwapAllowlistExtension | `0x4Ca8d78873f0a66445CC05f9A1E705f1a58A6582` |
@@ -56,6 +57,14 @@ const a = getAddressesOrThrow(ChainId.ETHEREUM);
 ```
 
 Use `isChainSupported` / `getSupportedChainIds` for the ten bundled chains.
+
+The SimpleRouter supports sequences and external swaps on every bundled chain.
+The ExternalSwapExecutor's `router()` points to the SimpleRouter above.
+
+Calldata builders use addresses supplied by the caller; they do not select the
+transaction's `to` address or update application runtime configuration. Use the
+same router for the transaction target, user token approval, and unwrap helpers,
+and pass its `externalSwapExecutor` as `fallback.executor`.
 
 ## Swaps (SimpleRouter)
 
@@ -124,22 +133,30 @@ Approve the **SimpleRouter** for input tokens (ERC-20 path). Swap allowlist exte
 
 **Exact output + native payment:** use `prepareExactOutputSingleSupportingNativePaymentCalldata` / `prepareExactOutputSupportingNativePaymentCalldata` (multicall + `refundETH`). Set `msg.value` on the transaction yourself.
 
+These swap helpers take `chainId: number | null` and `wrappedNative: Address | null` as their final arguments. Supply a chain ID to resolve the wrapped-native address, an explicit address to check against, or both (which must agree). Pass `null, null` to explicitly skip token validation.
+
 **ETH output (unwrap):** use `prepareExactInputSingleAndUnwrapCalldata` / `prepareExactInputAndUnwrapCalldata` (or exact-output variants).
 
 ```typescript
 import {
+  ChainId,
+  getAddressesOrThrow,
   buildExactInputSingleParams,
   prepareExactInputSingleSupportingNativePaymentCalldata,
   prepareExactInputSingleAndUnwrapCalldata,
 } from "@metric.xyz/metric-omm-sdk-v1";
 
+const chainId = ChainId.ETHEREUM;
+const addresses = getAddressesOrThrow(chainId);
+const quoterAddress = addresses.quoter;
+
 // ETH → ERC-20: build params with tokenIn = addresses.wrappedNative, then:
 const params = await buildExactInputSingleParams({ /* … */, quoterAddress });
-const swapData = prepareExactInputSingleSupportingNativePaymentCalldata(params);
+const swapData = prepareExactInputSingleSupportingNativePaymentCalldata(params, chainId, null);
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data: swapData, value: params.amountIn, account });
 
 // ERC-20 → ETH: tokenOut = wrappedNative, then unwrap via multicall:
-const unwrapData = prepareExactInputSingleAndUnwrapCalldata(params, addresses.simpleRouter);
+const unwrapData = prepareExactInputSingleAndUnwrapCalldata(params, addresses.simpleRouter, chainId, null);
 await walletClient.sendTransaction({ to: addresses.simpleRouter, data: unwrapData, account });
 ```
 

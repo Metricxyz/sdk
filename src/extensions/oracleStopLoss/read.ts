@@ -10,6 +10,18 @@ import { OracleValueStopLossExtensionAbi } from "../../abis/OracleValueStopLossE
 import { decodeBinStatesBytes32, decodeBinTotalSharesBatch } from "../../utils/poolState.js";
 import { evaluateOracleStopLoss, type OracleStopLossEvaluation } from "./evaluate.js";
 
+/**
+ * Calldata budget (bytes) for one `aggregate3`, above viem's 1024-byte default.
+ *
+ * The bin sweep is two packed array reads plus one `currentHighWatermarks`
+ * call per bin. Under the default budget a 40-bin pool splits into five
+ * separate `eth_call`s — each repaying the Multicall3 overhead and each
+ * counting against the RPC provider's request budget, which is what rate
+ * limiters meter. That pool needs ~5.5 KB, so this keeps it in one request
+ * while still chunking pools with a much wider bin range.
+ */
+const STOP_LOSS_MULTICALL_BATCH_SIZE = 8192;
+
 export interface OracleStopLossConfig {
   drawdownE6: number;
   decayPerSecondE18: bigint;
@@ -122,9 +134,12 @@ export async function getOracleStopLossAnyBinStatus(
   if (askPriceX64 <= 0n) throw new Error("askPriceX64 must be > 0");
   if (bidPriceX64 >= askPriceX64) throw new Error("bidPriceX64 must be < askPriceX64");
 
-  const multicallOpts = publicClient.chain?.contracts?.multicall3?.address
-    ? { multicallAddress: publicClient.chain.contracts.multicall3.address }
-    : { deployless: true as const };
+  const multicallOpts = {
+    batchSize: STOP_LOSS_MULTICALL_BATCH_SIZE,
+    ...(publicClient.chain?.contracts?.multicall3?.address
+      ? { multicallAddress: publicClient.chain.contracts.multicall3.address }
+      : { deployless: true as const }),
+  };
 
   const bootstrap = await publicClient.multicall({
     allowFailure: false,

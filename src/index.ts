@@ -158,6 +158,7 @@ export {
 export {
   encodeMulticallCalldata,
   encodeRefundETHCalldata,
+  encodeSweepTokenCalldata,
   encodeUnwrapWETH9Calldata,
 } from "./peripheryPayments/index.js";
 
@@ -300,3 +301,33 @@ export {
   type GetOracleStopLossAnyBinStatusParams,
   type OracleStopLossAnyBinStatus,
 } from "./extensions/index.js";
+
+export {
+  encodeSequenceCalldata,
+  OnStepSuccess,
+  OnStepFailure,
+  StepStatus,
+  type SequenceCall,
+} from "./router/sequence.js";
+export {
+  encodeExternalSwapCalldata,
+  prepareExternalSwapCalldata,
+  prepareExternalSwapSupportingNativePaymentCalldata,
+  prepareExternalSwapAndUnwrapCalldata,
+  type ExternalSwapParams,
+} from "./router/externalSwap.js";
+export {
+  prepareExactInputWithExternalSwapFallbackCalldata,
+  prepareExactInputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactInputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputWithExternalSwapFallbackCalldata,
+  prepareExactOutputSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputAndUnwrapWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleSupportingNativePaymentWithExternalSwapFallbackCalldata,
+  prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata,
+  type ExternalSwapFallback,
+} from "./router/fallbackSwap.js";

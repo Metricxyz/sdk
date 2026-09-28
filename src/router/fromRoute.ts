@@ -2,87 +2,23 @@
  * Map route API POST /public/v1/evm/:chain_id/route responses to SimpleRouter swap params.
  */
 
-import type { Address, Hex, PublicClient } from "viem";
+import type {
+  TradeType,
+  RouteLegResponse,
+  RouteOptionResponse,
+  RouteResponse,
+  PrepareExactInputFromRouteParams,
+  PrepareExactOutputFromRouteParams,
+  PreparedExactInputFromRoute,
+  PreparedExactOutputFromRoute,
+} from "./types.js";
+
+import type { Address } from "viem";
 import { getAddress } from "viem";
 import { resolveSwapPath } from "../swap/path.js";
-import { ceilDiv, toSlippageBps } from "./swap.js";
-import type { ExactInputParams, ExactOutputParams } from "./swapPath.js";
-import type { ExactInputSingleParams, ExactOutputSingleParams } from "./swap.js";
+import { ceilDiv, toSlippageBps } from "./slippage.js";
 
 const BPS_BASE = 10_000n;
-
-/** Wire tradeType from the route API. */
-export type TradeType = "exact_in" | "exact_out";
-
-/** Wire routeType from the route API. */
-export type RouteType = "direct" | "one_hop";
-
-/** One hop in a route API response (RouteLegResponse). */
-export type RouteLegResponse = {
-  tradeType: TradeType;
-  poolAddress: string;
-  pair: string;
-  zeroForOne: boolean;
-  tokenIn: string;
-  tokenOut: string;
-  amountIn: string;
-  amountOut: string;
-  effectivePriceX64: string;
-  priceImpactE6: string;
-  priceLimitX64: string;
-};
-
-/** One execution path in a route API response (RouteOptionResponse). */
-export type RouteOptionResponse = {
-  tradeType: TradeType;
-  routeType: RouteType;
-  amountIn: string;
-  amountOut: string;
-  effectivePriceX64: string;
-  priceImpactE6: string;
-  legs: RouteLegResponse[];
-};
-
-/** Route API response (RouteResponse). */
-export type RouteResponse = {
-  tokenIn: string;
-  tokenOut: string;
-  tradeType: TradeType;
-  amountIn: string;
-  amountOut: string;
-  effectivePriceX64: string;
-  priceImpactBestRoute: string;
-  candidatesConsidered: number;
-  routes: RouteOptionResponse[];
-};
-
-export type PrepareExactInputFromRouteParams = {
-  publicClient: PublicClient;
-  route: RouteResponse;
-  recipient: Address;
-  deadline: bigint;
-  /** Human-readable slippage tolerance applied to the selected route's `amountOut`, e.g. `0.5` = 0.5%. */
-  slippagePercent: number;
-  extensionDatas?: readonly Hex[];
-};
-
-export type PrepareExactOutputFromRouteParams = {
-  publicClient: PublicClient;
-  route: RouteResponse;
-  recipient: Address;
-  deadline: bigint;
-  /** Human-readable slippage tolerance applied to the selected route's `amountIn`, e.g. `0.5` = 0.5%. */
-  slippagePercent: number;
-  extensionDatas?: readonly Hex[];
-};
-
-export type PreparedExactInputFromRoute =
-  | { kind: "single"; params: ExactInputSingleParams }
-  | { kind: "multihop"; params: ExactInputParams };
-
-export type PreparedExactOutputFromRoute =
-  | { kind: "single"; params: ExactOutputSingleParams }
-  | { kind: "multihop"; params: ExactOutputParams };
 
 function parseAddress(value: string, field: string): Address {
   try {
@@ -316,3 +252,15 @@ export async function routeToExactOutputParams(
     },
   };
 }
+
+export type {
+  TradeType,
+  RouteType,
+  RouteLegResponse,
+  RouteOptionResponse,
+  RouteResponse,
+  PrepareExactInputFromRouteParams,
+  PrepareExactOutputFromRouteParams,
+  PreparedExactInputFromRoute,
+  PreparedExactOutputFromRoute,
+} from "./types.js";

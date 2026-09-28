@@ -1,6 +1,6 @@
 {
   "name": "@metric.xyz/metric-omm-sdk-v1",
-  "version": "0.5.2",
+  "version": "0.6.0-rc.0",
   "description": "Metric AMM SDK — v1 contracts (SimpleRouter, SwapQuoter, LiquidityAdder, extensions, add/removeLiquidity)",
   "type": "module",
   "main": "dist/index.js",
@@ -55,7 +55,7 @@
     "type": "git",
     "url": "https://github.com/Metric-OMM/metric-sdk.git"
   },
-  "metricPeripheryRef": "f92a958c75c01ebef62a9e749ab037f6b813cf21",
+  "metricPeripheryRef": "ed58520348f2eb05ba1903145c0a91f69cd0afde",
   "dependencies": {
     "viem": "^2.x"
   },

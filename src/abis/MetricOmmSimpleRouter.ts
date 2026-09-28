@@ -55,6 +55,58 @@ export const MetricOmmSimpleRouterAbi = [
   },
   {
     inputs: [],
+    name: "EmptyExternalRouterCalldata",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "expectedBalance",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "actualBalance",
+        type: "uint256",
+      },
+    ],
+    name: "ExternalSwapBalanceMismatch",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ExternalSwapFailed",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountOutMinimum",
+        type: "uint256",
+      },
+    ],
+    name: "ExternalSwapInsufficientOutput",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "FailedCall",
     type: "error",
   },
@@ -144,6 +196,28 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "target",
+        type: "address",
+      },
+    ],
+    name: "InvalidExternalRouter",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "recipient",
+        type: "address",
+      },
+    ],
+    name: "InvalidExternalSwapRecipient",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "InvalidFactory",
     type: "error",
@@ -167,6 +241,17 @@ export const MetricOmmSimpleRouterAbi = [
       },
     ],
     name: "InvalidInputAmountAtHop",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "token",
+        type: "address",
+      },
+    ],
+    name: "InvalidNativeRefundToken",
     type: "error",
   },
   {
@@ -264,6 +349,11 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "ReentrancyGuardReentrantCall",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "uint8",
@@ -318,6 +408,27 @@ export const MetricOmmSimpleRouterAbi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "SameTokenExternalSwap",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes[]",
+        name: "results",
+        type: "bytes[]",
+      },
+      {
+        internalType: "enum ISequence.StepStatus[]",
+        name: "statuses",
+        type: "uint8[]",
+      },
+    ],
+    name: "SequenceFailed",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -332,6 +443,31 @@ export const MetricOmmSimpleRouterAbi = [
     ],
     name: "TransactionExpired",
     type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "caller",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "index",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "bytes4",
+        name: "reason",
+        type: "bytes4",
+      },
+    ],
+    name: "SequenceStepFailed",
+    type: "event",
   },
   {
     inputs: [
@@ -600,6 +736,87 @@ export const MetricOmmSimpleRouterAbi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "executor",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "payerIsRouter",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "refundAsNative",
+        type: "bool",
+      },
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "tokenIn",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "tokenOut",
+            type: "address",
+          },
+          {
+            internalType: "uint128",
+            name: "amountInMaximum",
+            type: "uint128",
+          },
+          {
+            internalType: "uint128",
+            name: "amountOutMinimum",
+            type: "uint128",
+          },
+          {
+            internalType: "address",
+            name: "externalRouter",
+            type: "address",
+          },
+          {
+            internalType: "bytes",
+            name: "externalRouterCalldata",
+            type: "bytes",
+          },
+          {
+            internalType: "address",
+            name: "recipient",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "deadline",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct IExternalSwap.ExternalSwapParams",
+        name: "params",
+        type: "tuple",
+      },
+    ],
+    name: "externalSwap",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "amountOut",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "amountSpent",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "int256",
         name: "amount0Delta",
         type: "int256",
@@ -795,6 +1012,47 @@ export const MetricOmmSimpleRouterAbi = [
     ],
     name: "selfPermitIfNecessary",
     outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "bytes",
+            name: "data",
+            type: "bytes",
+          },
+          {
+            internalType: "enum ISequence.OnStepSuccess",
+            name: "onSuccess",
+            type: "uint8",
+          },
+          {
+            internalType: "enum ISequence.OnStepFailure",
+            name: "onFailure",
+            type: "uint8",
+          },
+        ],
+        internalType: "struct ISequence.SequenceCall[]",
+        name: "calls",
+        type: "tuple[]",
+      },
+    ],
+    name: "sequence",
+    outputs: [
+      {
+        internalType: "bytes[]",
+        name: "results",
+        type: "bytes[]",
+      },
+      {
+        internalType: "enum ISequence.StepStatus[]",
+        name: "statuses",
+        type: "uint8[]",
+      },
+    ],
     stateMutability: "payable",
     type: "function",
   },

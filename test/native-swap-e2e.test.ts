@@ -221,7 +221,11 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const data = sdk.prepareExactInputSingleSupportingNativePaymentCalldata(params);
+    const data = sdk.prepareExactInputSingleSupportingNativePaymentCalldata(
+      params,
+      null,
+      env.weth.address,
+    );
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
@@ -253,7 +257,12 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const data = sdk.prepareExactInputSingleAndUnwrapCalldata(params, env.simpleRouter.address);
+    const data = sdk.prepareExactInputSingleAndUnwrapCalldata(
+      params,
+      env.simpleRouter.address,
+      null,
+      env.weth.address,
+    );
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
@@ -291,7 +300,11 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const data = sdk.prepareExactInputSupportingNativePaymentCalldata(pathParams);
+    const data = sdk.prepareExactInputSupportingNativePaymentCalldata(
+      pathParams,
+      null,
+      env.weth.address,
+    );
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,
@@ -323,7 +336,12 @@ describe("native ETH swap E2E (Hardhat)", async () => {
       deadline,
     );
 
-    const data = sdk.prepareExactInputAndUnwrapCalldata(pathParams, env.simpleRouter.address);
+    const data = sdk.prepareExactInputAndUnwrapCalldata(
+      pathParams,
+      env.simpleRouter.address,
+      null,
+      env.weth.address,
+    );
     const hash = await deployer.sendTransaction({
       to: env.simpleRouter.address,
       data,

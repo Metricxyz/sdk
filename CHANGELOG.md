@@ -5,7 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0-rc.0] - 2026-09-28
+
+### Breaking changes
+
+- **Router deployment** — `simpleRouter` is now `0x02201E6f13c41506c7Bb635d7543F98826229aB7` on every bundled chain (was `0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910` on Ethereum and `0x3c6c4fC94f1493b9d76C5e4C4CdEdB444D3CC0A2` elsewhere). `externalSwapExecutor` is now required on `ChainAddresses` and set to `0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2` on every chain. Applications must update their transaction and approval targets.
+- **Router ABI** — `DeadlineExpired` is removed; expired external swaps revert with `TransactionExpired`.
+
+### Added
+
+- **Sequence step failures** — the router ABI includes `SequenceStepFailed(caller, index, reason)`, emitted when a step fails without reverting the sequence.
+
+### Changed
+
+- **Periphery** — pinned `ed58520348f2eb05ba1903145c0a91f69cd0afde` and regenerated the router ABI.
+
+## [0.6.0-alpha.1] - 2026-09-22
+
+### Breaking changes
+
+- **Native swap helpers** — `prepareExact{Input,Output}{,Single}{SupportingNativePayment,AndUnwrap}Calldata` now require final `chainId` and `wrappedNative` arguments. Pass `chainId, null` to resolve and validate the wrapped-native token, or `null, null` to explicitly skip validation.
+
+### Added
+
+- **Router sequences** — encode ordered router calls with configurable success/failure policies. Results and `SequenceFailed` preserve per-step return/revert data and statuses (`NOT_EXECUTED`, `SUCCESS`, `FAILURE`).
+- **External swaps** — encode swaps through an external executor, with native-payment and output-unwrap helpers. Caller-funded swaps automatically refund unused input; native-payment helpers request ETH refunds. External routes can deliver output directly to the settlement recipient or through the executor, which cannot be the final recipient.
+- **External swap fallback** — compose a primary router swap and an external fallback as two multicalls in a sequence, including exact-input/output, single-hop/multihop, native-payment, and unwrap variants. Both revert reasons remain available if both branches fail. Fallback params infer the swap shape and reject mixed amount or token fields.
+- **Router-funded external swaps** — optional `payerIsRouter` and `refundAsNative` encoder arguments, plus `encodeSweepTokenCalldata` for atomic cleanup of retained router funds.
+
+### Changed
+
+- **Periphery** — pinned `f10fd9db1a447414b164fa4d7331a088f61d3154` and regenerated the router ABI for sequences and external swaps.
+- **Ethereum deployment** — updated `simpleRouter` to `0x1Fd28cF3Cd95F58480A7c64b8696Cb6bA7720910` and exposed its bound executor as optional `externalSwapExecutor` (`0xFAf77585aC2FbD6777Baca30c1dB99ce8Bca3248`). Other chains retain their existing routers and return no executor. Calldata builders still take addresses explicitly; applications must update their transaction and approval targets.
+
+### Fixed
+
+- **Native token validation** — malformed input/output addresses produce the same wrapped-native validation message as mismatched tokens.
 
 ## [0.5.2] - 2026-09-15
 
