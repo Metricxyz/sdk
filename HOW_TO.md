@@ -224,6 +224,20 @@ Weighted adds: `encodeAddLiquidityWeightedSelfCalldata` + `buildModifyLiquidityA
 
 ---
 
+### Total-token budgets and Max
+
+`buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount` treats
+`totalValueToAddInToken` as a hard cap on the selected source token, including
+`specAmountBufferPercent`. It calculates calibration and final shares from one
+block snapshot, and reduces the per-bin targets when integer rounding would
+exceed that budget. It rebuilds the shares and both token amounts together;
+callers must not clip a returned token cap independently of its shares.
+
+The other token is derived from the chosen bins and still needs its own balance
+check. A budget too small for the selected bins throws instead of returning an
+unfundable plan. All reads are read-only; execution can still fail if pool state
+moves after the snapshot, so callers should refresh the plan before submitting.
+
 ## Remove liquidity
 
 Dedicated pool function — no LiquidityAdder:

@@ -818,6 +818,15 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     assert.equal(salt, 888n);
     assert.equal(deltas.length, bins.length);
 
+    assert.ok(specAmount1 <= totalValueToAddInToken, "source cap must fit Max");
+    // Fund this add with exactly the requested source-token budget. A cap that
+    // was merely clipped without rebuilding shares would fail on-chain here.
+    const balanceBefore = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+    await token1.write.transfer([
+      "0x000000000000000000000000000000000000dEaD",
+      balanceBefore - totalValueToAddInToken,
+    ]);
+
     const hash = await deployer.sendTransaction({
       to: liquidityAdder,
       data: encodeAddLiquidityCalldata(pool.address, args),

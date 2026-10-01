@@ -26,6 +26,7 @@ import { EMPTY_EXTENSION_DATA } from "../extensions/types.js";
 import { MetricOmmPoolAbi } from "../abis/MetricOmmPool.js";
 import type { LiquidityDelta, LiquidityBinValueInput, PoolLiquidityDelta } from "../types.js";
 import { getPoolImmutables } from "./read.js";
+import { createSnapshotClient } from "../utils/readSnapshot.js";
 import {
   getSlot0,
   getBinStatesScaled,
@@ -214,9 +215,11 @@ export async function buildModifyLiquidityArgsForUniformAddition({
  * Prepare uniform liquidity across arbitrary bins from a TOTAL value budget.
  *
  * Algorithm:
- * 1. Calibrate by assigning weighted 1e18 targets per bin with zero buffer.
- * 2. Compute linear scale so selected specAmount token matches totalValueToAddInToken.
- * 3. Rebuild with scaled per-bin value and caller-provided specAmountBufferPercent.
+ * 1. Read one block snapshot and calibrate weighted per-bin targets with zero buffer.
+ * 2. Scale targets toward totalValueToAddInToken.
+ * 3. Rebuild shares, reducing targets if rounding or the requested buffer exceeds
+ *    the source budget. The returned source spec, including buffer, never exceeds
+ *    totalValueToAddInToken; the opposite token is not budget-constrained.
  */
 export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
   publicClient,
@@ -252,6 +255,8 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("currentPriceX64 must be > 0");
   }
 
+  publicClient = await createSnapshotClient(publicClient);
+
   const calibrationValue = totalValueToAddInToken / BigInt(bins.length) + 1n;
   const calibrationTargets: bigint[] = weights
     ? weights.map((w) => (calibrationValue * BigInt(Math.ceil(w * 1e6) + 1)) / 1_000_000n)
@@ -283,22 +288,38 @@ export async function buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAm
     throw new Error("failed to calibrate uniform total amount scaling: specAmount is zero");
   }
 
-  const scaledBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
-    bin,
-    targetValueInToken: (calibrationTargets[i] * totalValueToAddInToken) / calibrationSpecAmount,
-    targetValueInToken0: totalValueInToken0,
-  }));
+  // Include requested cap headroom in the source budget, even for large buffers.
+  const bufferMultiplier = applySpecAmountBuffer(ONE_E18, specAmountBufferPercent);
+  let target = (totalValueToAddInToken * ONE_E18) / bufferMultiplier;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const scaledBins: LiquidityBinValueInput[] = bins.map((bin, i) => ({
+      bin,
+      targetValueInToken: (calibrationTargets[i] * target) / calibrationSpecAmount,
+      targetValueInToken0: totalValueInToken0,
+    }));
 
-  return buildModifyLiquidityArgsForAddition({
-    publicClient,
-    factoryAddress,
-    dataProviderAddress,
-    poolAddress,
-    bins: scaledBins,
-    currentPriceX64,
-    salt,
-    specAmountBufferPercent,
-  });
+    const result = await buildModifyLiquidityArgsForAddition({
+      publicClient,
+      factoryAddress,
+      dataProviderAddress,
+      poolAddress,
+      bins: scaledBins,
+      currentPriceX64,
+      salt,
+      specAmountBufferPercent,
+    });
+    const sourceSpec = result[totalValueInToken0 ? 2 : 3];
+    if (sourceSpec <= totalValueToAddInToken) return result;
+
+    // Rebuild actual shares, never clip a cap that the shares still require.
+    // Leave one correction of headroom for discrete rounding on the next pass.
+    const excess = sourceSpec - totalValueToAddInToken;
+    const correction = ceilDiv(target * excess, sourceSpec);
+    target -= correction * 2n + 1n;
+    if (target <= 0n) break;
+  }
+
+  throw new Error("Liquidity amount is too small after conversion to fit the selected bins");
 }
 
 /**
