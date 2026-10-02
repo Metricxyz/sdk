@@ -178,6 +178,35 @@ const imm = await v1.getPoolImmutables(publicClient, addresses.factory, poolAddr
 
 ## Add liquidity
 
+### Weighted add — use this from frontends
+
+`buildAddLiquidityWeightedParams` turns a per-bin value shape into `addLiquidityWeighted`
+arguments. The LiquidityAdder probes the pool in the same transaction and scales the
+shares to deposit as much as fits both caps, so pass the wallet balances (or the user's
+chosen amount) as `maxAmountToken0` / `maxAmountToken1`. Neither cap is ever exceeded;
+whichever token runs out first limits the deposit. `maximalCursorMovement` bounds how far
+the pool cursor may move before execution reverts.
+
+```typescript
+const params = await v1.buildAddLiquidityWeightedParams({
+  publicClient,
+  factoryAddress: addresses.factory,
+  dataProviderAddress: addresses.dataProvider,
+  poolAddress: pool,
+  bins: [-2, -1, 0, 1, 2],
+  weights: [1, 2, 3, 2, 1],
+  currentPriceX64: slot0.priceX64,
+  maxAmountToken0: balance0,
+  maxAmountToken1: balance1,
+  maximalCursorMovement: 0.1,
+});
+const data = v1.encodeAddLiquidityWeightedSelfCalldata({ pool, ...params });
+```
+
+### Exact shares — scripts and integrators
+
+Shares are fixed off-chain, so the caps can fail if pool state moves before execution. Frontends should not use this path.
+
 1. Build **pool delta** and max token caps (uniform example):
 
 ```typescript
@@ -220,7 +249,7 @@ await walletClient.writeContract({
 // or: v1.encodeAddLiquidityExactSharesSelfCalldata({ pool, salt, deltas: poolLiquidityDelta, maxAmountToken0, maxAmountToken1 })
 ```
 
-Weighted adds: `encodeAddLiquidityWeightedSelfCalldata` + `buildModifyLiquidityArgsForAddition` with weight-style inputs. Custodial / meta-tx: `*WithOwnerCalldata` variants pass an explicit `owner`. Weighted adds size themselves off the pool's _live_ cursor at execution time, so `minimalCurBin`/`minimalPosition`/`maximalCurBin`/`maximalPosition` are required — use `prepareLiquidityCursorBounds` to derive a tight bound from the current cursor (protects against an LP sandwich); pass `UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS` only if that protection is deliberately not wanted.
+Weighted adds: `buildAddLiquidityWeightedParams` + `encodeAddLiquidityWeightedSelfCalldata`. Custodial / meta-tx: `*WithOwnerCalldata` variants pass an explicit `owner`. Weighted adds size themselves off the pool's _live_ cursor at execution time, so `minimalCurBin`/`minimalPosition`/`maximalCurBin`/`maximalPosition` are required — use `prepareLiquidityCursorBounds` to derive a tight bound from the current cursor (protects against an LP sandwich); pass `UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS` only if that protection is deliberately not wanted.
 
 ---
 

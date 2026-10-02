@@ -703,7 +703,9 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     );
   });
 
-  it("buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount allocates weighted value proportionally", async () => {
+  const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
+
+  it("buildAddLiquidityWeightedParams deposits an exact token1 wallet balance after the cursor moved", async () => {
     const {
       publicClient,
       pool,
@@ -788,144 +790,104 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       "expected current bin position to move after specified-out swap",
     );
 
-    const bins = [-3, -1, 0, 1, 3];
-    const weights = [1, 2, 3, 2, 1];
     const totalValueToAddInToken = parseUnits("9", 6);
+    const balance1 = (await token1.read.balanceOf([deployer.account.address])) as bigint;
+    await token1.write.transfer([DEAD_ADDRESS, balance1 - totalValueToAddInToken]);
+    const balance0 = (await token0.read.balanceOf([deployer.account.address])) as bigint;
 
-    const beforeTargetStates = await sdk.getBinStatesScaled(
-      publicClient,
-      dataProvider.address,
-      pool.address,
-      bins,
-    );
-    const slot0BeforeAdd = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
-
-    const args = await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
+    const params = await sdk.buildAddLiquidityWeightedParams({
       publicClient,
       factoryAddress: factory.address,
       dataProviderAddress: dataProvider.address,
       poolAddress: pool.address,
-      bins,
-      weights,
-      totalValueToAddInToken,
-      totalValueInToken0: false,
+      bins: [-3, -1, 0, 1, 3],
+      weights: [1, 2, 3, 2, 1],
       currentPriceX64: q64Price,
+      maxAmountToken0: balance0,
+      maxAmountToken1: totalValueToAddInToken,
+      maximalCursorMovement: 0.1,
       salt: 888n,
-      specAmountBufferPercent: 0,
     });
-
-    const [salt, deltas, specAmount0, specAmount1] = args;
-    assert.equal(salt, 888n);
-    assert.equal(deltas.length, bins.length);
 
     const hash = await deployer.sendTransaction({
       to: liquidityAdder,
-      data: encodeAddLiquidityCalldata(pool.address, args),
+      data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...params }),
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     assert.equal(receipt.status, "success");
 
-    const binToIndex = new Map<number, number>();
-    bins.forEach((bin, i) => binToIndex.set(bin, i));
-
-    const ceilDivLocal = (a: bigint, b: bigint) => (a + b - 1n) / b;
-    const maxUint104 = (1n << 104n) - 1n;
-
-    const valuesInToken1: bigint[] = [];
-    for (const delta of deltas) {
-      const idx = binToIndex.get(delta.bin);
-      assert.ok(idx != null, `unexpected delta bin ${delta.bin}`);
-
-      const token0BalScaled = beforeTargetStates.token0BalancesScaled[idx!];
-      const token1BalScaled = beforeTargetStates.token1BalancesScaled[idx!];
-      const totalShares = beforeTargetStates.totalShares[idx!];
-
-      const isBelowBin =
-        delta.bin < slot0BeforeAdd.curBinIdx ||
-        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === maxUint104);
-      const isAboveBin =
-        delta.bin > slot0BeforeAdd.curBinIdx ||
-        (delta.bin === slot0BeforeAdd.curBinIdx && slot0BeforeAdd.curPosInBin === 0n);
-
-      let amount0ScaledToAdd = 0n;
-      let amount1ScaledToAdd = 0n;
-
-      if (totalShares > 0n) {
-        amount0ScaledToAdd = ceilDivLocal(delta.deltaShares * token0BalScaled, totalShares);
-        amount1ScaledToAdd = ceilDivLocal(delta.deltaShares * token1BalScaled, totalShares);
-      } else if (isBelowBin) {
-        amount1ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * immutables.initialScaledToken1PerShareE18,
-          1_000_000_000_000_000_000n,
-        );
-      } else if (isAboveBin) {
-        amount0ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * immutables.initialScaledToken0PerShareE18,
-          1_000_000_000_000_000_000n,
-        );
-      } else {
-        const token0Portion = maxUint104 - slot0BeforeAdd.curPosInBin;
-        const token1Portion = slot0BeforeAdd.curPosInBin;
-        amount0ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * immutables.initialScaledToken0PerShareE18 * token0Portion,
-          1_000_000_000_000_000_000n * maxUint104,
-        );
-        amount1ScaledToAdd = ceilDivLocal(
-          delta.deltaShares * immutables.initialScaledToken1PerShareE18 * token1Portion,
-          1_000_000_000_000_000_000n * maxUint104,
-        );
-      }
-
-      const amount0External = ceilDivLocal(amount0ScaledToAdd, immutables.token0ScaleMultiplier);
-      const amount1External = ceilDivLocal(amount1ScaledToAdd, immutables.token1ScaleMultiplier);
-      const valueInToken1 =
-        amount1External + toToken1Value(amount0External, immutables, 1_000_000_000_000_000_000n);
-
-      valuesInToken1.push(valueInToken1);
-    }
-
-    const unitValues = valuesInToken1.map((value, i) => (value * 1_000_000n) / BigInt(weights[i]));
-    const minUnitValue = unitValues.reduce((m, v) => (v < m ? v : m), unitValues[0]);
-    const maxUnitValue = unitValues.reduce((m, v) => (v > m ? v : m), unitValues[0]);
-    const unitSpread = maxUnitValue - minUnitValue;
-    const allowedSpread = maxUnitValue / 5n + 1n; // 20%
-
+    const spent1 =
+      totalValueToAddInToken -
+      ((await token1.read.balanceOf([deployer.account.address])) as bigint);
     assert.ok(
-      unitSpread <= allowedSpread,
-      `weighted per-bin values are not proportional enough; spread=${unitSpread}, max=${maxUnitValue}`,
-    );
-
-    const specDiff1 =
-      specAmount1 > totalValueToAddInToken
-        ? specAmount1 - totalValueToAddInToken
-        : totalValueToAddInToken - specAmount1;
-    const allowedSpecDiff1 = totalValueToAddInToken / 10n + 1n; // 10%
-    assert.ok(
-      specDiff1 <= allowedSpecDiff1,
-      `specAmount1 not close to target total; spec=${specAmount1}, target=${totalValueToAddInToken}, diff=${specDiff1}, specAmount0=${specAmount0}`,
+      spent1 * 1000n >= totalValueToAddInToken * 999n,
+      `spent ${spent1} far below budget ${totalValueToAddInToken}`,
     );
   });
 
-  it("buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount avoids int104 overflow in calibration for high-price token1 inputs", async () => {
+  it("buildAddLiquidityWeightedParams stops at the token0 cap when token0 binds first", async () => {
+    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0, token1 } =
+      await networkHelpers.loadFixture(setupEnv18_6);
+    const seedHash = await deployer.sendTransaction({
+      to: liquidityAdder,
+      data: encodeAddLiquidityCalldata(pool.address, [
+        777n,
+        [
+          { bin: -1, deltaShares: 10_000_000n },
+          { bin: 0, deltaShares: 10_000_000n },
+          { bin: 1, deltaShares: 10_000_000n },
+        ],
+        sdk.NO_SLIPPAGE_LIMIT,
+        sdk.NO_SLIPPAGE_LIMIT,
+      ]),
+    });
+    await publicClient.waitForTransactionReceipt({ hash: seedHash });
+
+    const budget0 = parseUnits("2", 18);
+    const balance0Before = (await token0.read.balanceOf([deployer.account.address])) as bigint;
+    const params = await sdk.buildAddLiquidityWeightedParams({
+      publicClient,
+      factoryAddress: factory.address,
+      dataProviderAddress: dataProvider.address,
+      poolAddress: pool.address,
+      bins: [-3, -1, 0, 1, 3],
+      currentPriceX64: sdk.priceToQ64(1),
+      maxAmountToken0: budget0,
+      maxAmountToken1: (await token1.read.balanceOf([deployer.account.address])) as bigint,
+      maximalCursorMovement: 0.1,
+    });
+    const hash = await deployer.sendTransaction({
+      to: liquidityAdder,
+      data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...params }),
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    const spent0 =
+      balance0Before - ((await token0.read.balanceOf([deployer.account.address])) as bigint);
+    assert.ok(spent0 <= budget0, `spent ${spent0} exceeds budget ${budget0}`);
+    assert.ok(spent0 * 1000n >= budget0 * 999n, `spent ${spent0} far below budget ${budget0}`);
+  });
+
+  it("buildAddLiquidityWeightedParams keeps share weights within int104 for high-price inputs", async () => {
     const { publicClient, pool, factory, dataProvider } =
       await networkHelpers.loadFixture(setupEnv18_6);
 
-    const args = await sdk.buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount({
+    const params = await sdk.buildAddLiquidityWeightedParams({
       publicClient,
       factoryAddress: factory.address,
       dataProviderAddress: dataProvider.address,
       poolAddress: pool.address,
       bins: [-2, -1, 0, 1],
-      totalValueToAddInToken: 1_000_000n,
-      totalValueInToken0: false,
       currentPriceX64: 1309319182557697118630402n,
-      specAmountBufferPercent: 0.01,
+      maxAmountToken0: parseUnits("1000000", 18),
+      maxAmountToken1: 1_000_000n,
+      maximalCursorMovement: 0.1,
     });
 
-    assert.equal(args[1].length, 4);
-    for (const delta of args[1]) {
-      assert.ok(delta.deltaShares > 0n);
-      assert.ok(delta.deltaShares <= sdk.MAX_INT104);
+    assert.equal(params.weightDeltas.shares.length, 4);
+    for (const share of params.weightDeltas.shares) {
+      assert.ok(share > 0n);
+      assert.ok(share <= sdk.MAX_INT104);
     }
   });
 

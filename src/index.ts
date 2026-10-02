@@ -113,34 +113,41 @@ export {
 
 // ============ Liquidity Functions ============
 export {
-  buildModifyLiquidityArgsForAddition,
-  buildModifyLiquidityArgsForUniformAddition,
-  buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount,
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
-  buildAddLiquidityExactSharesParamsFromBinTargets,
   buildRemoveLiquidityPoolDelta,
   additionPlanToPoolLiquidityDelta,
   removalPlanToPoolLiquidityDelta,
-  scaleWeightedPoolDeltasToFitCaps,
-  encodeAddLiquidityExactSharesSelfCalldata,
-  encodeAddLiquidityExactSharesWithOwnerCalldata,
-  encodeAddLiquidityWeightedSelfCalldata,
-  encodeAddLiquidityWeightedWithOwnerCalldata,
   encodeRemoveLiquidityCalldata,
   getPositionShares,
   getPositionSharesForBins,
   NO_SLIPPAGE_LIMIT,
   type ModifyLiquidityArgs,
   type BuildModifyLiquidityArgsBase,
-  type BuildModifyLiquidityArgsForAdditionParams,
-  type BuildModifyLiquidityArgsForUniformAdditionParams,
-  type BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams,
   type BuildModifyLiquidityArgsForPercentageRemovalParams,
   type BuildModifyLiquidityArgsForRemovalParams,
   type RemoveLiquidityParams,
   type BinRemovalSpec,
 } from "./pool/liquidity.js";
+
+export {
+  buildModifyLiquidityArgsForAddition,
+  buildModifyLiquidityArgsForUniformAddition,
+  buildAddLiquidityExactSharesParamsFromBinTargets,
+  encodeAddLiquidityExactSharesSelfCalldata,
+  encodeAddLiquidityExactSharesWithOwnerCalldata,
+  type BuildModifyLiquidityArgsForAdditionParams,
+  type BuildModifyLiquidityArgsForUniformAdditionParams,
+} from "./pool/liquidityAddExactShares.js";
+
+export {
+  buildAddLiquidityWeightedParams,
+  type BuildAddLiquidityWeightedParamsParams,
+  type AddLiquidityWeightedParams,
+  scaleWeightedPoolDeltasToFitCaps,
+  encodeAddLiquidityWeightedSelfCalldata,
+  encodeAddLiquidityWeightedWithOwnerCalldata,
+} from "./pool/liquidityAddWeighted.js";
 
 export {
   prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,

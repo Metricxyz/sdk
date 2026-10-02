@@ -1,4 +1,4 @@
-import type { HardhatUserConfig } from "hardhat/config";
+import { configVariable, type HardhatUserConfig } from "hardhat/config";
 
 import hardhatViem from "@nomicfoundation/hardhat-viem";
 import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
@@ -44,6 +44,20 @@ const config: HardhatUserConfig = {
     hardhat: {
       type: "edr-simulated",
       allowUnlimitedContractSize: true,
+    },
+    robinhoodFork: {
+      type: "edr-simulated",
+      chainId: 4663,
+      forking: {
+        url: configVariable("ROBINHOOD_RPC_URL"),
+        blockNumber: 77372562,
+      },
+    },
+  },
+  chainDescriptors: {
+    4663: {
+      name: "Robinhood",
+      hardforkHistory: { cancun: { blockNumber: 0 } },
     },
   },
   paths: {
