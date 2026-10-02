@@ -9,9 +9,10 @@ import type { Address, Hex, PublicClient } from "viem";
 import { encodeFunctionData } from "viem";
 import { EMPTY_EXTENSION_DATA } from "../extensions/types.js";
 import type { LiquidityBinValueInput, PoolLiquidityDelta } from "../types.js";
+import { MAX_UINT104 } from "../constants.js";
 import { getSlot0 } from "../dataProvider/read.js";
 import { getPoolImmutables } from "./read.js";
-import { computeLiquidityCursorBounds } from "./cursorBounds.js";
+import { prepareLiquidityCursorBounds } from "./cursorBounds.js";
 import { buildModifyLiquidityArgsForAddition } from "./liquidityAddExactShares.js";
 import {
   additionPlanToPoolLiquidityDelta,
@@ -19,7 +20,7 @@ import {
   resolveLiquidityCursorBounds,
   type LiquidityCursorBounds,
 } from "./liquidity.js";
-import { convertToken0ToToken1, priceX64ToPriceE18 } from "../utils/liquidityMath.js";
+import { ceilDiv, ONE_E18, priceX64ToPriceE18 } from "../utils/liquidityMath.js";
 
 export interface BuildAddLiquidityWeightedParamsParams {
   publicClient: PublicClient;
@@ -34,8 +35,8 @@ export interface BuildAddLiquidityWeightedParamsParams {
   maxAmountToken0: bigint;
   /** Most token1 the add may pull, typically the wallet balance. */
   maxAmountToken1: bigint;
-  /** Accepted cursor movement before execution reverts; 1.0 = one bin's worth of positions. */
-  maximalCursorMovement: number;
+  /** Largest change in the pool's distance from the oracle, in percent of price, before the add reverts. */
+  maxOracleDistanceChangePercent: number;
   salt?: bigint;
 }
 
@@ -50,8 +51,9 @@ export type AddLiquidityWeightedParams = LiquidityCursorBounds & {
  * Build `addLiquidityWeighted` arguments that deposit as much as possible within
  * `maxAmountToken0` / `maxAmountToken1` while keeping the requested value shape across bins.
  *
- * Share weights are sized from the smaller non-zero cap so they sit near real deposit
- * magnitudes; tiny weights would make the adder's probe rounding coarse.
+ * Calibration uses a funded token needed by the selected bins, retaining its native units.
+ * Small budgets are enlarged for the probe to preserve the requested relative weights;
+ * the on-chain adder scales the final deposit back to the original caps.
  */
 export async function buildAddLiquidityWeightedParams({
   publicClient,
@@ -63,7 +65,7 @@ export async function buildAddLiquidityWeightedParams({
   currentPriceX64,
   maxAmountToken0,
   maxAmountToken1,
-  maximalCursorMovement,
+  maxOracleDistanceChangePercent,
   salt = 0n,
 }: BuildAddLiquidityWeightedParamsParams): Promise<AddLiquidityWeightedParams> {
   if (!Array.isArray(bins) || bins.length === 0) {
@@ -82,32 +84,67 @@ export async function buildAddLiquidityWeightedParams({
     throw new Error("currentPriceX64 must be > 0");
   }
 
-  const immutables = await getPoolImmutables(publicClient, factoryAddress, poolAddress);
-  const cap0InToken1 = convertToken0ToToken1(
-    maxAmountToken0,
-    immutables.token0ScaleMultiplier,
-    immutables.token1ScaleMultiplier,
-    priceX64ToPriceE18(currentPriceX64),
-  );
-  const nonZeroCapsInToken1 = [cap0InToken1, maxAmountToken1].filter((cap) => cap > 0n);
-  if (nonZeroCapsInToken1.length === 0) {
+  if (maxAmountToken0 === 0n && maxAmountToken1 === 0n) {
     throw new Error("maxAmountToken0 or maxAmountToken1 must be > 0");
   }
-  const budgetInToken1 = nonZeroCapsInToken1.reduce((min, cap) => (cap < min ? cap : min));
 
-  const weightUnits = (weights ?? bins.map(() => 1)).map((w) => BigInt(Math.ceil(w * 1e6)));
-  const totalWeightUnits = weightUnits.reduce((sum, w) => sum + w, 0n);
-  const valueTargets: LiquidityBinValueInput[] = bins.map((bin, i) => {
-    const target = (budgetInToken1 * weightUnits[i]) / totalWeightUnits;
-    return {
-      bin,
-      targetValueInToken: target > 0n ? target : 1n,
-      targetValueInToken0: false,
-    };
-  });
-
-  const [slot0, [, deltas]] = await Promise.all([
+  const [immutables, slot0] = await Promise.all([
+    getPoolImmutables(publicClient, factoryAddress, poolAddress),
     getSlot0(publicClient, dataProviderAddress, poolAddress),
+  ]);
+  const needsToken0 = bins.some(
+    (bin) => bin > slot0.curBinIdx || (bin === slot0.curBinIdx && slot0.curPosInBin < MAX_UINT104),
+  );
+  const needsToken1 = bins.some(
+    (bin) => bin < slot0.curBinIdx || (bin === slot0.curBinIdx && slot0.curPosInBin > 0n),
+  );
+  const token0UnitValue = immutables.token0ScaleMultiplier * priceX64ToPriceE18(currentPriceX64);
+  const token1UnitValue = immutables.token1ScaleMultiplier * ONE_E18;
+  const useToken0 =
+    needsToken0 &&
+    maxAmountToken0 > 0n &&
+    (!needsToken1 ||
+      maxAmountToken1 === 0n ||
+      maxAmountToken0 * token0UnitValue <= maxAmountToken1 * token1UnitValue);
+  const budget = useToken0 ? maxAmountToken0 : maxAmountToken1;
+  if (budget === 0n) {
+    throw new Error("selected bins require a positive token cap");
+  }
+
+  const relativeWeights = weights ?? bins.map(() => 1);
+  const smallestWeight = relativeWeights.reduce((min, weight) => Math.min(min, weight));
+  const weightUnits = relativeWeights.map((weight) => {
+    const units = Math.ceil((weight / smallestWeight) * 1e6);
+    if (!Number.isFinite(units)) {
+      throw new Error("relative weight ratio is too large");
+    }
+    return BigInt(units);
+  });
+  const totalWeightUnits = weightUnits.reduce((sum, w) => sum + w, 0n);
+  // Each calibration unit must remain nonzero when converted to the other required token.
+  const minimumTarget = useToken0
+    ? needsToken1
+      ? ceilDiv(token1UnitValue, token0UnitValue)
+      : 1n
+    : needsToken0
+      ? ceilDiv(token0UnitValue, token1UnitValue)
+      : 1n;
+  const minimumBudget = totalWeightUnits * minimumTarget;
+  const calibrationBudget = budget > minimumBudget ? budget : minimumBudget;
+  const valueTargets: LiquidityBinValueInput[] = bins.map((bin, i) => ({
+    bin,
+    targetValueInToken: (calibrationBudget * weightUnits[i]) / totalWeightUnits,
+    targetValueInToken0: useToken0,
+  }));
+
+  const [cursorBounds, [, deltas]] = await Promise.all([
+    prepareLiquidityCursorBounds({
+      publicClient,
+      pool: poolAddress,
+      maxOracleDistanceChangePercent,
+      factoryAddress,
+      dataProviderAddress,
+    }),
     buildModifyLiquidityArgsForAddition({
       publicClient,
       factoryAddress,
@@ -124,7 +161,7 @@ export async function buildAddLiquidityWeightedParams({
     weightDeltas: additionPlanToPoolLiquidityDelta(deltas),
     maxAmountToken0,
     maxAmountToken1,
-    ...computeLiquidityCursorBounds(slot0.curBinIdx, slot0.curPosInBin, maximalCursorMovement),
+    ...cursorBounds,
   };
 }
 

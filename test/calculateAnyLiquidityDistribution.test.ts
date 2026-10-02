@@ -705,25 +705,11 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
   const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 
-  it("buildAddLiquidityWeightedParams deposits an exact token1 wallet balance after the cursor moved", async () => {
-    const {
-      publicClient,
-      pool,
-      factory,
-      dataProvider,
-      liquidityAdder,
-      token0,
-      token1,
-      priceProvider,
-    } = await networkHelpers.loadFixture(setupEnv18_6HighDrift);
-
-    await priceProvider.write.setTokens([token0.address, token1.address]);
-    const q64Price = sdk.priceToQ64(1);
-    await priceProvider.write.setBidAndAskPrice([...testBidAskPriceQ64FromMid(q64Price)]);
-
+  async function setupSeededEnv18_6HighDrift() {
+    const env = await setupEnv18_6HighDrift();
     const seedHash = await deployer.sendTransaction({
-      to: liquidityAdder,
-      data: encodeAddLiquidityCalldata(pool.address, [
+      to: env.liquidityAdder,
+      data: encodeAddLiquidityCalldata(env.pool.address, [
         777n,
         [
           { bin: -1, deltaShares: 10_000_000n },
@@ -734,8 +720,14 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         sdk.NO_SLIPPAGE_LIMIT,
       ]),
     });
-    await publicClient.waitForTransactionReceipt({ hash: seedHash });
+    await env.publicClient.waitForTransactionReceipt({ hash: seedHash });
+    return env;
+  }
 
+  async function swapHalfOfCurrentBin(
+    env: Awaited<ReturnType<typeof setupSeededEnv18_6HighDrift>>,
+  ) {
+    const { publicClient, pool, factory, dataProvider, token0, token1 } = env;
     const slot0BeforeSwap = await sdk.getSlot0(publicClient, dataProvider.address, pool.address);
     const immutables = await sdk.getPoolImmutables(publicClient, factory.address, pool.address);
     const bin0StateBeforeSwap = await sdk.getBinStatesScaled(
@@ -789,6 +781,14 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
         slot0AfterSwap.curPosInBin !== slot0BeforeSwap.curPosInBin,
       "expected current bin position to move after specified-out swap",
     );
+  }
+
+  it("buildAddLiquidityWeightedParams deposits an exact token1 wallet balance after the cursor moved", async () => {
+    const env = await networkHelpers.loadFixture(setupSeededEnv18_6HighDrift);
+    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0, token1 } = env;
+    const q64Price = sdk.priceToQ64(1);
+
+    await swapHalfOfCurrentBin(env);
 
     const totalValueToAddInToken = parseUnits("9", 6);
     const balance1 = (await token1.read.balanceOf([deployer.account.address])) as bigint;
@@ -805,7 +805,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       currentPriceX64: q64Price,
       maxAmountToken0: balance0,
       maxAmountToken1: totalValueToAddInToken,
-      maximalCursorMovement: 0.1,
+      maxOracleDistanceChangePercent: 0.5,
       salt: 888n,
     });
 
@@ -823,6 +823,41 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       spent1 * 1000n >= totalValueToAddInToken * 999n,
       `spent ${spent1} far below budget ${totalValueToAddInToken}`,
     );
+  });
+
+  it("buildAddLiquidityWeightedParams reverts once the pool moved further from the oracle than allowed", async () => {
+    const env = await networkHelpers.loadFixture(setupSeededEnv18_6HighDrift);
+    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0, token1 } = env;
+    const buildWithBound = async (maxOracleDistanceChangePercent: number) =>
+      sdk.buildAddLiquidityWeightedParams({
+        publicClient,
+        factoryAddress: factory.address,
+        dataProviderAddress: dataProvider.address,
+        poolAddress: pool.address,
+        bins: [-3, -1, 0, 1, 3],
+        currentPriceX64: sdk.priceToQ64(1),
+        maxAmountToken0: (await token0.read.balanceOf([deployer.account.address])) as bigint,
+        maxAmountToken1: parseUnits("9", 6),
+        maxOracleDistanceChangePercent,
+      });
+    const tight = await buildWithBound(0.0001);
+    const loose = await buildWithBound(5);
+
+    await swapHalfOfCurrentBin(env);
+
+    await assert.rejects(
+      deployer.sendTransaction({
+        to: liquidityAdder,
+        data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...tight }),
+      }),
+      /BinPositionOutOfBounds/,
+    );
+    const hash = await deployer.sendTransaction({
+      to: liquidityAdder,
+      data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...loose }),
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    assert.equal(receipt.status, "success");
   });
 
   it("buildAddLiquidityWeightedParams stops at the token0 cap when token0 binds first", async () => {
@@ -854,7 +889,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       currentPriceX64: sdk.priceToQ64(1),
       maxAmountToken0: budget0,
       maxAmountToken1: (await token1.read.balanceOf([deployer.account.address])) as bigint,
-      maximalCursorMovement: 0.1,
+      maxOracleDistanceChangePercent: 0.5,
     });
     const hash = await deployer.sendTransaction({
       to: liquidityAdder,
@@ -866,6 +901,99 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       balance0Before - ((await token0.read.balanceOf([deployer.account.address])) as bigint);
     assert.ok(spent0 <= budget0, `spent ${spent0} exceeds budget ${budget0}`);
     assert.ok(spent0 * 1000n >= budget0 * 999n, `spent ${spent0} far below budget ${budget0}`);
+  });
+
+  for (const token0Only of [true, false]) {
+    it(`preserves a 1:9 one-sided distribution with dust in the unused token (${token0Only ? "token0" : "token1"})`, async () => {
+      const { publicClient, pool, factory, dataProvider, liquidityAdder } =
+        await networkHelpers.loadFixture(setupEnv18_6);
+      const bins = token0Only ? [1, 2] : [-2, -1];
+      const build = (unusedCap: bigint, weights = [1, 9]) =>
+        sdk.buildAddLiquidityWeightedParams({
+          publicClient,
+          factoryAddress: factory.address,
+          dataProviderAddress: dataProvider.address,
+          poolAddress: pool.address,
+          bins,
+          weights,
+          currentPriceX64: sdk.priceToQ64(1),
+          maxAmountToken0: token0Only ? parseUnits("1", 18) : unusedCap,
+          maxAmountToken1: token0Only ? unusedCap : parseUnits("1", 6),
+          maxOracleDistanceChangePercent: 0.5,
+        });
+      const withoutDust = await build(0n);
+      const withDust = await build(1n);
+      assert.deepEqual(withDust.weightDeltas, withoutDust.weightDeltas);
+      const smallRelativeWeights = await build(1n, [1e-7, 9e-7]);
+      assert.deepEqual(smallRelativeWeights.weightDeltas, withDust.weightDeltas);
+      const hash = await deployer.sendTransaction({
+        to: liquidityAdder,
+        data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...withDust }),
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      assert.equal(receipt.status, "success");
+      const states = await sdk.getBinStatesScaled(
+        publicClient,
+        dataProvider.address,
+        pool.address,
+        bins,
+      );
+      const balances = token0Only ? states.token0BalancesScaled : states.token1BalancesScaled;
+      const error = balances[1] - balances[0] * 9n;
+      assert.ok(
+        error >= -10n && error <= 10n,
+        `deposited balances lost their 1:9 ratio: ${balances}`,
+      );
+    });
+  }
+
+  it("deposits token0 amounts worth less than one token1 base unit", async () => {
+    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0, token1 } =
+      await networkHelpers.loadFixture(setupEnv18_6);
+    const cap = 100_000_000_000n;
+    const before0 = (await token0.read.balanceOf([pool.address])) as bigint;
+    const before1 = (await token1.read.balanceOf([pool.address])) as bigint;
+    const params = await sdk.buildAddLiquidityWeightedParams({
+      publicClient,
+      factoryAddress: factory.address,
+      dataProviderAddress: dataProvider.address,
+      poolAddress: pool.address,
+      bins: [1],
+      currentPriceX64: sdk.priceToQ64(1),
+      maxAmountToken0: cap,
+      maxAmountToken1: 0n,
+      maxOracleDistanceChangePercent: 0.5,
+    });
+    const hash = await deployer.sendTransaction({
+      to: liquidityAdder,
+      data: sdk.encodeAddLiquidityWeightedSelfCalldata({ pool: pool.address, ...params }),
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    assert.equal(receipt.status, "success");
+    const spent0 = ((await token0.read.balanceOf([pool.address])) as bigint) - before0;
+    assert.ok(spent0 > 0n && spent0 <= cap);
+    assert.ok(cap - spent0 <= 2n);
+    assert.equal(await token1.read.balanceOf([pool.address]), before1);
+  });
+
+  it("preserves mixed-bin value weights when a small cap needs a larger calibration probe", async () => {
+    const { publicClient, pool, factory, dataProvider } =
+      await networkHelpers.loadFixture(setupEnv18_6);
+    const params = await sdk.buildAddLiquidityWeightedParams({
+      publicClient,
+      factoryAddress: factory.address,
+      dataProviderAddress: dataProvider.address,
+      poolAddress: pool.address,
+      bins: [-1, 1],
+      weights: [1, 9],
+      currentPriceX64: sdk.priceToQ64(1),
+      maxAmountToken0: 1n,
+      maxAmountToken1: 1n,
+      maxOracleDistanceChangePercent: 0.5,
+    });
+    assert.equal(params.weightDeltas.shares[1], params.weightDeltas.shares[0] * 9n);
+    assert.equal(params.maxAmountToken0, 1n);
+    assert.equal(params.maxAmountToken1, 1n);
   });
 
   it("buildAddLiquidityWeightedParams keeps share weights within int104 for high-price inputs", async () => {
@@ -881,7 +1009,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
       currentPriceX64: 1309319182557697118630402n,
       maxAmountToken0: parseUnits("1000000", 18),
       maxAmountToken1: 1_000_000n,
-      maximalCursorMovement: 0.1,
+      maxOracleDistanceChangePercent: 0.5,
     });
 
     assert.equal(params.weightDeltas.shares.length, 4);

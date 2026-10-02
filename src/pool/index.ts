@@ -74,5 +74,5 @@ export {
 export {
   prepareLiquidityCursorBounds,
   computeLiquidityCursorBounds,
-  cursorMovementToPositionDelta,
+  type ComputeLiquidityCursorBoundsParams,
 } from "./cursorBounds.js";

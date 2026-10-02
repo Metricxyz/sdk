@@ -95,7 +95,7 @@ describe("SPCX Max deposit on a Robinhood fork", { skip: !process.env.ROBINHOOD_
       currentPriceX64: BigInt(snapshot.currentPriceX64),
       maxAmountToken0: budgetSpcx,
       maxAmountToken1: usdgBalance,
-      maximalCursorMovement: 0.1,
+      maxOracleDistanceChangePercent: 0.5,
     });
     const hash = await lp.sendTransaction({
       to: addresses.liquidityAdder,

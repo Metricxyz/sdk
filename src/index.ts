@@ -158,7 +158,7 @@ export {
   type LiquidityCursorBounds,
   prepareLiquidityCursorBounds,
   computeLiquidityCursorBounds,
-  cursorMovementToPositionDelta,
+  type ComputeLiquidityCursorBoundsParams,
 } from "./pool/index.js";
 
 // ============ PeripheryPayments ============

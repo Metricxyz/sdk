@@ -184,10 +184,20 @@ const imm = await v1.getPoolImmutables(publicClient, addresses.factory, poolAddr
 arguments. The LiquidityAdder probes the pool in the same transaction and scales the
 shares to deposit as much as fits both caps, so pass the wallet balances (or the user's
 chosen amount) as `maxAmountToken0` / `maxAmountToken1`. Neither cap is ever exceeded;
-whichever token runs out first limits the deposit. `maximalCursorMovement` bounds how far
-the pool cursor may move before execution reverts.
+whichever token runs out first limits the deposit. `maxOracleDistanceChangePercent` bounds how far the
+pool price may move relative to the oracle (in percent of price, measured from its current
+distance) before execution reverts with `BinPositionOutOfBounds`.
 
 ```typescript
+import { PriceProviderAbi } from "@metric.xyz/metric-omm-sdk-v1/abis";
+
+const priceProvider = await v1.getPriceProvider(publicClient, addresses.dataProvider, pool);
+const { result: [, , currentPriceX64] } = await publicClient.simulateContract({
+  address: priceProvider,
+  abi: PriceProviderAbi,
+  functionName: "getQuote",
+  account: pool,
+});
 const params = await v1.buildAddLiquidityWeightedParams({
   publicClient,
   factoryAddress: addresses.factory,
@@ -195,10 +205,10 @@ const params = await v1.buildAddLiquidityWeightedParams({
   poolAddress: pool,
   bins: [-2, -1, 0, 1, 2],
   weights: [1, 2, 3, 2, 1],
-  currentPriceX64: slot0.priceX64,
+  currentPriceX64,
   maxAmountToken0: balance0,
   maxAmountToken1: balance1,
-  maximalCursorMovement: 0.1,
+  maxOracleDistanceChangePercent: 0.5,
 });
 const data = v1.encodeAddLiquidityWeightedSelfCalldata({ pool, ...params });
 ```
