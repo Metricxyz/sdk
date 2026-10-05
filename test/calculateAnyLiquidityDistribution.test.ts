@@ -827,7 +827,7 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
 
   it("buildAddLiquidityWeightedParams reverts once the pool moved further from the oracle than allowed", async () => {
     const env = await networkHelpers.loadFixture(setupSeededEnv18_6HighDrift);
-    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0, token1 } = env;
+    const { publicClient, pool, factory, dataProvider, liquidityAdder, token0 } = env;
     const buildWithBound = async (maxOracleDistanceChangePercent: number) =>
       sdk.buildAddLiquidityWeightedParams({
         publicClient,
@@ -858,6 +858,28 @@ describe("buildModifyLiquidityArgsForAddition", async function () {
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     assert.equal(receipt.status, "success");
+  });
+
+  it("buildAddLiquidityWeightedParams rejects a zero cap for a token the bins need", async () => {
+    const { publicClient, pool, factory, dataProvider } = await networkHelpers.loadFixture(
+      setupSeededEnv18_6HighDrift,
+    );
+    const build = (bins: number[], maxAmountToken0: bigint, maxAmountToken1: bigint) =>
+      sdk.buildAddLiquidityWeightedParams({
+        publicClient,
+        factoryAddress: factory.address,
+        dataProviderAddress: dataProvider.address,
+        poolAddress: pool.address,
+        bins,
+        currentPriceX64: sdk.priceToQ64(1),
+        maxAmountToken0,
+        maxAmountToken1,
+        maxOracleDistanceChangePercent: 0.5,
+      });
+    const zeroCapError = /selected bins require a positive cap for every token they need/;
+
+    await assert.rejects(build([-3, -1, 0, 1, 3], parseUnits("9", 18), 0n), zeroCapError);
+    await assert.rejects(build([1, 3], 0n, parseUnits("9", 6)), zeroCapError);
   });
 
   it("buildAddLiquidityWeightedParams stops at the token0 cap when token0 binds first", async () => {

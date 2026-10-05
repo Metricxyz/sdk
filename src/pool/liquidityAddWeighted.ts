@@ -100,16 +100,13 @@ export async function buildAddLiquidityWeightedParams({
   );
   const token0UnitValue = immutables.token0ScaleMultiplier * priceX64ToPriceE18(currentPriceX64);
   const token1UnitValue = immutables.token1ScaleMultiplier * ONE_E18;
+  if ((needsToken0 && maxAmountToken0 === 0n) || (needsToken1 && maxAmountToken1 === 0n)) {
+    throw new Error("selected bins require a positive cap for every token they need");
+  }
   const useToken0 =
     needsToken0 &&
-    maxAmountToken0 > 0n &&
-    (!needsToken1 ||
-      maxAmountToken1 === 0n ||
-      maxAmountToken0 * token0UnitValue <= maxAmountToken1 * token1UnitValue);
+    (!needsToken1 || maxAmountToken0 * token0UnitValue <= maxAmountToken1 * token1UnitValue);
   const budget = useToken0 ? maxAmountToken0 : maxAmountToken1;
-  if (budget === 0n) {
-    throw new Error("selected bins require a positive token cap");
-  }
 
   const relativeWeights = weights ?? bins.map(() => 1);
   const smallestWeight = relativeWeights.reduce((min, weight) => Math.min(min, weight));

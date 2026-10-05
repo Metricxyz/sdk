@@ -33,7 +33,7 @@ const snapshotSlot0 = snapshot.records.find(
 ).result;
 
 const OZ_ERC20_STORAGE_SLOT = 0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00n;
-const LP = "0x00000000000000000000000000000000005bC0de" as Address;
+const LP = "0x00000000000000000000000000000000005Bc0De" as Address;
 
 describe("SPCX Max deposit on a Robinhood fork", { skip: !process.env.ROBINHOOD_RPC_URL }, () => {
   it("deposits the whole 132.41178045 SPCX balance at the snapshot block", async () => {
