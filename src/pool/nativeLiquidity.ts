@@ -2,9 +2,11 @@ import type { Hex } from "viem";
 import {
   encodeAddLiquidityExactSharesSelfCalldata,
   encodeAddLiquidityExactSharesWithOwnerCalldata,
+} from "./liquidityAddExactShares.js";
+import {
   encodeAddLiquidityWeightedSelfCalldata,
   encodeAddLiquidityWeightedWithOwnerCalldata,
-} from "./liquidity.js";
+} from "./liquidityAddWeighted.js";
 import { encodeMulticallCalldata, encodeRefundETHCalldata } from "../peripheryPayments/index.js";
 
 type ExactSharesSelfParams = Parameters<typeof encodeAddLiquidityExactSharesSelfCalldata>[0];

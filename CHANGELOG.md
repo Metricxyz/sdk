@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-05
+
+### Breaking changes
+
+- **Total-amount liquidity add removed** — `buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount` and its params type are removed. Its off-chain calibration could return a source cap slightly above the budget, so a Max deposit failed. Use `buildAddLiquidityWeightedParams` with `encodeAddLiquidityWeightedSelfCalldata`; the LiquidityAdder sizes the deposit on-chain to fit the caps.
+
+- **Cursor bounds in oracle-distance space** — `prepareLiquidityCursorBounds` and `computeLiquidityCursorBounds` take `maxOracleDistanceChangePercent` (largest change in the pool price's distance from the oracle, in percent of price) instead of `maximalCursorMovement`; `computeLiquidityCursorBounds` now takes one params object including the pool's bin range and `binLengthsE6`. `cursorMovementToPositionDelta` is removed.
+
+### Added
+
+- **`buildAddLiquidityWeightedParams`** — builds `addLiquidityWeighted` arguments from bins, optional value weights, token caps and `maxOracleDistanceChangePercent` (cursor bounds replace the spec-amount buffer for this flow).
+
 ## [0.6.0] - 2026-09-29
 
 Stable release of `0.6.0-rc.0`; no changes since the release candidate.

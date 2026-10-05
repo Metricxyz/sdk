@@ -26,20 +26,11 @@ export {
 
 // Liquidity calculations and position operations
 export {
-  buildModifyLiquidityArgsForAddition,
-  buildModifyLiquidityArgsForUniformAddition,
-  buildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmount,
   buildModifyLiquidityArgsForPercentageRemoval,
   buildModifyLiquidityArgsForRemoval,
-  buildAddLiquidityExactSharesParamsFromBinTargets,
   buildRemoveLiquidityPoolDelta,
   additionPlanToPoolLiquidityDelta,
   removalPlanToPoolLiquidityDelta,
-  scaleWeightedPoolDeltasToFitCaps,
-  encodeAddLiquidityExactSharesSelfCalldata,
-  encodeAddLiquidityExactSharesWithOwnerCalldata,
-  encodeAddLiquidityWeightedSelfCalldata,
-  encodeAddLiquidityWeightedWithOwnerCalldata,
   encodeRemoveLiquidityCalldata,
   UNCONSTRAINED_LIQUIDITY_CURSOR_BOUNDS,
   type LiquidityCursorBounds,
@@ -48,14 +39,30 @@ export {
   NO_SLIPPAGE_LIMIT,
   type ModifyLiquidityArgs,
   type BuildModifyLiquidityArgsBase,
-  type BuildModifyLiquidityArgsForAdditionParams,
-  type BuildModifyLiquidityArgsForUniformAdditionParams,
-  type BuildModifyLiquidityArgsForUniformAdditionWithTotalTokenAmountParams,
   type BuildModifyLiquidityArgsForPercentageRemovalParams,
   type BuildModifyLiquidityArgsForRemovalParams,
   type RemoveLiquidityParams,
   type BinRemovalSpec,
 } from "./liquidity.js";
+
+export {
+  buildModifyLiquidityArgsForAddition,
+  buildModifyLiquidityArgsForUniformAddition,
+  buildAddLiquidityExactSharesParamsFromBinTargets,
+  encodeAddLiquidityExactSharesSelfCalldata,
+  encodeAddLiquidityExactSharesWithOwnerCalldata,
+  type BuildModifyLiquidityArgsForAdditionParams,
+  type BuildModifyLiquidityArgsForUniformAdditionParams,
+} from "./liquidityAddExactShares.js";
+
+export {
+  buildAddLiquidityWeightedParams,
+  type BuildAddLiquidityWeightedParamsParams,
+  type AddLiquidityWeightedParams,
+  scaleWeightedPoolDeltasToFitCaps,
+  encodeAddLiquidityWeightedSelfCalldata,
+  encodeAddLiquidityWeightedWithOwnerCalldata,
+} from "./liquidityAddWeighted.js";
 
 export {
   prepareAddLiquidityExactSharesSelfSupportingNativePaymentCalldata,
@@ -67,5 +74,5 @@ export {
 export {
   prepareLiquidityCursorBounds,
   computeLiquidityCursorBounds,
-  cursorMovementToPositionDelta,
+  type ComputeLiquidityCursorBoundsParams,
 } from "./cursorBounds.js";
