@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-10-07
+
+### Added
+
+- **Pool creation via `ImmutableAppPoolHelper`** — `createPoolViaImmutableAppPoolHelper` and `encodeCreatePoolViaImmutableAppPoolHelperCalldata` create a pool through the helper, which overrides its bid/ask/reference asymmetry beyond the factory's creation cap. They take the same `CreatePoolFactoryParams` as `createPool` plus the override value; the price provider must come from the AnchoredProviderFactory and `priceProviderTimelock` must be `maxUint256`.
+- **`ImmutableAppPoolHelperAbi`** and `ChainAddresses.immutableAppPoolHelper` — `0xD993832465F58306EDa8F35D2d10A2B4bCF0C7FB` on every bundled chain.
+- **`ChainAddresses.anchoredProviderFactory`** — the APP factory hardcoded in the helper, `0xb0eAE19259500Ac4Ca59b9a5cb8cDB2Da8076F0A` on every bundled chain.
+
 ## [0.6.1] - 2026-10-05
 
 ### Breaking changes

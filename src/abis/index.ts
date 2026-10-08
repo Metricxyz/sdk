@@ -14,3 +14,4 @@ export { OracleValueStopLossExtensionAbi } from "./OracleValueStopLossExtension.
 export { PriceVelocityGuardExtensionAbi } from "./PriceVelocityGuardExtension.js";
 export { PriceProviderAbi } from "./PriceProvider.js";
 export { OracleProviderAbi } from "./OracleProvider.js";
+export { ImmutableAppPoolHelperAbi } from "./ImmutableAppPoolHelper.js";

@@ -4,7 +4,7 @@
 
 import type { Address, PublicClient, WalletClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
-import { POOL_FACTORY_ABI } from "../constants.js";
+import { IMMUTABLE_APP_POOL_HELPER_ABI, POOL_FACTORY_ABI } from "../constants.js";
 import { createUniformBins } from "../utils/binData.js";
 import { EMPTY_EXTENSION_ORDERS, type ExtensionOrders } from "../extensions/types.js";
 
@@ -107,6 +107,20 @@ export interface CreatePoolParams {
   maxDriftDecayPerSecondE8: bigint;
 }
 
+function assertValidBidAskRefAsymmetryX8(bidAskRefAsymmetryX8: number): void {
+  if (!Number.isInteger(bidAskRefAsymmetryX8) || bidAskRefAsymmetryX8 <= 0) {
+    throw new Error(
+      "bidAskRefAsymmetryX8 must be a positive integer — 0 demands r1 == r2 exactly at Q64.64 " +
+        "precision, which is unsatisfiable in integer arithmetic and makes every swap, simulation, " +
+        "and quote on the pool revert (metric-core docs/POOL_CONFIGURATION_AND_MANAGEMENT.md §2.2.1). " +
+        "Use DISABLED_BID_ASK_REF_ASYMMETRY_X8 to disable the check, or a deliberate bound to enable it.",
+    );
+  }
+  if (bidAskRefAsymmetryX8 > DISABLED_BID_ASK_REF_ASYMMETRY_X8) {
+    throw new Error("bidAskRefAsymmetryX8 exceeds uint16.max");
+  }
+}
+
 export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) {
   const curBinDistFromProvidedPriceE6 = Math.round(
     params.curBinDistFromProvidedPricePercent * 10_000,
@@ -115,17 +129,7 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
     throw new Error("curBinDistFromProvidedPricePercent maps to int24 out of range");
   }
 
-  if (!Number.isInteger(params.bidAskRefAsymmetryX8) || params.bidAskRefAsymmetryX8 <= 0) {
-    throw new Error(
-      "bidAskRefAsymmetryX8 must be a positive integer — 0 demands r1 == r2 exactly at Q64.64 " +
-        "precision, which is unsatisfiable in integer arithmetic and makes every swap, simulation, " +
-        "and quote on the pool revert (metric-core docs/POOL_CONFIGURATION_AND_MANAGEMENT.md §2.2.1). " +
-        "Use DISABLED_BID_ASK_REF_ASYMMETRY_X8 to disable the check, or a deliberate bound to enable it.",
-    );
-  }
-  if (params.bidAskRefAsymmetryX8 > DISABLED_BID_ASK_REF_ASYMMETRY_X8) {
-    throw new Error("bidAskRefAsymmetryX8 exceeds uint16.max");
-  }
+  assertValidBidAskRefAsymmetryX8(params.bidAskRefAsymmetryX8);
 
   const minimumOperationalLiquidity = computeMinimumOperationalLiquidity(
     params.initialScaledAmount0PerE18Shares,
@@ -201,6 +205,55 @@ export function encodeCreatePoolCalldata(params: CreatePoolFactoryParams): Hex {
     functionName: "createPool",
     args,
   });
+}
+
+/**
+ * Creates a pool through `ImmutableAppPoolHelper`, which then overrides its bid/ask/reference
+ * asymmetry beyond the factory's creation cap. `params.bidAskRefAsymmetryX8` must still satisfy
+ * that cap, `params.priceProvider` must come from the AnchoredProviderFactory, and
+ * `params.priceProviderTimelock` must be `maxUint256` (immutable provider) — otherwise it reverts.
+ */
+export async function createPoolViaImmutableAppPoolHelper(
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  helperAddress: Address,
+  params: CreatePoolFactoryParams,
+  bidAskRefAsymmetryX8Override: number,
+  account: Address,
+): Promise<{ hash: Hex; poolAddress?: Address }> {
+  const { request, result } = await publicClient.simulateContract({
+    address: helperAddress,
+    abi: IMMUTABLE_APP_POOL_HELPER_ABI,
+    functionName: "createPool",
+    args: buildImmutableAppPoolHelperCreatePoolArgs(params, bidAskRefAsymmetryX8Override),
+    account,
+  });
+
+  const hash = await walletClient.writeContract(request);
+
+  return {
+    hash,
+    poolAddress: result as Address,
+  };
+}
+
+export function encodeCreatePoolViaImmutableAppPoolHelperCalldata(
+  params: CreatePoolFactoryParams,
+  bidAskRefAsymmetryX8Override: number,
+): Hex {
+  return encodeFunctionData({
+    abi: IMMUTABLE_APP_POOL_HELPER_ABI,
+    functionName: "createPool",
+    args: buildImmutableAppPoolHelperCreatePoolArgs(params, bidAskRefAsymmetryX8Override),
+  });
+}
+
+function buildImmutableAppPoolHelperCreatePoolArgs(
+  params: CreatePoolFactoryParams,
+  bidAskRefAsymmetryX8Override: number,
+): unknown[] {
+  assertValidBidAskRefAsymmetryX8(bidAskRefAsymmetryX8Override);
+  return [prepareFactoryCreatePoolParams(params), bidAskRefAsymmetryX8Override];
 }
 
 function buildCreatePoolArgs(factoryParams: unknown): unknown[] {

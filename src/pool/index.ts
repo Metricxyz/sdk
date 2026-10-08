@@ -8,6 +8,8 @@ export {
   prepareFactoryCreatePoolParams,
   computeMinimumOperationalLiquidity,
   encodeCreatePoolCalldata,
+  createPoolViaImmutableAppPoolHelper,
+  encodeCreatePoolViaImmutableAppPoolHelperCalldata,
   preparePoolBinData,
   DISABLED_BID_ASK_REF_ASYMMETRY_X8,
   type CreatePoolFactoryParams,

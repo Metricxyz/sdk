@@ -56,6 +56,10 @@ export interface ChainAddresses {
   externalSwapExecutor: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
   quoter: Address;
+  /** ImmutableAppPoolHelper (pool creation with asymmetry override for immutable APP providers). */
+  immutableAppPoolHelper: Address;
+  /** AnchoredProviderFactory (APP factory; deploys the price providers ImmutableAppPoolHelper accepts). */
+  anchoredProviderFactory: Address;
   /** Wrapped native token for this chain. */
   wrappedNative: Address;
 
@@ -79,6 +83,8 @@ const PROTOCOL_ADDRESSES = {
   simpleRouter: "0x02201E6f13c41506c7Bb635d7543F98826229aB7",
   externalSwapExecutor: "0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2",
   quoter: "0x803Dd787ef9734c34696877ca6F20194fBcBFbF8",
+  immutableAppPoolHelper: "0xD993832465F58306EDa8F35D2d10A2B4bCF0C7FB",
+  anchoredProviderFactory: "0xb0eAE19259500Ac4Ca59b9a5cb8cDB2Da8076F0A",
   extensions: {
     depositAllowlistExtension: "0x65FBa4Ee8f50772aB384f19e5520DdA420B1B47D",
     swapAllowlistExtension: "0x4Ca8d78873f0a66445CC05f9A1E705f1a58A6582",
