@@ -176,9 +176,14 @@ export function scaleWeightedPoolDeltasToFitCaps(params: {
   maxAmountToken1: bigint;
 }): PoolLiquidityDelta {
   const { weights, probeNeed0, probeNeed1, maxAmountToken0, maxAmountToken1 } = params;
+  // Match the adder's one-base-unit-per-bin reserve for paying addLiquidity ceil-rounding.
+  // Caps at or below the bin count stay unchanged, including zero caps for one-sided adds.
+  const binCount = BigInt(weights.binIdxs.length);
+  const adjustedMax0 = maxAmountToken0 > binCount ? maxAmountToken0 - binCount : maxAmountToken0;
+  const adjustedMax1 = maxAmountToken1 > binCount ? maxAmountToken1 - binCount : maxAmountToken1;
   const maxU = 2n ** 256n - 2n;
-  const scaleWad0 = probeNeed0 === 0n ? maxU : (maxAmountToken0 * WAD) / probeNeed0;
-  const scaleWad1 = probeNeed1 === 0n ? maxU : (maxAmountToken1 * WAD) / probeNeed1;
+  const scaleWad0 = probeNeed0 === 0n ? maxU : (adjustedMax0 * WAD) / probeNeed0;
+  const scaleWad1 = probeNeed1 === 0n ? maxU : (adjustedMax1 * WAD) / probeNeed1;
   const scaleWad = scaleWad0 < scaleWad1 ? scaleWad0 : scaleWad1;
   const shares = weights.shares.map((w, i) => {
     const scaled = (w * scaleWad) / WAD;
