@@ -38,6 +38,11 @@ export interface BinData {
   addFeeSellE6: number;
 }
 
+/** A pool's configured bin: its index and its configuration. */
+export interface PoolBin extends BinData {
+  binIdx: number;
+}
+
 // ============ Pool Types ============
 
 export interface PoolImmutables {

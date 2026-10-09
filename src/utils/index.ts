@@ -8,6 +8,8 @@ export {
   packBins5,
   packBinDataArray,
   unpackBinData,
+  unpackBinDataArray,
+  unpackPoolBins,
   createBins,
   createUniformBins,
 } from "./binData.js";

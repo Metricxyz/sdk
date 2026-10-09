@@ -3,7 +3,7 @@
  * Functions for packing/unpacking bin data
  */
 
-import type { BinData } from "../types.js";
+import type { BinData, PoolBin } from "../types.js";
 
 /**
  * Pack bin data into 48-bit representation
@@ -68,6 +68,44 @@ export function unpackBinData(packed: bigint): BinData {
     addFeeBuyE6,
     addFeeSellE6,
   };
+}
+
+const BINS_PER_WORD = 5;
+
+/**
+ * Unpack one side of a pool's packed bin configuration the way the factory reads it:
+ * five bins per word, ending at the first zero-length bin. Slots after it are ignored.
+ */
+export function unpackBinDataArray(words: readonly (bigint | `0x${string}`)[]): BinData[] {
+  const bins: BinData[] = [];
+  for (const word of words) {
+    const value = BigInt.asUintN(256, BigInt(word));
+    for (let slot = 0; slot < BINS_PER_WORD; slot++) {
+      const bin = unpackBinData((value >> (BigInt(slot) * 48n)) & 0xffffffffffffn);
+      if (bin.lengthE6 === 0) return bins;
+      bins.push(bin);
+    }
+  }
+  return bins;
+}
+
+/**
+ * Unpack a pool's bin layout from `PoolCreated`'s `nonNegativeBinDataArray` (bins 0, 1, …)
+ * and `negativeBinDataArray` (bins -1, -2, …) into one list in ascending bin order.
+ */
+export function unpackPoolBins(
+  nonNegativeBinDataArray: readonly (bigint | `0x${string}`)[],
+  negativeBinDataArray: readonly (bigint | `0x${string}`)[],
+): PoolBin[] {
+  const negative = unpackBinDataArray(negativeBinDataArray).map((bin, i) => ({
+    binIdx: -i - 1,
+    ...bin,
+  }));
+  const nonNegative = unpackBinDataArray(nonNegativeBinDataArray).map((bin, i) => ({
+    binIdx: i,
+    ...bin,
+  }));
+  return [...negative.reverse(), ...nonNegative];
 }
 
 /**

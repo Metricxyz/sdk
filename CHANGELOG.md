@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Periphery** — pinned `02096b572fe349a8887b52f06702ed3b4db7836b` (metric-periphery#64) and regenerated the quoter ABI with `PoolPaused(address,uint8)`.
 - **Deployments** — `quoter` is now `0x3B9ea79f482094323d06064E637a7F4528560fcb` on all ten bundled chains, deployed from that commit.
 
+## [0.6.3] - 2026-10-09
+
+### Added
+
+- **`unpackPoolBins(nonNegativeBinDataArray, negativeBinDataArray)`** — decodes `PoolCreated`'s packed bin arrays into one `PoolBin[]` (`binIdx`, `lengthE6`, `addFeeBuyE6`, `addFeeSellE6`) in ascending bin order. Each side ends at its first zero-length bin, as the factory reads it.
+- **`unpackBinDataArray(words)`** — the single-side decoder behind it, accepting `bigint` or `0x`-hex words.
+- **`PoolBin`** type.
+
 ### Fixed
 
 - **Weighted liquidity previews** — `scaleWeightedPoolDeltasToFitCaps` now applies the LiquidityAdder's one-base-unit-per-bin rounding reserve before scaling shares. This prevents overstated previews and detects shares that the reserve rounds to zero, while preserving the caller's original token caps and weights.
