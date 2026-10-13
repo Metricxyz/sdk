@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Live quotes on paused pools** — `quoteLiveExactInSingle`, `quoteLiveExactOutSingle`, `quoteLiveExactIn` and `quoteLiveExactOut` now reject when any pool on the route has a non-zero pause level, instead of returning a quote whose swap would revert. The error decodes as the quoter's `PoolPaused(pool, pauseLevel)` (`errorName === "PoolPaused"`) and names the paused hop. Hypothetical quotes are unchanged. Requires a quoter deployed from the pinned periphery commit; older deployments keep quoting paused pools.
+- **Periphery** — pinned `c4b3570f74d804589baf0bc42a51ef0788ac1fd2` and regenerated the quoter ABI with `PoolPaused(address,uint8)`.
+
 ### Fixed
 
 - **Weighted liquidity previews** — `scaleWeightedPoolDeltasToFitCaps` now applies the LiquidityAdder's one-base-unit-per-bin rounding reserve before scaling shares. This prevents overstated previews and detects shares that the reserve rounds to zero, while preserving the caller's original token caps and weights.

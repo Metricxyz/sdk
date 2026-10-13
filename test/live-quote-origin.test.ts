@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
-import { parseUnits, zeroAddress } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  getAddress,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import * as sdk from "../src/index.js";
 import { MetricOmmSwapQuoterAbi } from "../src/abis/MetricOmmSwapQuoter.js";
 import { addLiquidityToPool } from "./shared/poolLiquidity.js";
@@ -189,5 +195,47 @@ describe("live quotes with a swap-context price provider", async () => {
     const pathQuote = await sdk.quoteHypotheticalExactInput({ ...path, amountIn });
     await sdk.quoteHypotheticalExactOutput({ ...path, amountOut: pathQuote.amountOut / 2n });
     assert.deepEqual(callers, Array(4).fill(common.recipient));
+  });
+
+  it("rejects live quotes on a paused pool with the quoter's PoolPaused error", async () => {
+    const { env, pools, common, amountIn } = await networkHelpers.loadFixture(fixture);
+    const pausedPool = pools[1];
+    await env.factory.write.pausePool([pausedPool]);
+
+    const isPoolPaused = (error: unknown) => {
+      assert.ok(error instanceof BaseError);
+      const revert = error.walk((cause) => cause instanceof ContractFunctionRevertedError);
+      assert.ok(revert instanceof ContractFunctionRevertedError);
+      assert.equal(revert.data?.errorName, "PoolPaused");
+      assert.deepEqual(revert.data?.args, [getAddress(pausedPool), 1]);
+      return true;
+    };
+    const single = {
+      ...common,
+      pool: pausedPool,
+      tokenIn: common.tokenOut,
+      tokenOut: common.tokenIn,
+    };
+    await assert.rejects(sdk.quoteLiveExactInSingle({ ...single, amountIn }), isPoolPaused);
+    await assert.rejects(
+      sdk.quoteLiveExactOutSingle({ ...single, amountOut: 1_000n }),
+      isPoolPaused,
+    );
+    const path = { ...common, tokenOut: common.tokenIn, pools };
+    await assert.rejects(sdk.quoteLiveExactIn({ ...path, amountIn }), isPoolPaused);
+    await assert.rejects(sdk.quoteLiveExactOut({ ...path, amountOut: 1_000n }), isPoolPaused);
+
+    // The unpaused hop still quotes live, and hypothetical quotes ignore pause state.
+    const live = await sdk.quoteLiveExactInSingle({ ...common, pool: pools[0], amountIn });
+    assert.ok(live.amountOut > 0n);
+    const referencePriceX64 = 1n << 64n;
+    const hypothetical = await sdk.quoteHypotheticalExactInputSingle({
+      ...single,
+      amountIn: live.amountOut,
+      bidPriceX64: referencePriceX64 - referencePriceX64 / 10_000n,
+      askPriceX64: referencePriceX64 + referencePriceX64 / 10_000n,
+      referencePriceX64,
+    });
+    assert.ok(hypothetical.amountOut > 0n);
   });
 });
