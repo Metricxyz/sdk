@@ -100,6 +100,22 @@ export const MetricOmmSwapQuoterAbi = [
     type: "error",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "pool",
+        type: "address",
+      },
+      {
+        internalType: "uint8",
+        name: "pauseLevel",
+        type: "uint8",
+      },
+    ],
+    name: "PoolPaused",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "QuoteDidNotRevert",
     type: "error",
