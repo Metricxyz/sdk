@@ -5,13 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.5] - 2026-10-15
+
+### Changed
+
+- **`ChainAddresses.LiquidityAdder`** — `MetricOmmLiquidityAdder` redeployed at `0x49A0dcb8dBD304B80aA475026cC558d4baE54382` on every bundled chain.
+
+## [0.6.5] - 2026-10-13
 
 ### Changed
 
 - **Live quotes on paused pools** — `quoteLiveExactInSingle`, `quoteLiveExactOutSingle`, `quoteLiveExactIn` and `quoteLiveExactOut` now reject when any pool on the route has a non-zero pause level, instead of returning a quote whose swap would revert. The error decodes as the quoter's `PoolPaused(pool, pauseLevel)` (`errorName === "PoolPaused"`) and names the paused hop. Hypothetical quotes are unchanged. Requires the new bundled quoter (or a `quoterAddress` deployed from the pinned periphery commit); older quoter deployments keep quoting paused pools.
 - **Periphery** — pinned `02096b572fe349a8887b52f06702ed3b4db7836b` (metric-periphery#64) and regenerated the quoter ABI with `PoolPaused(address,uint8)`.
 - **Deployments** — `quoter` is now `0x3B9ea79f482094323d06064E637a7F4528560fcb` on all ten bundled chains, deployed from that commit.
+
+## [0.6.4] - 2026-10-13
+
+### Changed
+
+- **`ChainAddresses.quoter`** — `MetricOmmSwapQuoter` redeployed at `0x3B9ea79f482094323d06064E637a7F4528560fcb` on every bundled chain.
 
 ## [0.6.3] - 2026-10-09
 
