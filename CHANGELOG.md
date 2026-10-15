@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.5] - 2026-10-15
+## [0.6.7] - 2026-10-15
+
+### Fixed
+
+- **README** — deployed-addresses table now lists the redeployed `MetricOmmPoolLiquidityAdder` at `0x49A0dcb8dBD304B80aA475026cC558d4baE54382`.
+
+## [0.6.6] - 2026-10-15
 
 ### Changed
 
