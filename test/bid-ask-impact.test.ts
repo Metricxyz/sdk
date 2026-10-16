@@ -1106,3 +1106,109 @@ describe("within-bin interpolation — round-trip invariant", () => {
     }
   });
 });
+
+describe("price-impact guards — changing bin fees", () => {
+  // Three 1%-wide bins, with a 5% add-fee and most liquidity in the middle bin.
+  // That fee is valid uint16 E6, and the pool permits it to drop back to zero.
+  function changingFeeQuote(zeroForOne: boolean): BidAskQuote {
+    const e6 = 1_000_000n;
+    let cumulativeInputVolume = 0n;
+    let cumulativeVolume = 0n;
+    const levels = [1_000_000n, 1_000_000_000n, 1_000_000n].map((output, i) => {
+      const distance = BigInt(i) * 10_000n;
+      const fee = i === 1 ? 50_000n : 0n;
+      const start = zeroForOne ? e6 - distance : e6 + distance;
+      const end = zeroForOne ? start - 10_000n : start + 10_000n;
+      // Input-per-output endpoint costs: ask multiplies by the fee, bid inverts.
+      const qStart = zeroForOne
+        ? ((e6 + fee) * Q64) / start
+        : (start * (e6 + fee) * Q64) / (e6 * e6);
+      const qEnd = zeroForOne ? ((e6 + fee) * Q64) / end : (end * (e6 + fee) * Q64) / (e6 * e6);
+      const price = zeroForOne ? (end * Q64) / (e6 + fee) : qEnd;
+      cumulativeInputVolume += (output * (qStart + qEnd) + 2n * Q64 - 1n) / (2n * Q64);
+      cumulativeVolume += output;
+      return depthLevel({
+        binIdx: zeroForOne ? -i : i,
+        price,
+        cumulativeInputVolume,
+        cumulativeVolume,
+        priceImpactE6: zeroForOne ? e6 - (price * e6) / Q64 : (price * e6) / Q64 - e6,
+      });
+    });
+    return quoteFixture({
+      depth: zeroForOne ? { bids: levels, asks: [] } : { asks: levels, bids: [] },
+    });
+  }
+
+  for (const zeroForOne of [false, true]) {
+    const side = zeroForOne ? "bid" : "ask";
+    for (const partial of [false, true]) {
+      it(`accepts ${side} exact-in and exact-out fills after a fee drop (${partial ? "partial" : "full"} final bin)`, () => {
+        const quote = changingFeeQuote(zeroForOne);
+        const levels = zeroForOne ? quote.depth!.bids : quote.depth!.asks;
+        const last = levels[2]!;
+        const params = {
+          quote,
+          zeroForOne,
+          token0ScaleMultiplier: ONE,
+          token1ScaleMultiplier: ONE,
+        };
+        const amountOut = last.cumulativeVolume - (partial ? 500_000n : 0n);
+        const exactOut = computePriceImpactExactOut({ ...params, amountOut });
+        const exactIn = computePriceImpactExactIn({ ...params, amountIn: exactOut.amountIn });
+
+        for (const result of [exactOut, exactIn]) {
+          assert.equal(result.binsCrossed, 3);
+          assert.equal(result.marginalPriceImpactE6, last.priceImpactE6);
+          assert.ok(result.priceImpactE6 > result.marginalPriceImpactE6 + 5_000n);
+          assert.ok(result.priceImpactE6 < levels[1]!.priceImpactE6);
+        }
+        if (!partial) {
+          assert.equal(exactOut.amountIn, last.cumulativeInputVolume);
+          assert.equal(exactIn.amountOut, last.cumulativeVolume);
+        } else {
+          assert.ok(exactIn.amountOut >= amountOut);
+          assert.ok(exactIn.amountOut <= amountOut + 1n);
+        }
+      });
+    }
+  }
+
+  for (const skipped of [false, true]) {
+    it(`does not use a ${skipped ? "zero-output" : "unvisited"} bin to excuse an invalid fill`, () => {
+      const invalid = depthLevel({
+        binIdx: 0,
+        price: Q64,
+        cumulativeVolume: 1_000_000n,
+        cumulativeInputVolume: 2_000_000n,
+      });
+      const extreme = depthLevel({
+        binIdx: 1,
+        price: 3n * Q64,
+        priceImpactE6: 2_000_000n,
+        cumulativeVolume: 2_000_000n,
+        cumulativeInputVolume: 5_000_000n,
+      });
+      const asks = skipped
+        ? [
+            { ...extreme, binIdx: -1, cumulativeVolume: 0n, cumulativeInputVolume: 1n },
+            { ...invalid, cumulativeInputVolume: 2_000_001n },
+          ]
+        : [invalid, extreme];
+      const params = {
+        quote: quoteFixture({ depth: { bids: [], asks } }),
+        zeroForOne: false,
+        token0ScaleMultiplier: ONE,
+        token1ScaleMultiplier: ONE,
+      };
+      assert.throws(
+        () => computePriceImpactExactIn({ ...params, amountIn: 2_000_000n }),
+        /implausible priceImpactE6/,
+      );
+      assert.throws(
+        () => computePriceImpactExactOut({ ...params, amountOut: 1_000_000n }),
+        /implausible priceImpactE6/,
+      );
+    });
+  }
+});

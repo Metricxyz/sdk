@@ -10,12 +10,11 @@ import { isQuoteUnavailable } from "./parse.js";
 import type { BidAskQuote, DepthBin, DepthLevel, DepthSide, PriceImpactResult } from "./types.js";
 
 /**
- * Average fill impact must sit between 0 and `marginalPriceImpactE6` (the LAST crossed level's
- * own wire impact): for a monotone ladder, a fill's average execution price sits between the
- * pool's reference price (0 impact) and the last crossed boundary's price, so
- * `priceImpactE6 ∈ [min(0, marginal), max(0, marginal)]`. `marginalPriceImpactE6` is
- * multiplier-independent (it comes straight off the wire), so this is a free cross-check that
- * the caller's `token0ScaleMultiplier`/`token1ScaleMultiplier` are plausible.
+ * Check average fill impact against the range of wire impacts across all consumed bins,
+ * including zero (the reference price). Per-bin fees can fall at a boundary, so an earlier
+ * bin can have a larger impact than the final bin. Using only the final boundary would reject
+ * valid fills. These bounds are multiplier-independent and still catch wrong token scales.
+ * Unvisited and zero-output bins must not widen the range.
  *
  * `IMPACT_PLAUSIBILITY_TOLERANCE_E6` is additive slack on both ends of that band for integer
  * floor-division rounding only, NOT a percentage-of-marginal fudge factor — a coarse single-bin
@@ -271,6 +270,8 @@ interface LadderWalkResult {
   binsCrossed: number;
   firstLevel: DepthLevel | null;
   lastLevel: DepthLevel | null;
+  minImpactE6: bigint;
+  maxImpactE6: bigint;
   /** Uncovered remainder of `amountRequested`. `> 0n` means the ladder ran out before filling it. */
   remaining: bigint;
 }
@@ -301,6 +302,8 @@ function walkDepthLadder(params: {
   let binsCrossed = 0;
   let firstLevel: DepthLevel | null = null;
   let lastLevel: DepthLevel | null = null;
+  let minImpactE6 = 0n;
+  let maxImpactE6 = 0n;
 
   for (const bin of bins) {
     if (bin.output === 0n) {
@@ -312,13 +315,15 @@ function walkDepthLadder(params: {
     binsCrossed += 1;
     firstLevel ??= bin.level;
     lastLevel = bin.level;
+    minImpactE6 = minBigint(minImpactE6, bin.level.priceImpactE6);
+    maxImpactE6 = maxBigint(maxImpactE6, bin.level.priceImpactE6);
 
     if (remaining === 0n) {
       break;
     }
   }
 
-  return { filled, binsCrossed, firstLevel, lastLevel, remaining };
+  return { filled, binsCrossed, firstLevel, lastLevel, minImpactE6, maxImpactE6, remaining };
 }
 
 /**
@@ -356,7 +361,7 @@ function walkDepthLadder(params: {
  * (e.g. a corrupted wire `price`) and would otherwise read as a nonsensical `-E6`/`+E6` impact —
  * deliberately not a bare "throw if negative" check, since a legitimately tiny impact can floor to
  * a small negative number near zero. And `priceImpactE6` falling outside
- * `[min(0, marginal), max(0, marginal)]` (plus rounding tolerance) trips the plausibility guard —
+ * the range of consumed boundary impacts and zero (plus rounding tolerance) trips the guard —
  * see `IMPACT_PLAUSIBILITY_TOLERANCE_E6` above.
  */
 function buildPriceImpactResult(params: {
@@ -364,6 +369,8 @@ function buildPriceImpactResult(params: {
   amountOut: bigint;
   firstLevel: DepthLevel;
   lastLevel: DepthLevel;
+  minImpactE6: bigint;
+  maxImpactE6: bigint;
   zeroForOne: boolean;
   binsCrossed: number;
   token0ScaleMultiplier: bigint;
@@ -374,6 +381,8 @@ function buildPriceImpactResult(params: {
     amountOut,
     firstLevel,
     lastLevel,
+    minImpactE6,
+    maxImpactE6,
     zeroForOne,
     binsCrossed,
     token0ScaleMultiplier,
@@ -388,9 +397,8 @@ function buildPriceImpactResult(params: {
 
   const side: DepthSide = zeroForOne ? "bid" : "ask";
   // referencePriceX64 is recovered from the FIRST crossed level (not the last): every level
-  // encodes the same reference price in exact arithmetic, but the first level carries the
-  // smallest |impactE6| and so cannot trip computeReferencePriceX64's `denominator <= 0` guard
-  // the way a deep bid-side fill's last level can.
+  // encodes the same reference price in exact arithmetic. Using the first avoids recovering it
+  // from a deep bid boundary whose ratio may have rounded to zero (impactE6 == E6).
   const referencePrice = computeReferencePriceX64(firstLevel, side);
 
   const amountToken0 = zeroForOne ? amountIn : amountOut;
@@ -409,13 +417,12 @@ function buildPriceImpactResult(params: {
   const priceImpactE6 = side === "ask" ? ratio - E6 : E6 - ratio;
 
   const marginalPriceImpactE6 = lastLevel.priceImpactE6;
-  const impactFloor = minBigint(0n, marginalPriceImpactE6) - IMPACT_PLAUSIBILITY_TOLERANCE_E6;
-  const impactCeiling = maxBigint(0n, marginalPriceImpactE6) + IMPACT_PLAUSIBILITY_TOLERANCE_E6;
+  const impactFloor = minImpactE6 - IMPACT_PLAUSIBILITY_TOLERANCE_E6;
+  const impactCeiling = maxImpactE6 + IMPACT_PLAUSIBILITY_TOLERANCE_E6;
   if (priceImpactE6 < impactFloor || priceImpactE6 > impactCeiling) {
     throw new Error(
-      `implausible priceImpactE6=${priceImpactE6} vs. marginalPriceImpactE6=${marginalPriceImpactE6} ` +
-        "(wire-reported, multiplier-independent): the average fill impact must lie between 0 and " +
-        "the last crossed boundary's impact. This usually means token0ScaleMultiplier/" +
+      `implausible priceImpactE6=${priceImpactE6} vs. consumed impact range [${minImpactE6}, ${maxImpactE6}] ` +
+        "(wire-reported, multiplier-independent). This usually means token0ScaleMultiplier/" +
         "token1ScaleMultiplier are wrong or swapped — read them from the pool's own " +
         "getImmutables() rather than a hardcoded/guessed value.",
     );
@@ -467,6 +474,8 @@ export function computePriceImpactExactIn(params: {
     binsCrossed,
     firstLevel,
     lastLevel,
+    minImpactE6,
+    maxImpactE6,
     remaining,
   } = walkDepthLadder({
     bins,
@@ -502,6 +511,8 @@ export function computePriceImpactExactIn(params: {
     amountOut,
     firstLevel,
     lastLevel,
+    minImpactE6,
+    maxImpactE6,
     zeroForOne,
     binsCrossed,
     token0ScaleMultiplier,
@@ -545,6 +556,8 @@ export function computePriceImpactExactOut(params: {
     binsCrossed,
     firstLevel,
     lastLevel,
+    minImpactE6,
+    maxImpactE6,
     remaining,
   } = walkDepthLadder({
     bins,
@@ -580,6 +593,8 @@ export function computePriceImpactExactOut(params: {
     amountOut,
     firstLevel,
     lastLevel,
+    minImpactE6,
+    maxImpactE6,
     zeroForOne,
     binsCrossed,
     token0ScaleMultiplier,
