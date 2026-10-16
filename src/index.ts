@@ -344,3 +344,28 @@ export {
   prepareExactOutputSingleAndUnwrapWithExternalSwapFallbackCalldata,
   type ExternalSwapFallback,
 } from "./router/fallbackSwap.js";
+
+// ============ Bid/Ask Functions ============
+export {
+  parseBidAskResponse,
+  isQuoteUnavailable,
+  computePriceImpactExactIn,
+  computePriceImpactExactOut,
+  METRIC_API_BASE_URL,
+  fetchBidAsk,
+  getBidAskPriceImpactExactIn,
+  getBidAskPriceImpactExactOut,
+  type DepthLevelResponse,
+  type DepthDataResponse,
+  type DepthLevel,
+  type DepthData,
+  type PriceProviderStatus,
+  type BidAskResponse,
+  type BidAskQuote,
+  type PriceImpactResult,
+  type HttpResponseLike,
+  type FetchLike,
+  type BidAskRequestParams,
+  type GetBidAskPriceImpactExactInParams,
+  type GetBidAskPriceImpactExactOutParams,
+} from "./bidAsk/index.js";

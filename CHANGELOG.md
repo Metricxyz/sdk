@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — SDK (v1)
+
+- **Bid/ask depth interpretation** — `computePriceImpactExactIn`/`computePriceImpactExactOut` turn a pool plus a caller-supplied `amountIn`/`amountOut` into the price impact of that trade; `getBidAskPriceImpactExactIn`/`getBidAskPriceImpactExactOut` fetch (via `fetchBidAsk`) and compute in one call. Fully-crossed depth bins come off the server's ladder; the final partially-filled bin is interpolated over the pool's within-bin geometry (price linear in bin position, traverse priced at the arithmetic mean of start and stopping price, per metric-core `SwapMath`), so the impact responds to trade size rather than being pinned to the bin boundary. Not wei-exact against the contract — use the on-chain quoter when a quote must tie out exactly. Both functions require `token0ScaleMultiplier`/`token1ScaleMultiplier` (from `getPoolImmutables` — not on the `bid_ask` response) to convert the fill into the pool's scaled basis, which matters for any pool whose tokens have different decimals. Returns `priceImpactE6` (averaged over the fill), `marginalPriceImpactE6` (the last-crossed boundary, matching `/route`), `executionPriceX64`, `referencePriceX64`, and `effectivePriceX64`. `fetch` is optional, defaulting to `globalThis.fetch`. `parseBidAskResponse`/`isQuoteUnavailable` are exported for callers composing over JSON they already have.
+
 ## [0.6.7] - 2026-10-15
 
 ### Fixed

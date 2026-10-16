@@ -220,6 +220,63 @@ await walletClient.sendTransaction({ to: addresses.simpleRouter, data, account }
 
 Pair with `prepareExactInputSingleSupportingNativePaymentCalldata` and set `msg.value` when `tokenIn` is native ETH (route `tokenIn` should be wrapped native).
 
+## Bid/ask depth (REST API)
+
+`GET /public/v1/evm/:chain_id/:pool_address/bid_ask` returns a pool's live bid/ask and depth ladder. `getBidAskPriceImpactExactIn` fetches it and scores a caller-supplied `amountIn` (exact-in: "what do I receive for this much?"); `getBidAskPriceImpactExactOut` asks the same question the other way around for a caller-supplied `amountOut` (exact-out: "what does it cost to receive this much?"). Both return `executionPriceX64` — the post-fee price this size actually executes at, Q64.64, token1-per-token0, directly comparable to `referencePriceX64` and to `depth[].price` (the server bakes fees into the ladder before this SDK ever sees it, so nothing here needs a fee applied by the caller) — plus `effectivePriceX64` (the raw `amountOut/amountIn` ratio, un-normalized, matching the route API's field of the same name; on the ask side it's in the **inverse orientation** to `executionPriceX64`, so the two are not interchangeable). Prices are Q64.64; amounts are raw base units; `priceImpactE6` is signed, positive = worse for the trader.
+
+`bidAdj`/`askAdj` on the raw response are **not** what this SDK's price impact is built from — the impact functions derive everything from `depth`, never from `bidAdj`/`askAdj`. Those two fields carry the pool's **executable** sell/buy prices (the contract's `getSellAndBuyPrices()` legs, fees and notional included), not the raw oracle feed, despite the "Adj" name. The only place this SDK reads them is `isQuoteUnavailable`'s sentinel check (`bidAdj: "0"`, `askAdj: "340282366920938463463374607431768211455"`). An unavailable quote is an ordinary **HTTP 200** with that sentinel, not an error status; `priceProviderStatus` says why (`feed_down` for a dead provider, `internal_error` for a server-side failure — including a pool whose contract generation the server cannot price). `token0ScaleMultiplier`/`token1ScaleMultiplier` are required and are **not on the `bid_ask` response** — read them from `getPoolImmutables`; wrong or `1n`/`1n` values silently corrupt the impact number.
+
+### How exact is it?
+
+Fully-crossed bins come straight off the server's ladder. The final, partially-filled bin is interpolated over the pool's own within-bin geometry — price moves linearly with bin position and a traverse executes at the arithmetic mean of its start and stopping prices (metric-core `SwapMath`) — so the impact responds correctly to trade size instead of being pinned to the bin's boundary.
+
+It is **not wei-exact** against the contract, and can't be from this endpoint alone: the bin's near-edge price is reconstructed from its integer input/output totals, and the pool locates a partial fill's stopping position and recomputes the realized amounts from it, which needs `curPosInBin` and the bin balances. For a quote that matches execution exactly, use the on-chain quoter (`quoteLiveExactInSingle` / `quoteHypotheticalExactInputSingle`), which runs the contract's own math via `eth_call`. Use this module when you want the answer from one HTTP call with no RPC, and the quoter when the number has to tie out to the wei.
+
+```typescript
+import {
+  getBidAskPriceImpactExactIn,
+  getBidAskPriceImpactExactOut,
+  getPoolImmutables,
+  getAddressesOrThrow,
+  ChainId,
+} from "@metric.xyz/metric-omm-sdk-v1";
+
+const addresses = getAddressesOrThrow(ChainId.ETHEREUM);
+const { token0ScaleMultiplier, token1ScaleMultiplier } = await getPoolImmutables(
+  publicClient,
+  addresses.factory,
+  poolAddress,
+);
+
+const impact = await getBidAskPriceImpactExactIn({
+  apiKey, // trading API key — the endpoint requires Authorization: Bearer
+  chainId: 1,
+  poolAddress,
+  amountIn: 10_000_000_000n,
+  zeroForOne: true, // selling token0 into the pool's bids
+  token0ScaleMultiplier,
+  token1ScaleMultiplier,
+});
+
+console.log(impact.executionPriceX64); // post-fee price this size actually executes at
+console.log(impact.priceImpactE6); // average impact over the whole fill
+console.log(impact.marginalPriceImpactE6); // last-crossed level's impact — what /route reports, can differ on a large fill
+
+// Exact-out: "I want to receive exactly this much token1 — what does it cost?"
+const exactOut = await getBidAskPriceImpactExactOut({
+  apiKey,
+  chainId: 1,
+  poolAddress,
+  amountOut: 30_000_000_000n,
+  zeroForOne: true,
+  token0ScaleMultiplier,
+  token1ScaleMultiplier,
+});
+console.log(exactOut.amountIn); // ceil-rounded so the realized output never falls short
+```
+
+If you already have the JSON, compose the pure pieces directly: `parseBidAskResponse` then `computePriceImpactExactIn`/`computePriceImpactExactOut`. `fetch` is optional everywhere here — it defaults to `globalThis.fetch`; pass your own (`node-fetch`, a test stub, …) since `v1` has no `@types/node`/DOM lib.
+
 ## Quotes (SwapQuoter)
 
 Live quotes simulate the quoter contract (eth_call). Pass `quoterAddress` with the deployed **MetricOmmSwapQuoter** address.
