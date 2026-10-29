@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-10-29
+
+### Changed
+
+- **`ChainAddresses.liquidityAdder`** — `MetricOmmPoolLiquidityAdder` redeployed at `0xfFc65b3bef0544B2dbFa40dEea02C61F60397958` on every bundled chain, with `nonReentrant` on every `addLiquidity*` entry point (metric-periphery#68). The ABI is unchanged; README deployed-addresses table updated to match.
+- **Periphery** — pinned `ac20306598840275ea7277527196a888e46dbab9` to match `metric-deploy/versions.env`. Regenerated ABIs drop the never-thrown `InvalidPriceLimitForDirection` error from `MetricOmmSimpleRouterAbi` and `MetricOmmSwapQuoterAbi`.
+
 ## [0.6.7] - 2026-10-15
 
 ### Fixed

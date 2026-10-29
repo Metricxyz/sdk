@@ -78,7 +78,7 @@ export interface ChainAddresses {
 const PROTOCOL_ADDRESSES = {
   factory: "0x2a53833cc95548cf52c7b159110e22D3a9018f32",
   poolDeployer: "0x2E0A99A2E352043d1CA489cF45bf7B511BCcC738",
-  liquidityAdder: "0x49A0dcb8dBD304B80aA475026cC558d4baE54382",
+  liquidityAdder: "0xfFc65b3bef0544B2dbFa40dEea02C61F60397958",
   dataProvider: "0x83d66c5934b1525ee82e6E772c76c7acC778bBB7",
   simpleRouter: "0x02201E6f13c41506c7Bb635d7543F98826229aB7",
   externalSwapExecutor: "0x578C80DeC5D4Aa1F2879985e6e8d91Fc268e4AC2",
