@@ -57,7 +57,7 @@ import {
 | **Pool immutables**        | `getPoolImmutables(client, factory, pool)`                                                                 |
 | **Create-pool admin fees** | `adminSpreadFeeE6`, `adminNotionalFeeE8`                                                                   |
 | **Create-pool extras**     | Optional deposit/swap allowlists, `priceProviderTimelock`                                                  |
-| **Chains in SDK**          | Ethereum, Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood (bundled addresses) |
+| **Chains in SDK**          | Ethereum, Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood, Elysium (bundled addresses) |
 | **Lens for reads**         | `addresses.dataProvider` (MetricOmmPoolDataProvider)                                                       |
 
 Shared mental model:

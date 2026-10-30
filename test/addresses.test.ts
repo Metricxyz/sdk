@@ -11,7 +11,7 @@ import {
 } from "../src/addresses.js";
 
 describe("v1 addresses", () => {
-  it("bundles the ten deployed chains", () => {
+  it("bundles the eleven deployed chains", () => {
     assert.deepEqual(getSupportedChainIds(), [
       ChainId.ETHEREUM,
       ChainId.BASE,
@@ -23,6 +23,7 @@ describe("v1 addresses", () => {
       ChainId.HYPEREVM,
       ChainId.MONAD,
       ChainId.ROBINHOOD,
+      ChainId.ELYSIUM,
     ]);
     for (const chainId of Object.values(ChainId)) {
       assert.equal(isChainSupported(chainId), true);
@@ -71,6 +72,13 @@ describe("v1 addresses", () => {
         },
       },
     );
+  });
+
+  it("Elysium has no APP contracts deployed", () => {
+    const elysium = ADDRESSES[ChainId.ELYSIUM];
+    assert.equal(elysium.immutableAppPoolHelper, null);
+    assert.equal(elysium.anchoredProviderFactory, null);
+    assert.equal(elysium.wrappedNative, "0xbA876237B0F021A6c6D852d6c26E107997cC5E81");
   });
 
   it("getAddressesOrThrow returns bundled deployment for configured chains", () => {
