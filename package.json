@@ -1,6 +1,6 @@
 {
   "name": "@metric.xyz/metric-omm-sdk-v1",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "Metric AMM SDK — v1 contracts (SimpleRouter, SwapQuoter, LiquidityAdder, extensions, add/removeLiquidity)",
   "type": "module",
   "main": "dist/index.js",
