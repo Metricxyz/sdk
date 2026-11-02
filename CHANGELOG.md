@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-30
+
+### Added
+
+- **Elysium support** — `ChainId.ELYSIUM` (chain ID 99901) with the shared protocol addresses and WHYPE (`0xbA876237B0F021A6c6D852d6c26E107997cC5E81`) as `wrappedNative`.
+
+### Changed
+
+- **`ChainAddresses.immutableAppPoolHelper` / `anchoredProviderFactory`** — now `Address | null`; both are `null` on Elysium, where the APP contracts are not deployed. Callers must handle `null` before using them.
+
 ## [0.6.8] - 2026-10-29
 
 ### Changed

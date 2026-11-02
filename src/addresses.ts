@@ -1,7 +1,8 @@
 /**
  * MetricAMM SDK — v1 deployed addresses.
  *
- * All configured chains share the same protocol deployment addresses (CREATE2/CREATE3).
+ * All configured chains share the same protocol deployment addresses (CREATE2/CREATE3);
+ * APP contracts (immutableAppPoolHelper, anchoredProviderFactory) are null where not deployed.
  * Pool state reads (slot0, bins, position shares) and
  * depth/quote views use dataProvider (MetricOmmPoolDataProvider — the single
  * deployed lens per factory).
@@ -22,6 +23,7 @@ export const ChainId = {
   HYPEREVM: 999,
   MONAD: 143,
   ROBINHOOD: 4663,
+  ELYSIUM: 99901,
 } as const;
 
 export type ChainId = (typeof ChainId)[keyof typeof ChainId];
@@ -37,7 +39,8 @@ export type DeployedChainId =
   | typeof ChainId.MEGAETH
   | typeof ChainId.HYPEREVM
   | typeof ChainId.MONAD
-  | typeof ChainId.ROBINHOOD;
+  | typeof ChainId.ROBINHOOD
+  | typeof ChainId.ELYSIUM;
 
 // ============ Contract Address Types ============
 
@@ -56,10 +59,10 @@ export interface ChainAddresses {
   externalSwapExecutor: Address;
   /** MetricOmmSwapQuoter (live pool quotes via revert callback). */
   quoter: Address;
-  /** ImmutableAppPoolHelper (pool creation with asymmetry override for immutable APP providers). */
-  immutableAppPoolHelper: Address;
-  /** AnchoredProviderFactory (APP factory; deploys the price providers ImmutableAppPoolHelper accepts). */
-  anchoredProviderFactory: Address;
+  /** ImmutableAppPoolHelper (pool creation with asymmetry override for immutable APP providers); null where not deployed. */
+  immutableAppPoolHelper: Address | null;
+  /** AnchoredProviderFactory (APP factory; deploys the price providers ImmutableAppPoolHelper accepts); null where not deployed. */
+  anchoredProviderFactory: Address | null;
   /** Wrapped native token for this chain. */
   wrappedNative: Address;
 
@@ -135,6 +138,12 @@ export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
     ...PROTOCOL_ADDRESSES,
     wrappedNative: "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
   },
+  [ChainId.ELYSIUM]: {
+    ...PROTOCOL_ADDRESSES,
+    immutableAppPoolHelper: null,
+    anchoredProviderFactory: null,
+    wrappedNative: "0xbA876237B0F021A6c6D852d6c26E107997cC5E81",
+  },
 } as const;
 
 // ============ Helper Functions ============
@@ -150,6 +159,7 @@ const DEPLOYED_CHAIN_IDS: readonly DeployedChainId[] = [
   ChainId.HYPEREVM,
   ChainId.MONAD,
   ChainId.ROBINHOOD,
+  ChainId.ELYSIUM,
 ];
 
 export function getAddresses(chainId: number): ChainAddresses | undefined {

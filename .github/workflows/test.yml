@@ -23,21 +23,21 @@ jobs:
         id: pin
         run: echo "ref=$(node -p "require('./package.json').metricPeripheryRef")" >> "$GITHUB_OUTPUT"
 
-      - name: Configure git for private Metric-OMM repos
+      - name: Configure git for private Metricxyz repos
         env:
           SUBMODULE_PAT: ${{ secrets.PRIVATE_SUBMODULES_PAT }}
         run: |
           if [ -z "${SUBMODULE_PAT}" ]; then
-            echo "Set repository secret PRIVATE_SUBMODULES_PAT with read access to Metric-OMM/metric-core and Metric-OMM/metric-periphery." >&2
+            echo "Set repository secret PRIVATE_SUBMODULES_PAT with read access to Metricxyz/metric-core and Metricxyz/metric-periphery." >&2
             exit 1
           fi
-          git config --global url."https://x-access-token:${SUBMODULE_PAT}@github.com/Metric-OMM/".insteadOf "https://github.com/Metric-OMM/"
+          git config --global url."https://x-access-token:${SUBMODULE_PAT}@github.com/Metricxyz/".insteadOf "https://github.com/Metricxyz/"
 
       - name: Clone metric-periphery
         # Cloned outside the workspace: the repo root is now the Hardhat project
         # itself, so a checkout here would sit inside the project tree.
         run: |
-          git clone https://github.com/Metric-OMM/metric-periphery.git "${RUNNER_TEMP}/metric-periphery"
+          git clone https://github.com/Metricxyz/metric-periphery.git "${RUNNER_TEMP}/metric-periphery"
           git -C "${RUNNER_TEMP}/metric-periphery" fetch --depth 1 origin ${{ steps.pin.outputs.ref }}
           git -C "${RUNNER_TEMP}/metric-periphery" checkout --force ${{ steps.pin.outputs.ref }}
           git -C "${RUNNER_TEMP}/metric-periphery" submodule sync --recursive
