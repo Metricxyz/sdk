@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-11-04
+
+### Changed
+
+- **`ChainAddresses.dataProvider`** — `MetricOmmPoolDataProvider` redeployed at `0x9BB15FE2B214E37d19A6c59eE7B132e787FdfB2a` on every bundled chain. README deployed-addresses table updated to match.
+
 ## [0.7.0] - 2026-10-30
 
 ### Added
