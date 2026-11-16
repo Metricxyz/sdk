@@ -40,6 +40,80 @@ describe("computeMinimumOperationalLiquidity", () => {
   });
 });
 
+describe("recommendedMinimalOperationalLiquidity", () => {
+  const wethUsdc = {
+    initialScaledAmount0PerE18Shares: 10n ** 18n,
+    initialScaledAmount1PerE18Shares: 3000n * 10n ** 18n,
+    token0PriceUsd: 3000,
+    token1PriceUsd: 1,
+    token0Decimals: 18,
+    token1Decimals: 6,
+  };
+
+  it("returns the share count worth $1 when it exceeds the factory minimum", () => {
+    assert.equal(sdk.recommendedMinimalOperationalLiquidity(wethUsdc), 333_333_333_333_334n);
+  });
+
+  it("uses the side needing more shares when USD prices disagree with the initial ratio", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 2000 }),
+      500_000_000_000_000n,
+    );
+  });
+
+  it("uses a custom targetValueUsd instead of the $1 default", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 10 }),
+      3_333_333_333_333_334n,
+    );
+  });
+
+  it("rejects a non-positive targetValueUsd", () => {
+    assert.throws(() =>
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 0 }),
+    );
+  });
+
+  it("scales by the pool's internal decimals when a token has more than 18", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({
+        initialScaledAmount0PerE18Shares: 10n ** 18n,
+        initialScaledAmount1PerE18Shares: 10n ** 18n,
+        token0PriceUsd: 1,
+        token1PriceUsd: 1,
+        token0Decimals: 36,
+        token1Decimals: 6,
+      }),
+      10n ** 36n,
+    );
+  });
+
+  it("never goes below the factory minimum", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({
+        ...wethUsdc,
+        initialScaledAmount1PerE18Shares: 10n ** 18n,
+        token0PriceUsd: 1e13,
+        token1PriceUsd: 1e13,
+      }),
+      1_000_000n,
+    );
+  });
+
+  it("rejects non-positive USD prices", () => {
+    assert.throws(() =>
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 0 }),
+    );
+  });
+
+  it("rejects decimals outside uint8", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1Decimals: 256 }),
+      /token decimals must be an integer in \[0, 255\]/,
+    );
+  });
+});
+
 describe("prepareFactoryCreatePoolParams validation", () => {
   it("throws when minimalOperationalLiquidity is below the computed minimum", () => {
     assert.throws(
