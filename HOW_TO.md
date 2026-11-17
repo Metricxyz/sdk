@@ -140,10 +140,16 @@ const params: v1.CreatePoolFactoryParams = {
   curBinDistFromProvidedPricePercent: 0,
   initialScaledAmount0PerE18Shares,
   initialScaledAmount1PerE18Shares,
-  minimalOperationalLiquidity: v1.computeMinimumOperationalLiquidity(
+  // Smallest share delta worth >= $10 per bin (override with targetValueUsd); never below
+  // the factory minimum from computeMinimumOperationalLiquidity.
+  minimalOperationalLiquidity: v1.recommendedMinimalOperationalLiquidity({
     initialScaledAmount0PerE18Shares,
     initialScaledAmount1PerE18Shares,
-  ),
+    token0PriceUsd: 1,
+    token1PriceUsd: 1,
+    token0Decimals: 6,
+    token1Decimals: 6,
+  }),
   bidAskRefAsymmetryX8: v1.DISABLED_BID_ASK_REF_ASYMMETRY_X8,
   nonNegativeBins: v1.createUniformBins(10, 10_000),
   negativeBins: v1.createUniformBins(10, 10_000),

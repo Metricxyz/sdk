@@ -13,7 +13,7 @@ export type { ExtensionOrders };
 
 const UINT128_MAX = (1n << 128n) - 1n;
 const MINIMAL_OPERATIONAL_LIQUIDITY_PRECISION = 1_000_000n;
-export const MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD = 1;
+export const MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD = 10;
 
 /** Disables the pool's bid/ask/reference asymmetry check. */
 export const DISABLED_BID_ASK_REF_ASYMMETRY_X8 = 0xffff;

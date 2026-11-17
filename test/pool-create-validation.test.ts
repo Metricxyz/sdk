@@ -50,21 +50,21 @@ describe("recommendedMinimalOperationalLiquidity", () => {
     token1Decimals: 6,
   };
 
-  it("returns the share count worth $1 when it exceeds the factory minimum", () => {
-    assert.equal(sdk.recommendedMinimalOperationalLiquidity(wethUsdc), 333_333_333_333_334n);
+  it("returns the share count worth $10 when it exceeds the factory minimum", () => {
+    assert.equal(sdk.recommendedMinimalOperationalLiquidity(wethUsdc), 3_333_333_333_333_334n);
   });
 
   it("uses the side needing more shares when USD prices disagree with the initial ratio", () => {
     assert.equal(
       sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 2000 }),
-      500_000_000_000_000n,
+      5_000_000_000_000_000n,
     );
   });
 
-  it("uses a custom targetValueUsd instead of the $1 default", () => {
+  it("uses a custom targetValueUsd instead of the $10 default", () => {
     assert.equal(
-      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 10 }),
-      3_333_333_333_333_334n,
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 1 }),
+      333_333_333_333_334n,
     );
   });
 
@@ -84,7 +84,7 @@ describe("recommendedMinimalOperationalLiquidity", () => {
         token0Decimals: 36,
         token1Decimals: 6,
       }),
-      10n ** 36n,
+      10n ** 37n,
     );
   });
 
@@ -93,8 +93,8 @@ describe("recommendedMinimalOperationalLiquidity", () => {
       sdk.recommendedMinimalOperationalLiquidity({
         ...wethUsdc,
         initialScaledAmount1PerE18Shares: 10n ** 18n,
-        token0PriceUsd: 1e13,
-        token1PriceUsd: 1e13,
+        token0PriceUsd: 1e14,
+        token1PriceUsd: 1e14,
       }),
       1_000_000n,
     );
