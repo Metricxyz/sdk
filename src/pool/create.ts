@@ -56,9 +56,14 @@ export interface RecommendedMinimalOperationalLiquidityParams {
 }
 
 /**
- * Recommended `minimalOperationalLiquidity`: the smallest share count worth at least
- * `targetValueUsd` when minted into an empty bin on either side,
- * never below {@link computeMinimumOperationalLiquidity}. `shares` mint `shares · P̂_i / 1e18`
+ * Recommended `minimalOperationalLiquidity` for pools using `OracleValueStopLossExtension`, which
+ * computes per-share value as `balance / max(totalShares, minimalOperationalLiquidity)`: a tiny
+ * minimum lets a near-empty bin report extreme per-share values and move the stop-loss watermarks
+ * cheaply. Other pools only need {@link computeMinimumOperationalLiquidity}; a higher minimum
+ * there just raises the smallest deposit.
+ *
+ * Returns the smallest share count worth at least `targetValueUsd` when minted into an empty bin
+ * on either side, never below {@link computeMinimumOperationalLiquidity}. `shares` mint `shares · P̂_i / 1e18`
  * scaled units, and one whole token is `10^D` scaled units with `D = max(18, decimals0, decimals1)`
  * (the factory's internal decimals), so token decimals only matter when either exceeds 18.
  */
@@ -75,17 +80,18 @@ export function recommendedMinimalOperationalLiquidity(
   );
   const targetValueUsdE18 = toPriceE18(
     params.targetValueUsd ?? MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD,
+    "targetValueUsd",
   );
   const sharesWorthTarget0 = sharesWorthTargetUsd(
     targetValueUsdE18,
     params.initialScaledAmount0PerE18Shares,
-    toPriceE18(params.token0PriceUsd),
+    toPriceE18(params.token0PriceUsd, "token0PriceUsd"),
     scaledUnitsPerWholeToken,
   );
   const sharesWorthTarget1 = sharesWorthTargetUsd(
     targetValueUsdE18,
     params.initialScaledAmount1PerE18Shares,
-    toPriceE18(params.token1PriceUsd),
+    toPriceE18(params.token1PriceUsd, "token1PriceUsd"),
     scaledUnitsPerWholeToken,
   );
   return [factoryMinimum, sharesWorthTarget0, sharesWorthTarget1].reduce((a, b) => (a > b ? a : b));

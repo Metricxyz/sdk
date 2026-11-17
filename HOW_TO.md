@@ -140,8 +140,9 @@ const params: v1.CreatePoolFactoryParams = {
   curBinDistFromProvidedPricePercent: 0,
   initialScaledAmount0PerE18Shares,
   initialScaledAmount1PerE18Shares,
-  // Smallest share delta worth >= $10 per bin (override with targetValueUsd); never below
-  // the factory minimum from computeMinimumOperationalLiquidity.
+  // OracleValueStopLossExtension pools: smallest share delta worth >= $10 per bin (override
+  // with targetValueUsd), so a near-empty bin can't cheaply move the stop-loss watermarks.
+  // Pools without the extension can use computeMinimumOperationalLiquidity instead.
   minimalOperationalLiquidity: v1.recommendedMinimalOperationalLiquidity({
     initialScaledAmount0PerE18Shares,
     initialScaledAmount1PerE18Shares,

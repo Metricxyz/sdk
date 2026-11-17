@@ -68,9 +68,10 @@ describe("recommendedMinimalOperationalLiquidity", () => {
     );
   });
 
-  it("rejects a non-positive targetValueUsd", () => {
-    assert.throws(() =>
-      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 0 }),
+  it("rejects a non-positive targetValueUsd, naming the field", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 0 }),
+      /^Error: targetValueUsd must be a positive finite number$/,
     );
   });
 
@@ -100,9 +101,18 @@ describe("recommendedMinimalOperationalLiquidity", () => {
     );
   });
 
-  it("rejects non-positive USD prices", () => {
-    assert.throws(() =>
-      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 0 }),
+  it("rejects invalid USD prices, naming the field", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 0 }),
+      /^Error: token0PriceUsd must be a positive finite number$/,
+    );
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1PriceUsd: NaN }),
+      /^Error: token1PriceUsd must be a positive finite number$/,
+    );
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1PriceUsd: 1e-19 }),
+      /^Error: token1PriceUsd is too small$/,
     );
   });
 

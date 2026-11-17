@@ -24,13 +24,13 @@ export function ceilDiv(numerator: bigint, denominator: bigint): bigint {
   return numerator === 0n ? 0n : (numerator + denominator - 1n) / denominator;
 }
 
-export function toPriceE18(currentPrice: number): bigint {
+export function toPriceE18(currentPrice: number, inputName = "currentPrice"): bigint {
   if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
-    throw new Error("currentPrice must be a positive finite number");
+    throw new Error(`${inputName} must be a positive finite number`);
   }
   const priceE18 = BigInt(Math.round(currentPrice * 1e18));
   if (priceE18 <= 0n) {
-    throw new Error("currentPrice is too small");
+    throw new Error(`${inputName} is too small`);
   }
   return priceE18;
 }
