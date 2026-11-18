@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-11-17
+
+### Changed
+
+- **`recommendedMinimalOperationalLiquidity`** — invalid `token0PriceUsd`, `token1PriceUsd` or `targetValueUsd` errors now name the field instead of `currentPrice`. Docs note it is meant for `OracleValueStopLossExtension` pools.
+
+## [0.7.2] - 2026-11-17
+
+### Added
+
+- **`recommendedMinimalOperationalLiquidity`** — recommends a `minimalOperationalLiquidity` worth at least a target USD value when minted into an empty bin on either side, never below `computeMinimumOperationalLiquidity`. Takes the initial scaled amounts, each token's USD price and decimals, and an optional `targetValueUsd` (defaults to `MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD`, $10). Token decimals only change the result when one exceeds 18, which raises the pool's internal decimals.
+
 ## [0.7.1] - 2026-11-04
 
 ### Changed

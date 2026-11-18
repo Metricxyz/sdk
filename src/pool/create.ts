@@ -6,12 +6,14 @@ import type { Address, PublicClient, WalletClient, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { IMMUTABLE_APP_POOL_HELPER_ABI, POOL_FACTORY_ABI } from "../constants.js";
 import { createUniformBins } from "../utils/binData.js";
+import { toPriceE18 } from "../utils/liquidityMath.js";
 import { EMPTY_EXTENSION_ORDERS, type ExtensionOrders } from "../extensions/types.js";
 
 export type { ExtensionOrders };
 
 const UINT128_MAX = (1n << 128n) - 1n;
 const MINIMAL_OPERATIONAL_LIQUIDITY_PRECISION = 1_000_000n;
+export const MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD = 10;
 
 /** Disables the pool's bid/ask/reference asymmetry check. */
 export const DISABLED_BID_ASK_REF_ASYMMETRY_X8 = 0xffff;
@@ -40,6 +42,79 @@ export function computeMinimumOperationalLiquidity(
   const minimum =
     (MINIMAL_OPERATIONAL_LIQUIDITY_PRECISION * 10n ** 18n) / minimumInitialScaledAmount;
   return minimum === 0n ? 1n : minimum;
+}
+
+export interface RecommendedMinimalOperationalLiquidityParams {
+  initialScaledAmount0PerE18Shares: bigint;
+  initialScaledAmount1PerE18Shares: bigint;
+  token0PriceUsd: number;
+  token1PriceUsd: number;
+  token0Decimals: number;
+  token1Decimals: number;
+  /** Defaults to {@link MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD}. */
+  targetValueUsd?: number;
+}
+
+/**
+ * Recommended `minimalOperationalLiquidity` for pools using `OracleValueStopLossExtension`, which
+ * computes per-share value as `balance / max(totalShares, minimalOperationalLiquidity)`: a tiny
+ * minimum lets a near-empty bin report extreme per-share values and move the stop-loss watermarks
+ * cheaply. Other pools only need {@link computeMinimumOperationalLiquidity}; a higher minimum
+ * there just raises the smallest deposit.
+ *
+ * Returns the smallest share count worth at least `targetValueUsd` when minted into an empty bin
+ * on either side, never below {@link computeMinimumOperationalLiquidity}. `shares` mint `shares · P̂_i / 1e18`
+ * scaled units, and one whole token is `10^D` scaled units with `D = max(18, decimals0, decimals1)`
+ * (the factory's internal decimals), so token decimals only matter when either exceeds 18.
+ */
+export function recommendedMinimalOperationalLiquidity(
+  params: RecommendedMinimalOperationalLiquidityParams,
+): bigint {
+  const factoryMinimum = computeMinimumOperationalLiquidity(
+    params.initialScaledAmount0PerE18Shares,
+    params.initialScaledAmount1PerE18Shares,
+  );
+  const scaledUnitsPerWholeToken = getScaledUnitsPerWholeToken(
+    params.token0Decimals,
+    params.token1Decimals,
+  );
+  const targetValueUsdE18 = toPriceE18(
+    params.targetValueUsd ?? MINIMAL_OPERATIONAL_LIQUIDITY_VALUE_USD,
+    "targetValueUsd",
+  );
+  const sharesWorthTarget0 = sharesWorthTargetUsd(
+    targetValueUsdE18,
+    params.initialScaledAmount0PerE18Shares,
+    toPriceE18(params.token0PriceUsd, "token0PriceUsd"),
+    scaledUnitsPerWholeToken,
+  );
+  const sharesWorthTarget1 = sharesWorthTargetUsd(
+    targetValueUsdE18,
+    params.initialScaledAmount1PerE18Shares,
+    toPriceE18(params.token1PriceUsd, "token1PriceUsd"),
+    scaledUnitsPerWholeToken,
+  );
+  return [factoryMinimum, sharesWorthTarget0, sharesWorthTarget1].reduce((a, b) => (a > b ? a : b));
+}
+
+function getScaledUnitsPerWholeToken(token0Decimals: number, token1Decimals: number): bigint {
+  for (const decimals of [token0Decimals, token1Decimals]) {
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+      throw new Error("token decimals must be an integer in [0, 255]");
+    }
+  }
+  return 10n ** BigInt(Math.max(18, token0Decimals, token1Decimals));
+}
+
+function sharesWorthTargetUsd(
+  targetValueUsdE18: bigint,
+  initialScaledAmountPerE18Shares: bigint,
+  priceUsdE18: bigint,
+  scaledUnitsPerWholeToken: bigint,
+): bigint {
+  const numerator = targetValueUsdE18 * 10n ** 18n * scaledUnitsPerWholeToken;
+  const denominator = initialScaledAmountPerE18Shares * priceUsdE18;
+  return (numerator + denominator - 1n) / denominator;
 }
 
 /**

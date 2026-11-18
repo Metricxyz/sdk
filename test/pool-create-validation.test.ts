@@ -40,6 +40,90 @@ describe("computeMinimumOperationalLiquidity", () => {
   });
 });
 
+describe("recommendedMinimalOperationalLiquidity", () => {
+  const wethUsdc = {
+    initialScaledAmount0PerE18Shares: 10n ** 18n,
+    initialScaledAmount1PerE18Shares: 3000n * 10n ** 18n,
+    token0PriceUsd: 3000,
+    token1PriceUsd: 1,
+    token0Decimals: 18,
+    token1Decimals: 6,
+  };
+
+  it("returns the share count worth $10 when it exceeds the factory minimum", () => {
+    assert.equal(sdk.recommendedMinimalOperationalLiquidity(wethUsdc), 3_333_333_333_333_334n);
+  });
+
+  it("uses the side needing more shares when USD prices disagree with the initial ratio", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 2000 }),
+      5_000_000_000_000_000n,
+    );
+  });
+
+  it("uses a custom targetValueUsd instead of the $10 default", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 1 }),
+      333_333_333_333_334n,
+    );
+  });
+
+  it("rejects a non-positive targetValueUsd, naming the field", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, targetValueUsd: 0 }),
+      /^Error: targetValueUsd must be a positive finite number$/,
+    );
+  });
+
+  it("scales by the pool's internal decimals when a token has more than 18", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({
+        initialScaledAmount0PerE18Shares: 10n ** 18n,
+        initialScaledAmount1PerE18Shares: 10n ** 18n,
+        token0PriceUsd: 1,
+        token1PriceUsd: 1,
+        token0Decimals: 36,
+        token1Decimals: 6,
+      }),
+      10n ** 37n,
+    );
+  });
+
+  it("never goes below the factory minimum", () => {
+    assert.equal(
+      sdk.recommendedMinimalOperationalLiquidity({
+        ...wethUsdc,
+        initialScaledAmount1PerE18Shares: 10n ** 18n,
+        token0PriceUsd: 1e14,
+        token1PriceUsd: 1e14,
+      }),
+      1_000_000n,
+    );
+  });
+
+  it("rejects invalid USD prices, naming the field", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token0PriceUsd: 0 }),
+      /^Error: token0PriceUsd must be a positive finite number$/,
+    );
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1PriceUsd: NaN }),
+      /^Error: token1PriceUsd must be a positive finite number$/,
+    );
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1PriceUsd: 1e-19 }),
+      /^Error: token1PriceUsd is too small$/,
+    );
+  });
+
+  it("rejects decimals outside uint8", () => {
+    assert.throws(
+      () => sdk.recommendedMinimalOperationalLiquidity({ ...wethUsdc, token1Decimals: 256 }),
+      /token decimals must be an integer in \[0, 255\]/,
+    );
+  });
+});
+
 describe("prepareFactoryCreatePoolParams validation", () => {
   it("throws when minimalOperationalLiquidity is below the computed minimum", () => {
     assert.throws(
