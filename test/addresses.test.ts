@@ -11,7 +11,7 @@ import {
 } from "../src/addresses.js";
 
 describe("v1 addresses", () => {
-  it("bundles the eleven deployed chains", () => {
+  it("bundles the twelve deployed chains", () => {
     assert.deepEqual(getSupportedChainIds(), [
       ChainId.ETHEREUM,
       ChainId.BASE,
@@ -24,6 +24,7 @@ describe("v1 addresses", () => {
       ChainId.MONAD,
       ChainId.ROBINHOOD,
       ChainId.ELYSIUM,
+      ChainId.XLAYER,
     ]);
     for (const chainId of Object.values(ChainId)) {
       assert.equal(isChainSupported(chainId), true);
@@ -79,6 +80,13 @@ describe("v1 addresses", () => {
     assert.equal(elysium.immutableAppPoolHelper, null);
     assert.equal(elysium.anchoredProviderFactory, null);
     assert.equal(elysium.wrappedNative, "0xbA876237B0F021A6c6D852d6c26E107997cC5E81");
+  });
+
+  it("X Layer has AnchoredProviderFactory but no ImmutableAppPoolHelper", () => {
+    const xLayer = ADDRESSES[ChainId.XLAYER];
+    assert.equal(xLayer.immutableAppPoolHelper, null);
+    assert.equal(xLayer.anchoredProviderFactory, "0xb0eAE19259500Ac4Ca59b9a5cb8cDB2Da8076F0A");
+    assert.equal(xLayer.wrappedNative, "0xe538905cf8410324e03A5A23C1c177a474D59b2b");
   });
 
   it("getAddressesOrThrow returns bundled deployment for configured chains", () => {

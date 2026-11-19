@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-11-19
+
+### Added
+
+- **X Layer support** — `ChainId.XLAYER` (chain ID 196) with the shared protocol addresses and WOKB (`0xe538905cf8410324e03A5A23C1c177a474D59b2b`) as `wrappedNative`. `anchoredProviderFactory` is the shared `0xb0eAE19259500Ac4Ca59b9a5cb8cDB2Da8076F0A`; `immutableAppPoolHelper` is `null`, as it is not deployed on X Layer.
+
 ## [0.7.3] - 2026-11-17
 
 ### Changed

@@ -24,6 +24,7 @@ export const ChainId = {
   MONAD: 143,
   ROBINHOOD: 4663,
   ELYSIUM: 99901,
+  XLAYER: 196,
 } as const;
 
 export type ChainId = (typeof ChainId)[keyof typeof ChainId];
@@ -40,7 +41,8 @@ export type DeployedChainId =
   | typeof ChainId.HYPEREVM
   | typeof ChainId.MONAD
   | typeof ChainId.ROBINHOOD
-  | typeof ChainId.ELYSIUM;
+  | typeof ChainId.ELYSIUM
+  | typeof ChainId.XLAYER;
 
 // ============ Contract Address Types ============
 
@@ -144,6 +146,11 @@ export const ADDRESSES: Record<DeployedChainId, ChainAddresses> = {
     anchoredProviderFactory: null,
     wrappedNative: "0xbA876237B0F021A6c6D852d6c26E107997cC5E81",
   },
+  [ChainId.XLAYER]: {
+    ...PROTOCOL_ADDRESSES,
+    immutableAppPoolHelper: null,
+    wrappedNative: "0xe538905cf8410324e03A5A23C1c177a474D59b2b",
+  },
 } as const;
 
 // ============ Helper Functions ============
@@ -160,6 +167,7 @@ const DEPLOYED_CHAIN_IDS: readonly DeployedChainId[] = [
   ChainId.MONAD,
   ChainId.ROBINHOOD,
   ChainId.ELYSIUM,
+  ChainId.XLAYER,
 ];
 
 export function getAddresses(chainId: number): ChainAddresses | undefined {
