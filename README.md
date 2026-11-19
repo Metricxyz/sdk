@@ -21,7 +21,7 @@ import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 ## Deployed addresses
 
 Protocol contracts share deterministic addresses on Ethereum, Base, Arbitrum,
-Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood, and Elysium. Deployments
+Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood, Elysium, and X Layer. Deployments
 use CREATE2 and CREATE3; wrapped native differs per chain.
 
 | Contract | Address |
@@ -47,6 +47,7 @@ use CREATE2 and CREATE3; wrapped native differs per chain.
 | WHYPE (HyperEVM) | `0x5555555555555555555555555555555555555555` |
 | WMON (Monad) | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
 | WHYPE (Elysium) | `0xbA876237B0F021A6c6D852d6c26E107997cC5E81` |
+| WOKB (X Layer) | `0xe538905cf8410324e03A5A23C1c177a474D59b2b` |
 
 `MetricOmmPoolDataProvider` is the deployed lens: pool reads (`slot0`, `binStates`, `positionBinShares`, …). Pass `addresses.dataProvider` to read helpers and liquidity builders (`dataProviderAddress` param). There is no separate StateView deployment — use `dataProvider` for all lens reads.
 
@@ -54,10 +55,10 @@ use CREATE2 and CREATE3; wrapped native differs per chain.
 import { getAddressesOrThrow, ChainId } from "@metric.xyz/metric-omm-sdk-v1";
 
 const a = getAddressesOrThrow(ChainId.ETHEREUM);
-// same protocol addresses on Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood, Elysium
+// same protocol addresses on Base, Arbitrum, Avalanche, BNB, Polygon, MegaETH, HyperEVM, Monad, Robinhood, Elysium, X Layer
 ```
 
-Use `isChainSupported` / `getSupportedChainIds` for the eleven bundled chains.
+Use `isChainSupported` / `getSupportedChainIds` for the twelve bundled chains.
 
 The SimpleRouter supports sequences and external swaps on every bundled chain.
 The ExternalSwapExecutor's `router()` points to the SimpleRouter above.
