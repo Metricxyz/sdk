@@ -9,11 +9,12 @@ import { MetricOmmPoolDataProviderAbi } from "../../abis/MetricOmmPoolDataProvid
 import { OracleValueStopLossExtensionAbi } from "../../abis/OracleValueStopLossExtension.js";
 import { decodeBinStatesBytes32, decodeBinTotalSharesBatch } from "../../utils/poolState.js";
 import { evaluateOracleStopLoss, type OracleStopLossEvaluation } from "./evaluate.js";
+import { decayedHighWatermark } from "./math.js";
 
 /**
  * Calldata budget (bytes) for one `aggregate3`, above viem's 1024-byte default.
  *
- * The bin sweep is two packed array reads plus one `currentHighWatermarks`
+ * The bin sweep is two packed array reads plus one `highWatermarks`
  * call per bin. Under the default budget a 40-bin pool splits into five
  * separate `eth_call`s — each repaying the Multicall3 overhead and each
  * counting against the RPC provider's request budget, which is what rate
@@ -35,9 +36,12 @@ export interface GetOracleStopLossAnyBinStatusParams {
   extension: Address;
   dataProvider: Address;
   pool: Address;
-  /** Current oracle bid (Q64.64). */
+  /**
+   * Current oracle bid (Q64.64). Caller input: it is not read from the chain, so it cannot be
+   * guaranteed to describe the same block as the pool-state reads (see `blockNumber` on the result).
+   */
   bidPriceX64: bigint;
-  /** Current oracle ask (Q64.64). */
+  /** Current oracle ask (Q64.64). Caller input, same caveat as `bidPriceX64`. */
   askPriceX64: bigint;
 }
 
@@ -53,6 +57,10 @@ export interface OracleStopLossAnyBinStatus extends OracleStopLossEvaluation {
   lowestBin: number;
   highestBin: number;
   minimalOperationalLiquidity: bigint;
+  /** Block every on-chain read of this status was taken at. */
+  blockNumber: bigint;
+  /** That block's timestamp; the `secondsUntil...Resumes` figures count from it. */
+  blockTimestamp: bigint;
 }
 
 export async function getOracleStopLossConfig(
@@ -120,8 +128,20 @@ type MulticallContract = {
  * Load stop-loss status for every non-empty bin in the pool's configured range.
  * Only `bidPriceX64` / `askPriceX64` are supplied by the caller.
  *
+ * One block is selected first and every read below is pinned to it; its timestamp dates the
+ * watermark decay.
+ * The RPC must support state reads at the selected block number; errors are propagated rather
+ * than falling back to inconsistent latest-state reads.
  * 1. Multicall: immutables + config + slot0 (to learn `[lowestBin, highestBin]`)
- * 2. Multicall: bin states/shares + current watermarks for that range only
+ * 2. Multicall: bin states/shares + stored watermarks and last write time for that range only.
+ *    Current watermarks are derived with the contract's own integer rule
+ *    (`OracleValueStopLossExtension._decayed`), so no separate `currentHighWatermarks` read is made.
+ *
+ * `bidPriceX64` / `askPriceX64` are the caller's and are not read at that block.
+ *
+ * `secondsUntil...Resumes` predicts when the evaluated condition (metric below the drawdown floor
+ * of the decayed watermark) clears if the inputs stay fixed. It does not guarantee a swap will
+ * execute then: a swap changes the bin it trades, and other bins on its path may be breached.
  *
  * `isAnyBinStopLossBreached` means at least one bin is breached — not that every swap is halted.
  */
@@ -134,6 +154,12 @@ export async function getOracleStopLossAnyBinStatus(
   if (askPriceX64 <= 0n) throw new Error("askPriceX64 must be > 0");
   if (bidPriceX64 >= askPriceX64) throw new Error("bidPriceX64 must be < askPriceX64");
 
+  // One block for every read, so config, balances, shares and watermarks agree with each other
+  // and the timestamp used for decay is the one those reads were taken at.
+  const block = await publicClient.getBlock({ blockTag: "latest" });
+  const blockNumber = block.number;
+  const blockTimestamp = block.timestamp;
+
   const multicallOpts = {
     batchSize: STOP_LOSS_MULTICALL_BATCH_SIZE,
     ...(publicClient.chain?.contracts?.multicall3?.address
@@ -144,6 +170,7 @@ export async function getOracleStopLossAnyBinStatus(
   const bootstrap = await publicClient.multicall({
     allowFailure: false,
     ...multicallOpts,
+    blockNumber,
     contracts: [
       {
         address: pool,
@@ -205,7 +232,7 @@ export async function getOracleStopLossAnyBinStatus(
       (binIdx): MulticallContract => ({
         address: extension,
         abi: OracleValueStopLossExtensionAbi as Abi,
-        functionName: "currentHighWatermarks",
+        functionName: "highWatermarks",
         args: [pool, binIdx],
       }),
     ),
@@ -214,26 +241,34 @@ export async function getOracleStopLossAnyBinStatus(
   const binResults = await publicClient.multicall({
     allowFailure: false,
     ...multicallOpts,
+    blockNumber,
     contracts: binContracts as Parameters<PublicClient["multicall"]>[0]["contracts"],
   });
 
   const binStatesPacked = binResults[0] as unknown as readonly `0x${string}`[];
   const binSharesPacked = binResults[1] as unknown as readonly `0x${string}`[];
-  const watermarkRows = binResults.slice(2) as unknown as Array<readonly [bigint, bigint]>;
+  const storedRows = binResults.slice(2) as unknown as Array<
+    readonly [bigint, bigint, number | bigint]
+  >;
 
   const decodedStates = decodeBinStatesBytes32(binStatesPacked);
   const totalShares = decodeBinTotalSharesBatch(binSharesPacked);
 
   const bins = binIndices.map((binIdx, i) => {
     const state = decodedStates[i]!;
-    const hwm = watermarkRows[i]!;
+    const stored = storedRows[i]!;
+    const sinceTouch = blockTimestamp - BigInt(stored[2]);
+    const elapsed = sinceTouch > 0n ? sinceTouch : 0n;
     return {
       binIdx,
       token0BalanceScaled: state.token0BalanceScaled,
       token1BalanceScaled: state.token1BalanceScaled,
       totalShares: totalShares[i] ?? 0n,
-      highWatermark0: hwm[0],
-      highWatermark1: hwm[1],
+      highWatermark0: decayedHighWatermark(stored[0], config.decayPerSecondE18, elapsed),
+      highWatermark1: decayedHighWatermark(stored[1], config.decayPerSecondE18, elapsed),
+      storedHighWatermark0: stored[0],
+      storedHighWatermark1: stored[1],
+      secondsSinceLastTouch: elapsed,
     };
   });
 
@@ -255,5 +290,7 @@ export async function getOracleStopLossAnyBinStatus(
     lowestBin,
     highestBin,
     minimalOperationalLiquidity: immutables.minimalOperationalLiquidity,
+    blockNumber,
+    blockTimestamp,
   };
 }
