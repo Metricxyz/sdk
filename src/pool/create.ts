@@ -245,6 +245,29 @@ export function prepareFactoryCreatePoolParams(params: CreatePoolFactoryParams) 
   };
 }
 
+/**
+ * Estimates factory pool-creation gas without sending a transaction. Uses the same
+ * validation and arguments as createPool. Bin counts that fit the contract's types
+ * can still exceed a chain's transaction gas limit; compare this estimate with your
+ * own gas budget. RPC errors are propagated. An estimate is not an execution guarantee.
+ * Supply a salt to reuse exactly the same parameters when submitting later.
+ */
+export async function estimateCreatePoolGas(
+  publicClient: PublicClient,
+  factoryAddress: Address,
+  params: CreatePoolFactoryParams,
+  account: Address,
+): Promise<bigint> {
+  const factoryParams = prepareFactoryCreatePoolParams(params);
+  return publicClient.estimateContractGas({
+    address: factoryAddress,
+    abi: POOL_FACTORY_ABI,
+    functionName: "createPool",
+    args: buildCreatePoolArgs(factoryParams),
+    account,
+  });
+}
+
 export async function createPool(
   publicClient: PublicClient,
   walletClient: WalletClient,

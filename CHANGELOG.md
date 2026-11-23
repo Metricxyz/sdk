@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `estimateCreatePoolGas` estimates factory pool-creation gas without submitting a transaction, allowing callers to check a gas budget without a hard-coded per-chain bin limit.
+
 ## [0.7.4] - 2026-11-19
 
 ### Added

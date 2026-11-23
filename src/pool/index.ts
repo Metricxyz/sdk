@@ -5,6 +5,7 @@
 // Pool creation
 export {
   createPool,
+  estimateCreatePoolGas,
   prepareFactoryCreatePoolParams,
   computeMinimumOperationalLiquidity,
   recommendedMinimalOperationalLiquidity,
