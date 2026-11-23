@@ -86,6 +86,7 @@ export {
 // ============ Pool Functions ============
 export {
   createPool,
+  estimateCreatePoolGas,
   prepareFactoryCreatePoolParams,
   computeMinimumOperationalLiquidity,
   recommendedMinimalOperationalLiquidity,

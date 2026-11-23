@@ -117,6 +117,13 @@ const lensAddress = addresses.dataProvider;
 
 `encodeCreatePoolCalldata(params)` → `factory.createPool`, or `createPool(publicClient, walletClient, factoryAddress, params)` to simulate + send.
 
+For a gas preflight, call `estimateCreatePoolGas(publicClient, factoryAddress, params, account)`.
+It returns the RPC gas estimate as a `bigint` without submitting a transaction and propagates RPC
+errors. Compare the estimate against your application's transaction gas budget before submitting.
+Pool creation cost grows with bin count; there is no universal 80-bin limit enforced by this helper.
+Use an explicit `params.salt` for both estimation and submission so they describe the same request.
+Estimates depend on the connected chain and current state and do not guarantee later execution.
+
 ```typescript
 import * as v1 from "@metric.xyz/metric-omm-sdk-v1";
 
