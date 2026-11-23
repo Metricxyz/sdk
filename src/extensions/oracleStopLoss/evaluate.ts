@@ -17,6 +17,15 @@ export interface OracleStopLossBinInput {
   /** Current (decayed) high watermarks — e.g. from `currentHighWatermarks`. */
   highWatermark0: bigint;
   highWatermark1: bigint;
+  /**
+   * Optional, all three together: the stored (not yet decayed) watermarks and the seconds since the
+   * bin's last watermark write. With them the `secondsUntil...Resumes` figures follow the contract's
+   * decay (linear from the stored value); without them they re-decay `highWatermark*` and
+   * overstate the wait whenever the bin has been idle.
+   */
+  storedHighWatermark0?: bigint;
+  storedHighWatermark1?: bigint;
+  secondsSinceLastTouch?: bigint | number;
 }
 
 export interface OracleStopLossBinStatus {
@@ -153,12 +162,16 @@ export function evaluateOracleStopLoss(
         hwm: bin.highWatermark0,
         drawdownE6,
         decayPerSecondE18,
+        storedHwm: bin.storedHighWatermark0,
+        elapsedSinceTouchSeconds: bin.secondsSinceLastTouch,
       }),
       secondsUntilOneForZeroResumes: secondsUntilStopLossClears({
         metric: metricToken1,
         hwm: bin.highWatermark1,
         drawdownE6,
         decayPerSecondE18,
+        storedHwm: bin.storedHighWatermark1,
+        elapsedSinceTouchSeconds: bin.secondsSinceLastTouch,
       }),
     });
   }

@@ -321,9 +321,11 @@ status.isAnyBinStopLossBreached; // true if any evaluated bin blocks at least on
 status.breachedBins; // per-bin metrics, thresholds, blocksZeroForOne / blocksOneForZero
 status.secondsUntilZeroForOneResumes; // max decay seconds for token0 breaches; null if never via decay
 status.secondsUntilOneForZeroResumes;
+status.blockNumber; // every on-chain read above was taken at this block
+status.blockTimestamp; // the seconds-until figures count from this timestamp
 ```
 
-`isAnyBinStopLossBreached` means at least one bin in the pool range is breached — not that every swap is halted. On-chain stop-loss only checks bins on the swap path; use per-bin direction flags (or a quote/simulate) for a specific trade. Offline: `evaluateOracleStopLoss` with balances and watermarks you already have.
+`isAnyBinStopLossBreached` means at least one bin in the pool range is breached — not that every swap is halted. On-chain stop-loss only checks bins on the swap path; use per-bin direction flags (or a quote/simulate) for a specific trade. Offline: `evaluateOracleStopLoss` with balances and watermarks you already have; also pass `storedHighWatermark0/1` and `secondsSinceLastTouch` (from `highWatermarks` and `lastDecayTs`) so the resume estimate follows the contract's decay from the stored watermark. The `secondsUntil…Resumes` figures predict when the evaluated condition (metric below the drawdown floor of the decayed watermark) clears if the inputs stay fixed; they do not guarantee that a swap will execute then, because a swap changes its own bin and other bins on its path may be breached. `bidPriceX64` / `askPriceX64` are yours and are not read at `status.blockNumber`, so they may not describe the same snapshot.
 
 ## Oracle registration
 

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Stop-loss resume estimates now use linear decay from stored watermarks when reading pool status, avoiding a compounded-decay overestimate for idle bins. Status reads share a block and return its number and timestamp; RPC endpoints must support reads at that block. Offline callers can supply stored watermarks and elapsed time, or retain the existing approximation by omitting them.
+
 ## [0.7.4] - 2026-11-19
 
 ### Added

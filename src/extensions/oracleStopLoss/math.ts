@@ -172,32 +172,57 @@ export function isStopLossMetricBreached(
  * - `0n` — already clear (or drawdown disabled)
  * - `null` — cannot clear via decay (`decayPerSecondE18 === 0` while breached)
  *
- * `hwm` should be the *current* (already decayed) watermark, e.g. from
- * `currentHighWatermarks`.
+ * `hwm` is the *current* (already decayed) watermark. On-chain, decay is linear in the time since
+ * the bin's last watermark write, measured from the *stored* watermark, so decaying `hwm` again
+ * compounds two decays and overstates the wait by about `1 / (1 - rate * elapsed / 1e18)`.
+ * Pass `storedHwm` (`highWatermarks(pool, bin)`) together with `elapsedSinceTouchSeconds` (the
+ * evaluation time minus that entry's `lastDecayTs`) to measure from the stored value, as the
+ * contract does. Passing neither keeps the earlier behaviour; passing only one throws.
+ *
+ * With consistent stored/current watermark inputs, under fixed inputs (metric, drawdown, decay
+ * rate, stored watermark), the result is the smallest number of seconds after the evaluation
+ * time at which this condition no longer holds. Without stored information it retains the legacy
+ * estimate, which may overstate the remaining time.
+ * It does not guarantee that a swap will execute then: a swap changes bin balances, other bins on
+ * its path may be breached, and prices are the caller's.
  */
 export function secondsUntilStopLossClears(params: {
   metric: bigint;
   hwm: bigint;
   drawdownE6: bigint | number;
   decayPerSecondE18: bigint | number;
+  /** Stored (not yet decayed) watermark. Use with `elapsedSinceTouchSeconds`. */
+  storedHwm?: bigint;
+  /** Seconds between the bin's last watermark write and the evaluation time. */
+  elapsedSinceTouchSeconds?: bigint | number;
 }): bigint | null {
   const drawdown = BigInt(params.drawdownE6);
   const rate = BigInt(params.decayPerSecondE18);
   const { metric, hwm } = params;
+
+  const hasStored = params.storedHwm !== undefined;
+  const hasElapsed = params.elapsedSinceTouchSeconds !== undefined;
+  if (hasStored !== hasElapsed) {
+    throw new Error("storedHwm and elapsedSinceTouchSeconds must be provided together");
+  }
 
   if (drawdown === 0n || !isStopLossMetricBreached(metric, hwm, drawdown)) {
     return 0n;
   }
   if (rate === 0n) return null;
 
+  const base = hasStored ? params.storedHwm! : hwm;
+  const elapsed = hasElapsed ? BigInt(params.elapsedSinceTouchSeconds!) : 0n;
+
   // When rate * dt >= 1e18, watermark decays to 0 and the floor is 0.
-  const maxDt = (STOP_LOSS_E18 + rate - 1n) / rate;
+  const fullDecay = (STOP_LOSS_E18 + rate - 1n) / rate;
+  const maxDt = fullDecay > elapsed ? fullDecay - elapsed : 0n;
 
   let lo = 0n;
   let hi = maxDt;
   while (lo < hi) {
     const mid = (lo + hi) / 2n;
-    const decayed = decayedHighWatermark(hwm, rate, mid);
+    const decayed = decayedHighWatermark(base, rate, elapsed + mid);
     if (isStopLossMetricBreached(metric, decayed, drawdown)) {
       lo = mid + 1n;
     } else {
